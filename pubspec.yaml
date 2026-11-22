@@ -1,0 +1,35 @@
+name: shikkhaai_mobile
+description: ShikkhaAI mobile app for SSC/HSC students, teachers and parents in Bangladesh.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.14.0
+  flutter: ">=3.50.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Since Flutter 3.47, Material lives in its own package (package:material_ui/material_ui.dart)
+  # instead of package:flutter/material.dart.
+  material_ui: ^1.11.1
+  flutter_riverpod: ^3.5.0
+  go_router: ^18.1.4
+  dio: ^5.11.1
+  flutter_secure_storage: ^11.2.0
+  google_fonts: ^9.0.0
+  # Version is pinned by the Flutter SDK's localization support.
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.5
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/illustrations/
