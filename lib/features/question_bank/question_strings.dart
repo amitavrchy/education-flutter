@@ -31,6 +31,7 @@ abstract final class QStrings {
   static const newSet = Tr('নতুন সেট', 'New set');
   static const setName = Tr('সেটের নাম', 'Set name');
   static const addedToSet = Tr('সেটে যোগ হয়েছে', 'Added to set');
+  static const saveToNotes = Tr('নোটে সংরক্ষণ', 'Save to notes');
   static const printView = Tr('প্রিন্ট ভিউ', 'Print view');
   static const printNote = Tr(
     'প্রিন্ট-উপযোগী লেআউট। ডেমোতে প্রিন্টার সংযোগ নেই — স্ক্রিনশট বা PDF হিসেবে সংরক্ষণ করুন।',

@@ -35,14 +35,15 @@ notifications inbox, shared widgets. Left uncompiled mid-refactor without progre
 - Student navigation restructured; Practice hub; grouped More menu; full route table.
 - Created FEATURE_MATRIX.md and this file.
 
+- Question bank + practice sessions + bookmarks/sets (commit 4f437ef).
+- Exam system: centre, setup, timed taking with recovery, scoring, results, history (2163ab8).
+- AI tutor: mock RAG engine, 10 modes, streaming chat, conversation tools (eb2b151).
+- Notes (generator, editor, history, links) and flashcards (SM-2, decks, study) + tutor/note/question conversions.
+
 ## Next (in order)
-1. Question bank + practice session (all question types, answer UI, bookmarks, report)
-2. Exams (setup, taking, results, history) → feed `learningProgressProvider`
-3. AI tutor (conversations, mock RAG engine, modes, streaming, conversions)
-4. Dashboard on live data
-5. Notes, flashcards (spaced repetition)
-6. Planner; analytics/adaptive screen; gamification screen
-7. Board + institution archives; search
-8. Voice tutor, photo solver, handwriting, library, labs, English, audio, offline
-9. Onboarding/signup/OTP/role switcher; profile/subscription/privacy/support
-10. Parent + teacher views; contracts/ JSON schemas; remaining docs (spec §57)
+1. Dashboard on live data
+2. Planner; analytics/adaptive screen; gamification screen
+3. Board + institution archives; search
+4. Voice tutor, photo solver, handwriting, library, labs, English, audio, offline
+5. Onboarding/signup/OTP/role switcher; profile/subscription/privacy/support
+6. Parent + teacher views; contracts/ JSON schemas; remaining docs (spec §57)

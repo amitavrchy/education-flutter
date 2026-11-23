@@ -48,14 +48,14 @@ generic with retry).
 
 | ID | Feature | Status | Notes |
 |---|---|---|---|
-| TUT-01 | Conversations: new, history, search, rename, delete, pin, archive, folders, grouping | ⬜ | |
-| TUT-02 | Messages: timestamps, markdown, math, code, tables, copy, regenerate, edit | ⬜ | `RichContent` renderer ready |
-| TUT-03 | Context selection (level, class, subject, paper, chapter, topic, version, language, mode) | ⬜ | Deep links carry subject/chapter/topic |
-| TUT-04 | 10 teaching modes, each with distinct mock behaviour | ⬜ | |
-| TUT-05 | Mock RAG: source cards, viewer with highlight, verification levels | ⬜ | |
-| TUT-06 | Follow-ups, feedback, report, teacher review, confidence, old-curriculum warning | ⬜ | |
-| TUT-07 | Convert to notes / quiz / flashcards, export, share | ⬜ | |
-| TUT-08 | Simulated streaming, retry, offline/error | ⬜ | `MockSimulator.stream` ready |
+| TUT-01 | Conversations: new, history, search, rename, delete, pin, archive, folders; group by date/subject/chapter/folder | ✅ U | `AiTutorScreen`, `TutorController` |
+| TUT-02 | Messages: timestamps, markdown, math, code, tables, copy, regenerate (with correction history), edit question | ✅ U/W | |
+| TUT-03 | Context sheet: level, class, subject, paper, chapter, topic, curriculum version, language (bn/en/mixed), mode; chips show active context; deep links from curriculum/questions | ✅ U | context changes retrieval (tested) |
+| TUT-04 | 10 teaching modes with distinct output (incl. Socratic, board answer, oral exam grading, English coach corrections) | ✅ U | |
+| TUT-05 | Mock RAG over 19 original sample-textbook passages; source cards; viewer with highlight; verified / partial / general / unavailable + simulated label | ✅ U/W | |
+| TUT-06 | Follow-ups, related questions, 👍/👎, bookmark, report, teacher review queue, confidence, low-confidence / missing / conflicting / old-curriculum warnings, integrity + off-topic safety | ✅ U | |
+| TUT-07 | Convert to notes / quiz / flashcards; Markdown export (clipboard); safe share (name hidden by default, simulated link) | ✅ U | |
+| TUT-08 | Simulated streaming, stop, retry, offline/error states, interrupted-stream recovery | ✅ U | |
 
 ## M04 Voice tutor (§9) · M05 Image solver (§10)
 
@@ -105,9 +105,14 @@ generic with retry).
 | ID | Feature | Status |
 |---|---|---|
 | PLAN-01..29 | Daily/weekly/monthly plans, calendar, timeline, tasks, reschedule, generation, insights | ⬜ |
-| ADAPT-01..23 | Mastery by topic/subject (model ✅), trends, heatmap, weak/strong, roadmap, recommendations | 🟡 (model only) |
-| FC-01..22 | Decks, sources (chapter/notes/chat/wrong answers), flip, ratings, SM-2-style queue, stats | ⬜ |
-| NOTE-01..24 | Notes dashboard, generate (chapter/topic/question/chat), types, editor, folders, tags, export | ⬜ |
+| ADAPT-01..23 | Mastery by topic/subject (model ✅), trends, heatmap, weak/strong, roadmap, recommendations | 🟡 (model + exam weak areas) |
+| FC-01 | Decks: manual, from chapter (AI), notes, conversation, wrong answers; rename/delete | ✅ U |
+| FC-02 | Cards: add/edit/delete, bookmark, search, filter (due/new/bookmarked/learned) | ✅ |
+| FC-03 | Study mode with flip animation (reduced-motion aware), again/hard/good/easy with interval preview, known/unknown, quick review (no scheduling), daily queue across decks, stats | ✅ U/W |
+| FC-04 | Deterministic simplified SM-2 scheduler | ✅ U |
+| NOTE-01 | Dashboard: search, folders, tags, favourites, chapter filter | ✅ |
+| NOTE-02 | Generate (simulated AI) from chapter / topic / question / conversation / upload (file validation); 7 note types | ✅ U |
+| NOTE-03 | Editor: markdown toolbar, preview, autosave, version history + restore, linking, tags, folder, copy, printable/PDF view | ✅ U |
 
 ## M17 English coach (§22) · M18 Labs (§23) · M19 Audio (§24) · M20 Gamification (§25) · M21 Offline (§26)
 

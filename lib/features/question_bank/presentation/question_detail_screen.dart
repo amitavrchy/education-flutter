@@ -14,6 +14,7 @@ import '../../../shared/widgets/feedback.dart';
 import '../../../shared/widgets/rich_content.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../curriculum/data/curriculum_repository.dart';
+import '../../notes/application/notes_controller.dart';
 import '../application/practice_controller.dart';
 import '../data/question_repository.dart';
 import '../domain/question.dart';
@@ -59,6 +60,7 @@ class QuestionDetailScreen extends ConsumerWidget {
             onSelected: (v) => _menu(context, ref, q, v),
             itemBuilder: (context) => [
               PopupMenuItem(value: 'set', child: ListTile(leading: const Icon(Icons.playlist_add), title: Text(context.tr(QStrings.addToSet)))),
+              PopupMenuItem(value: 'note', child: ListTile(leading: const Icon(Icons.note_add_outlined), title: Text(context.tr(QStrings.saveToNotes)))),
               PopupMenuItem(value: 'copy', child: ListTile(leading: const Icon(Icons.copy), title: Text(context.tr(S.copy)))),
               PopupMenuItem(value: 'print', child: ListTile(leading: const Icon(Icons.print_outlined), title: Text(context.tr(QStrings.printView)))),
               PopupMenuItem(value: 'report', child: ListTile(leading: const Icon(Icons.flag_outlined), title: Text(context.tr(S.report)))),
@@ -78,6 +80,9 @@ class QuestionDetailScreen extends ConsumerWidget {
     switch (action) {
       case 'set':
         await showAddToSetSheet(context, ref, q.id);
+      case 'note':
+        final note = await ref.read(notesProvider.notifier).generateFromQuestion(q, context.lang);
+        if (context.mounted) await context.push(AppRoutes.note(note.id));
       case 'copy':
         final lang = context.lang;
         final text = [

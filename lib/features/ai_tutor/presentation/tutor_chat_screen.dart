@@ -11,6 +11,9 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/badges.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/feedback.dart';
+import '../../flashcards/application/flashcards_controller.dart';
+import '../../flashcards/flashcard_strings.dart';
+import '../../notes/application/notes_controller.dart';
 import '../../profile/application/student_profile_controller.dart';
 import '../../question_bank/application/practice_controller.dart';
 import '../application/tutor_controller.dart';
@@ -18,13 +21,6 @@ import '../domain/tutor_models.dart';
 import '../tutor_strings.dart';
 import 'ai_tutor_screen.dart';
 import 'widgets/tutor_widgets.dart';
-
-/// Hook for converting a conversation into another module's content (notes, flashcards).
-/// Registered by those modules so the tutor does not depend on them.
-typedef ConversationConverter = Future<String?> Function(WidgetRef ref, Conversation c);
-
-final conversationToNoteProvider = Provider<ConversationConverter?>((ref) => null);
-final conversationToFlashcardsProvider = Provider<ConversationConverter?>((ref) => null);
 
 /// Chat with the simulated tutor: active context chips, mode switch, streaming answers,
 /// message actions and conversation tools (export, share, quiz, notes, flashcards).
@@ -189,13 +185,16 @@ class _TutorChatScreenState extends ConsumerState<TutorChatScreen> {
         final set = await ref.read(practiceProvider.notifier).createSet('Quiz: ${c.title}', questionIds: ids);
         if (mounted) await context.push(Uri(path: '/practice-session', queryParameters: {'mode': 'set', 'set': set.id}).toString());
       case 'notes':
-        final convert = ref.read(conversationToNoteProvider);
-        final route = convert == null ? null : await convert(ref, c);
-        if (route != null && mounted) await context.push(route);
+        final note = await ref.read(notesProvider.notifier).generateFromConversation(c, context.lang);
+        if (mounted) await context.push(AppRoutes.note(note.id));
       case 'cards':
-        final convert = ref.read(conversationToFlashcardsProvider);
-        final route = convert == null ? null : await convert(ref, c);
-        if (route != null && mounted) await context.push(route);
+        final deck = await ref.read(flashcardsProvider.notifier).generateFromConversation(c, context.lang);
+        if (!mounted) return;
+        if (deck == null) {
+          context.showSnack(FcStrings.noCardsGenerated);
+        } else {
+          await context.push('/flashcards/deck/${deck.id}');
+        }
       case 'export':
         await Clipboard.setData(ClipboardData(text: conversationMarkdown(c)));
         if (mounted) context.showSnack(TutorStrings.exportDone);

@@ -16,6 +16,10 @@ import '../../features/exams/presentation/exam_center_screen.dart';
 import '../../features/exams/presentation/exam_result_screen.dart';
 import '../../features/exams/presentation/exam_setup_screen.dart';
 import '../../features/exams/presentation/exam_take_screen.dart';
+import '../../features/flashcards/presentation/flashcard_study_screen.dart';
+import '../../features/flashcards/presentation/flashcards_screen.dart';
+import '../../features/notes/presentation/note_editor_screen.dart';
+import '../../features/notes/presentation/notes_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/question_bank/application/practice_controller.dart';
 import '../../features/question_bank/presentation/bookmarks_screen.dart';
@@ -141,8 +145,22 @@ List<RouteBase> _moduleRoutes() => [
   ),
   GoRoute(path: '/exam/:id', builder: (context, state) => ExamTakeScreen(attemptId: state.pathParameters['id']!)),
   GoRoute(path: AppRoutes.analytics, builder: (context, state) => _pending('অগ্রগতি', Icons.insights_outlined)),
-  GoRoute(path: '/notes', builder: (context, state) => _pending('নোটস', Icons.sticky_note_2_outlined)),
-  GoRoute(path: '/flashcards', builder: (context, state) => _pending('ফ্ল্যাশকার্ড', Icons.style_outlined)),
+  GoRoute(
+    path: '/notes',
+    builder: (context, state) => NotesScreen(chapterId: _param(state, 'chapter')),
+    routes: [GoRoute(path: ':id', builder: (context, state) => NoteEditorScreen(noteId: state.pathParameters['id']!))],
+  ),
+  GoRoute(
+    path: '/flashcards',
+    builder: (context, state) => FlashcardsScreen(chapterId: _param(state, 'chapter')),
+    routes: [
+      GoRoute(path: 'deck/:id', builder: (context, state) => DeckScreen(deckId: state.pathParameters['id']!)),
+      GoRoute(
+        path: 'study/:id',
+        builder: (context, state) => FlashcardStudyScreen(deckId: state.pathParameters['id']!, quick: _param(state, 'mode') == 'quick'),
+      ),
+    ],
+  ),
   GoRoute(path: AppRoutes.planner, builder: (context, state) => _pending('স্টাডি প্ল্যানার', Icons.calendar_month_outlined)),
   GoRoute(path: AppRoutes.library, builder: (context, state) => _pending('লাইব্রেরি', Icons.local_library_outlined)),
   GoRoute(path: AppRoutes.boardArchive, builder: (context, state) => _pending('বোর্ড প্রশ্ন', Icons.history_edu_outlined)),
