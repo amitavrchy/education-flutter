@@ -73,17 +73,19 @@ generic with retry).
 | CUR-03 | Chapter detail: description, duration, difficulty, relevance, prerequisites, outcomes, history | ✅ | — |
 | CUR-04 | Topic lesson, mark complete (XP + activity), next topic, quick check, ask tutor | ✅ | — |
 | CUR-05 | Continue / resume learning | ✅ | — |
-| CUR-06 | Resource / question counts per chapter | ⬜ | needs question bank |
+| CUR-06 | Resource / question counts per chapter | ⬜ | question bank now exists; counts not yet shown |
 
 ## M07 Textbook library (§12) · M08 Question bank (§13) · M09 Board archive (§14) · M10 Institution archive (§15)
 
 | ID | Feature | Status |
 |---|---|---|
 | LIB-01..27 | Browse/filter books, reader, TOC, page nav, zoom, bookmarks, page notes, highlights, ask AI, history | ⬜ |
-| QB-01 | Question model: all 16 types incl. CQ ক/খ/গ/ঘ | ⬜ |
-| QB-02 | Browse/filter/sort (class, subject, chapter, topic, outcome, difficulty, type, source, year, board, marks, verified, relevance) | ⬜ |
-| QB-03 | Answer reveal, explanation, steps, rubric, citations, mark right/wrong | ⬜ |
-| QB-04 | Bookmark, practice set, report, copy, print view, history, reattempt wrong | ⬜ |
+| QB-01 | Question model: 15 types incl. CQ ক/খ/গ/ঘ, matching, fill-in, proof, case/passage | ✅ U |
+| QB-02 | Browse/filter/sort (subject, chapter, type, difficulty, source, year, board, marks, verified, relevance, search; recent/difficulty/frequency), pagination | ✅ U |
+| QB-03 | Answer reveal, explanation, steps, alt method, rubric, citations, self-mark right/wrong | ✅ |
+| QB-04 | Bookmark, practice sets CRUD, report, copy, print view, history, reattempt wrong, topic coverage, related | ✅ U/W |
+| QB-05 | Practice session: quick / daily (weak topics) / mixed / wrong / bookmarks / set; instant check; updates mastery + XP | ✅ U/W |
+| QB-06 | Image/diagram assets inside questions | ⬜ (diagram questions are text-described) |
 | BOARD-01..25 | Board/year/subject explorer, paper viewer, solutions, frequency analysis, timed paper, authenticity labels | ⬜ |
 | INST-01..18 | Institution directory, filters, papers, categories, visibility, duplicates, report | ⬜ |
 
@@ -91,10 +93,11 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| EXAM-01 | 13 exam types | ⬜ |
-| EXAM-02 | Setup (subject, chapter, types, count, difficulty, time, marks, negative marking, mode, randomise, review policy) | ⬜ |
-| EXAM-03 | Taking: focus mode, timer, palette, mark for review, autosave, recovery, submit confirm, time-up | ⬜ |
-| EXAM-04 | Results: score, analysis by question/topic/difficulty, weak areas, recommendations, retake, history | ⬜ |
+| EXAM-01 | 13 exam types (templates seeded for model, daily, teacher, institution, board-sample, full, oral; chapter/subject/custom/adaptive from setup) | ✅ |
+| EXAM-02 | Setup: subject, chapters, types, count, difficulty, time, negative marking, mode, randomise, review policy; live pool validation | ✅ |
+| EXAM-03 | Taking: immersive focus mode, timer + autosave, palette, mark for review, prev/next, keyboard shortcuts, written editor, handwritten photo upload, submit confirm, time-up auto-submit, recovery | ✅ U/W |
+| EXAM-04 | Results: score, grade/GPA, counts, time, accuracy, difficulty/topic analysis, question review, weak areas → lessons/practice, teacher feedback, retake, printable, history + trend chart | ✅ U/W |
+| EXAM-05 | Submit propagates to practice history, mastery, study log/XP and a result notification | ✅ U |
 | HW-01..22 | Upload pages, reorder, simulated OCR, correction, rubric score, AI vs teacher vs official marks | ⬜ |
 
 ## M13 Planner (§18) · M14 Adaptive learning (§19) · M15 Flashcards (§20) · M16 Notes (§21)
@@ -141,7 +144,7 @@ generic with retry).
 |---|---|---|
 | X-01 | Bangla/English UI via `Tr` dictionaries | 🟡 older screens (login, dashboards) still hard-code Bangla |
 | X-02 | Accessibility: semantics on cards, progress, banners; text scaling; reduced motion | 🟡 |
-| X-03 | Mock data consistency (exam → analytics, completion → progress, bookmarks, notes) | 🟡 completion → progress ✅ |
+| X-03 | Mock data consistency (exam → analytics, completion → progress, bookmarks, notes) | 🟡 completion/practice/exam → progress ✅, exam → notification ✅ |
 | X-04 | Platform-neutral contracts (`contracts/*.schema.json`) | ⬜ |
 | X-05 | Docs set from spec §57 (mobile subset) | 🟡 this file + PROGRESS.md |
 

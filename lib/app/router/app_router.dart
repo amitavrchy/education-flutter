@@ -11,6 +11,10 @@ import '../../features/auth/presentation/unsupported_role_screen.dart';
 import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
 import '../../features/curriculum/presentation/topic_screen.dart';
+import '../../features/exams/presentation/exam_center_screen.dart';
+import '../../features/exams/presentation/exam_result_screen.dart';
+import '../../features/exams/presentation/exam_setup_screen.dart';
+import '../../features/exams/presentation/exam_take_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/question_bank/application/practice_controller.dart';
 import '../../features/question_bank/presentation/bookmarks_screen.dart';
@@ -74,10 +78,16 @@ List<RouteBase> _tabChildRoutes(PortalConfig config, PortalTab tab) {
       GoRoute(path: 'bookmarks', builder: (context, state) => const BookmarksScreen()),
       GoRoute(
         path: 'exams',
-        builder: (context, state) => _pending('পরীক্ষা কেন্দ্র', Icons.assignment_outlined),
-        routes: [GoRoute(path: 'new', builder: (context, state) => _pending('নতুন পরীক্ষা', Icons.add))],
+        builder: (context, state) => const ExamCenterScreen(),
+        routes: [GoRoute(path: 'new', builder: (context, state) => const ExamSetupScreen())],
       ),
-      GoRoute(path: 'results', builder: (context, state) => _pending('ফলাফল', Icons.leaderboard_outlined)),
+      GoRoute(
+        path: 'results',
+        builder: (context, state) => const ExamResultsScreen(),
+        routes: [
+          GoRoute(path: ':id', builder: (context, state) => ExamResultScreen(attemptId: state.pathParameters['id']!)),
+        ],
+      ),
     ],
     _ => const [],
   };
@@ -119,7 +129,7 @@ List<RouteBase> _moduleRoutes() => [
       ),
     ),
   ),
-  GoRoute(path: '/exam/:id', builder: (context, state) => _pending('পরীক্ষা', Icons.timer_outlined)),
+  GoRoute(path: '/exam/:id', builder: (context, state) => ExamTakeScreen(attemptId: state.pathParameters['id']!)),
   GoRoute(path: AppRoutes.analytics, builder: (context, state) => _pending('অগ্রগতি', Icons.insights_outlined)),
   GoRoute(path: '/notes', builder: (context, state) => _pending('নোটস', Icons.sticky_note_2_outlined)),
   GoRoute(path: '/flashcards', builder: (context, state) => _pending('ফ্ল্যাশকার্ড', Icons.style_outlined)),
