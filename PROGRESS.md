@@ -40,9 +40,19 @@ notifications inbox, shared widgets. Left uncompiled mid-refactor without progre
 - AI tutor: mock RAG engine, 10 modes, streaming chat, conversation tools (eb2b151).
 - Notes (generator, editor, history, links) and flashcards (SM-2, decks, study) + tutor/note/question conversions.
 
+- Session 3 stopped at the usage limit while building the study planner
+  (`lib/features/planner/`, router entry, tests) — committed as WIP, **unverified, run
+  `flutter analyze` + `flutter test` first**.
+
+## Continue on another PC
+1. `git clone https://github.com/amitavrchy/education-flutter.git && cd education-flutter`
+2. `flutter pub get && flutter analyze && flutter test` (do not change the global Flutter SDK)
+3. Start Claude Code in the repo and say: *"Read docs/MASTER_PROMPT.md, PROGRESS.md and
+   docs/product/FEATURE_MATRIX.md; continue implementing the remaining incomplete features."*
+
 ## Next (in order)
 1. Dashboard on live data
-2. Planner; analytics/adaptive screen; gamification screen
+2. Planner (WIP — finish first); analytics/adaptive screen; gamification screen
 3. Board + institution archives; search
 4. Voice tutor, photo solver, handwriting, library, labs, English, audio, offline
 5. Onboarding/signup/OTP/role switcher; profile/subscription/privacy/support

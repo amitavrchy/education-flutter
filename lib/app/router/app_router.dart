@@ -21,6 +21,7 @@ import '../../features/flashcards/presentation/flashcards_screen.dart';
 import '../../features/notes/presentation/note_editor_screen.dart';
 import '../../features/notes/presentation/notes_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/planner/presentation/planner_screen.dart';
 import '../../features/question_bank/application/practice_controller.dart';
 import '../../features/question_bank/presentation/bookmarks_screen.dart';
 import '../../features/question_bank/presentation/practice_session_screen.dart';
@@ -161,7 +162,7 @@ List<RouteBase> _moduleRoutes() => [
       ),
     ],
   ),
-  GoRoute(path: AppRoutes.planner, builder: (context, state) => _pending('স্টাডি প্ল্যানার', Icons.calendar_month_outlined)),
+  GoRoute(path: AppRoutes.planner, builder: (context, state) => const PlannerScreen()),
   GoRoute(path: AppRoutes.library, builder: (context, state) => _pending('লাইব্রেরি', Icons.local_library_outlined)),
   GoRoute(path: AppRoutes.boardArchive, builder: (context, state) => _pending('বোর্ড প্রশ্ন', Icons.history_edu_outlined)),
   GoRoute(path: AppRoutes.institutionArchive, builder: (context, state) => _pending('স্কুল-কলেজের প্রশ্ন', Icons.account_balance_outlined)),
