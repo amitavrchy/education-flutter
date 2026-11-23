@@ -3,7 +3,7 @@
 /// Android emulator reaches the host machine's localhost at 10.0.2.2;
 /// iOS simulator and desktop use localhost directly.
 abstract final class Env {
-  static const String appName = String.fromEnvironment('APP_NAME', defaultValue: 'ShikkhaAI');
+  static const String appName = String.fromEnvironment('APP_NAME', defaultValue: 'EduMentor AI');
 
   /// Base URL of the ShikkhaAI backend, including the version prefix.
   static const String apiBaseUrl = String.fromEnvironment(

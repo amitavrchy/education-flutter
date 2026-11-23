@@ -1,24 +1,36 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../app/router/app_routes.dart';
 import '../../../core/config/env.dart';
+import '../../../core/l10n/common_strings.dart';
+import '../../../core/l10n/tr.dart';
+import '../../../core/settings/app_settings.dart';
+import '../../../core/storage/local_store.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/theme_mode_controller.dart';
 import '../../../shared/widgets/app_page_scaffold.dart';
+import '../../../shared/widgets/feedback.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/app_user.dart';
+import '../settings_strings.dart';
 
+/// Device settings: appearance, language, accessibility, demo tools, storage and account.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
-    final themeMode = ref.watch(themeModeProvider);
+    final settings = ref.watch(appSettingsProvider);
+    final controller = ref.read(appSettingsProvider.notifier);
     final user = auth is Authenticated ? auth.user : null;
+    final store = ref.watch(localStoreProvider);
 
     return AppPageScaffold(
-      title: 'সেটিংস',
+      title: context.tr(S.settings),
       showShortcuts: false,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -29,35 +41,172 @@ class SettingsScreen extends ConsumerWidget {
                 leading: const CircleAvatar(child: Icon(Icons.person_outline)),
                 title: Text(user.name),
                 subtitle: Text('${user.role.labelBn} · ${user.email ?? user.phone ?? ''}'),
+                trailing: user.role == UserRole.student ? const Icon(Icons.chevron_right) : null,
+                onTap: user.role == UserRole.student ? () => context.push(AppRoutes.profile) : null,
               ),
             ),
-          const SectionHeader(title: 'থিম'),
+          SectionHeader(title: context.tr(SettingsStrings.appearance)),
           SegmentedButton<ThemeMode>(
-            segments: const [
-              ButtonSegment(value: ThemeMode.light, label: Text('লাইট'), icon: Icon(Icons.light_mode_outlined)),
-              ButtonSegment(value: ThemeMode.system, label: Text('সিস্টেম'), icon: Icon(Icons.brightness_auto_outlined)),
-              ButtonSegment(value: ThemeMode.dark, label: Text('ডার্ক'), icon: Icon(Icons.dark_mode_outlined)),
+            segments: [
+              ButtonSegment(
+                value: ThemeMode.light,
+                label: Text(context.tr(SettingsStrings.light)),
+                icon: const Icon(Icons.light_mode_outlined),
+              ),
+              ButtonSegment(
+                value: ThemeMode.system,
+                label: Text(context.tr(SettingsStrings.system)),
+                icon: const Icon(Icons.brightness_auto_outlined),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                label: Text(context.tr(SettingsStrings.dark)),
+                icon: const Icon(Icons.dark_mode_outlined),
+              ),
             ],
-            selected: {themeMode},
-            onSelectionChanged: (selection) =>
-                ref.read(themeModeProvider.notifier).set(selection.first),
+            selected: {settings.themeMode},
+            onSelectionChanged: (selection) => controller.setThemeMode(selection.first),
           ),
-          const SectionHeader(title: 'অ্যাপ'),
+          SectionHeader(title: context.tr(SettingsStrings.language)),
+          SegmentedButton<AppLanguage>(
+            key: const Key('settings.language'),
+            segments: [
+              for (final lang in AppLanguage.values)
+                ButtonSegment(value: lang, label: Text(lang.nativeName)),
+            ],
+            selected: {settings.language},
+            onSelectionChanged: (selection) => controller.setLanguage(selection.first),
+          ),
+          SectionHeader(title: context.tr(SettingsStrings.accessibility)),
+          Card(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(context.tr(SettingsStrings.textSize), style: context.text.bodyLarge)),
+                      Text('${context.n((settings.textScale * 100).round())}%', style: context.text.labelLarge),
+                    ],
+                  ),
+                ),
+                Slider(
+                  value: settings.textScale,
+                  min: 0.85,
+                  max: 1.4,
+                  divisions: 11,
+                  label: '${context.n((settings.textScale * 100).round())}%',
+                  onChanged: (v) => controller.update((s) => s.copyWith(textScale: v)),
+                ),
+                SwitchListTile(
+                  title: Text(context.tr(SettingsStrings.highContrast)),
+                  subtitle: Text(context.tr(SettingsStrings.highContrastHint)),
+                  value: settings.highContrast,
+                  onChanged: (v) => controller.update((s) => s.copyWith(highContrast: v)),
+                ),
+                SwitchListTile(
+                  title: Text(context.tr(SettingsStrings.reducedMotion)),
+                  subtitle: Text(context.tr(SettingsStrings.reducedMotionHint)),
+                  value: settings.reducedMotion,
+                  onChanged: (v) => controller.update((s) => s.copyWith(reducedMotion: v)),
+                ),
+                SwitchListTile(
+                  title: Text(context.tr(SettingsStrings.banglaDigits)),
+                  subtitle: Text(context.tr(SettingsStrings.banglaDigitsHint)),
+                  value: settings.banglaDigits,
+                  onChanged: (v) => controller.update((s) => s.copyWith(banglaDigits: v)),
+                ),
+              ],
+            ),
+          ),
+          SectionHeader(title: context.tr(SettingsStrings.motivation)),
+          Card(
+            child: SwitchListTile(
+              title: Text(context.tr(SettingsStrings.hideCompetitive)),
+              subtitle: Text(context.tr(SettingsStrings.hideCompetitiveHint)),
+              value: settings.hideCompetitive,
+              onChanged: (v) => controller.update((s) => s.copyWith(hideCompetitive: v)),
+            ),
+          ),
+          SectionHeader(title: context.tr(SettingsStrings.demoTools)),
+          Card(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
+                  child: Text(
+                    context.tr(SettingsStrings.demoToolsHint),
+                    style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
+                  ),
+                ),
+                SwitchListTile(
+                  key: const Key('settings.offline'),
+                  secondary: const Icon(Icons.cloud_off_outlined),
+                  title: Text(context.tr(SettingsStrings.simulateOffline)),
+                  value: settings.simulateOffline,
+                  onChanged: (v) => controller.update((s) => s.copyWith(simulateOffline: v)),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.bug_report_outlined),
+                  title: Text(context.tr(SettingsStrings.simulateErrors)),
+                  value: settings.simulateErrors,
+                  onChanged: (v) => controller.update((s) => s.copyWith(simulateErrors: v)),
+                ),
+              ],
+            ),
+          ),
+          SectionHeader(title: context.tr(SettingsStrings.storage)),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.storage_outlined),
+                  title: Text(
+                    context.tr(SettingsStrings.storageUsed.fill({'n': (store.approximateBytes / 1024).ceil()})),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.restart_alt, color: context.palette.danger),
+                  title: Text(context.tr(SettingsStrings.resetDemo)),
+                  onTap: () => _resetDemo(context, ref),
+                ),
+              ],
+            ),
+          ),
+          SectionHeader(title: context.tr(SettingsStrings.about)),
           Card(
             child: ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('সংস্করণ'),
-              subtitle: Text('0.1.0 · ${Env.useMockApi ? 'ডেমো মোড' : Env.apiBaseUrl}'),
+              title: Text(context.tr(SettingsStrings.version)),
+              subtitle: Text('0.2.0 · ${Env.useMockApi ? context.tr(SettingsStrings.demoMode) : Env.apiBaseUrl}'),
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
           OutlinedButton.icon(
-            onPressed: () => ref.read(authControllerProvider.notifier).logout(),
+            key: const Key('settings.logout'),
+            onPressed: () async {
+              final ok = await showConfirmDialog(context, title: SettingsStrings.logoutConfirm, confirmLabel: S.logout);
+              if (ok) await ref.read(authControllerProvider.notifier).logout();
+            },
             icon: const Icon(Icons.logout),
-            label: const Text('লগআউট'),
+            label: Text(context.tr(S.logout)),
           ),
+          const SizedBox(height: AppSpacing.xl),
         ],
       ),
     );
+  }
+
+  Future<void> _resetDemo(BuildContext context, WidgetRef ref) async {
+    final ok = await showConfirmDialog(
+      context,
+      title: SettingsStrings.resetDemo,
+      message: SettingsStrings.resetDemoMessage,
+      destructive: true,
+    );
+    if (!ok) return;
+    await ref.read(localStoreProvider).clearAll(keep: {AppSettingsController.collection, 'profile'});
+    ref.read(dataEpochProvider.notifier).bump();
+    if (context.mounted) context.showSnack(SettingsStrings.resetDone);
   }
 }

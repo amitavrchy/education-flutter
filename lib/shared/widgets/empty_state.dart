@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
+/// Centered icon + title + message + optional action. Base of every state view.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -9,41 +11,53 @@ class EmptyState extends StatelessWidget {
     this.message,
     this.icon = Icons.inbox_outlined,
     this.action,
+    this.iconColor,
+    this.compact = false,
   });
 
   final String title;
   final String? message;
   final IconData icon;
   final Widget? action;
+  final Color? iconColor;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              child: Icon(icon, size: 32, color: theme.colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(title, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
-            if (message != null) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                message!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+        padding: EdgeInsets.all(compact ? AppSpacing.lg : AppSpacing.xl),
+        child: Semantics(
+          container: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: compact ? 48 : 72,
+                height: compact ? 48 : 72,
+                decoration: BoxDecoration(
+                  color: (iconColor ?? colors.primary).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                textAlign: TextAlign.center,
+                child: Icon(icon, size: compact ? 24 : 34, color: iconColor ?? colors.primary),
               ),
+              SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
+              Text(title, style: context.text.titleMedium, textAlign: TextAlign.center),
+              if (message != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Text(
+                    message!,
+                    style: context.text.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+              if (action != null) ...[const SizedBox(height: AppSpacing.lg), action!],
             ],
-            if (action != null) ...[const SizedBox(height: AppSpacing.lg), action!],
-          ],
+          ),
         ),
       ),
     );

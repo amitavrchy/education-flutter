@@ -18,6 +18,45 @@ class ApiException implements Exception {
     DioExceptionType.connectionError,
   };
 
+  /// Device is offline (real or simulated) and the call needs the server.
+  const ApiException.offline()
+    : statusCode = 0,
+      code = 'OFFLINE',
+      message = 'আপনি অফলাইনে আছেন। এই কাজটির জন্য ইন্টারনেট প্রয়োজন।',
+      fieldErrors = const {},
+      requestId = null;
+
+  /// Injected by the mock layer when "simulate server errors" is on.
+  const ApiException.simulated()
+    : statusCode = 500,
+      code = 'SIMULATED_ERROR',
+      message = 'সার্ভারে সমস্যা হয়েছে (সিমুলেটেড)।',
+      fieldErrors = const {},
+      requestId = null;
+
+  const ApiException.notFound([this.message = 'খুঁজে পাওয়া যায়নি।'])
+    : statusCode = 404,
+      code = 'NOT_FOUND',
+      fieldErrors = const {},
+      requestId = null;
+
+  const ApiException.forbidden([this.message = 'এই কাজের অনুমতি নেই।'])
+    : statusCode = 403,
+      code = 'FORBIDDEN',
+      fieldErrors = const {},
+      requestId = null;
+
+  const ApiException.validation(this.message, [this.fieldErrors = const {}])
+    : statusCode = 422,
+      code = 'VALIDATION_ERROR',
+      requestId = null;
+
+  const ApiException.quotaExceeded([this.message = 'আপনার প্ল্যানের সীমা শেষ হয়েছে।'])
+    : statusCode = 429,
+      code = 'QUOTA_EXCEEDED',
+      fieldErrors = const {},
+      requestId = null;
+
   factory ApiException.fromDioException(DioException error) {
     if (_networkErrorTypes.contains(error.type)) {
       return const ApiException(
@@ -65,7 +104,8 @@ class ApiException implements Exception {
   final String? requestId;
 
   bool get isUnauthorized => statusCode == 401;
-  bool get isNetworkError => code == 'NETWORK_ERROR';
+  bool get isNetworkError => code == 'NETWORK_ERROR' || code == 'OFFLINE';
+  bool get isForbidden => statusCode == 403;
 
   @override
   String toString() => 'ApiException($statusCode $code): $message';

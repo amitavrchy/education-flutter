@@ -1,0 +1,152 @@
+# Feature Matrix — EduMentor AI Flutter app
+
+Scope of **this repo**: the Flutter student app (all student features, spec §48) plus the
+mobile views for parent, teacher/reviewer and institution roles. The admin dashboard
+(spec §30–42, §46–47) and the marketing website belong to the separate web repo; they are
+listed at the end so every spec feature stays tracked.
+
+**Status legend.** A feature is ✅ only when its whole journey works against the mock layer,
+including loading, empty and error states.
+- ✅ done: journey works, persisted, states covered
+- 🟡 partial: screen exists, but some interactions or states are missing (see notes)
+- ⬜ not started: route may show the "being built" placeholder
+- 🌐 web repo: not in the mobile scope
+
+**Test column:** U = unit test, W = widget test, — = untested.
+
+Shared plumbing used by every row: `LocalStore` (Hive CE) → `JsonCollection` → mock
+repositories, with `MockSimulator` adding latency and the offline/error demo toggles.
+Loading uses skeletons through `AsyncValueView`; errors use `ErrorView` (offline, denied,
+generic with retry).
+
+## M01 Authentication & onboarding (§6)
+
+| ID | Feature | Role | Flutter screen | Mock source | Status | Test |
+|---|---|---|---|---|---|---|
+| AUTH-01 | Welcome screen | all | — | — | ⬜ | — |
+| AUTH-02 | Email / phone login with validation | all | `LoginScreen` | `MockAuthRepository` | ✅ | W |
+| AUTH-03 | Signup | student/parent | — | — | ⬜ | — |
+| AUTH-04 | Mock OTP verification | all | — | — | ⬜ | — |
+| AUTH-05 | Password recovery / reset UI | all | — | — | ⬜ | — |
+| AUTH-06 | Remember session / restore | all | `SplashScreen` | `TokenStorage` | ✅ | W |
+| AUTH-07 | Logout (with confirm) | all | Settings | — | ✅ | — |
+| AUTH-08 | Session expiry simulation (401 → sign out) | all | interceptor | — | ✅ | U |
+| AUTH-09 | Demo role switcher | all | — | — | ⬜ | — |
+| AUTH-10 | Account deletion request | student | — | — | ⬜ | — |
+| AUTH-11 | Language selection | all | Settings | `AppSettings` | ✅ | — |
+| AUTH-12 | Consent, privacy, guardian consent | student | — | — | ⬜ | — |
+| AUTH-13 | Onboarding wizard (19 fields, steps, validation, save/resume, review, completion) | student | — | `StudentProfile` (model only) | ⬜ | — |
+
+## M02 Student dashboard (§7)
+
+| ID | Feature | Status | Notes |
+|---|---|---|---|
+| DASH-01..24 | 24 widgets (greeting, goal, weekly chart, streak, recommendations, continue, exams, quick tutor, recent chats, weak topics, revision, sessions, subject performance, completion, daily quiz, saved questions, model tests, achievements, notices, subscription, calendar, notifications, resources, summary) | 🟡 | Only the greeting, hard-coded stats and quick actions exist; must read live state |
+| DASH-25 | Customise / reorder widgets | ⬜ | `AppSettings.dashboardOrder/hiddenWidgets` already persisted |
+
+## M03 AI private tutor (§8)
+
+| ID | Feature | Status | Notes |
+|---|---|---|---|
+| TUT-01 | Conversations: new, history, search, rename, delete, pin, archive, folders, grouping | ⬜ | |
+| TUT-02 | Messages: timestamps, markdown, math, code, tables, copy, regenerate, edit | ⬜ | `RichContent` renderer ready |
+| TUT-03 | Context selection (level, class, subject, paper, chapter, topic, version, language, mode) | ⬜ | Deep links carry subject/chapter/topic |
+| TUT-04 | 10 teaching modes, each with distinct mock behaviour | ⬜ | |
+| TUT-05 | Mock RAG: source cards, viewer with highlight, verification levels | ⬜ | |
+| TUT-06 | Follow-ups, feedback, report, teacher review, confidence, old-curriculum warning | ⬜ | |
+| TUT-07 | Convert to notes / quiz / flashcards, export, share | ⬜ | |
+| TUT-08 | Simulated streaming, retry, offline/error | ⬜ | `MockSimulator.stream` ready |
+
+## M04 Voice tutor (§9) · M05 Image solver (§10)
+
+| ID | Feature | Status |
+|---|---|---|
+| VOICE-01..30 | Simulated voice session state machine, waveform, transcript, modes, history, limits | ⬜ |
+| IMG-01..19 | Pick/capture, preview, rotate/crop, multi-image, validation, simulated OCR, correction, solve, save | ⬜ |
+
+## M06 Curriculum explorer (§11)
+
+| ID | Feature | Status | Test |
+|---|---|---|---|
+| CUR-01 | Subject catalogue (mine / all), search across subjects, chapters, topics | ✅ | — |
+| CUR-02 | Subject overview, papers, chapter list with mastery | ✅ | — |
+| CUR-03 | Chapter detail: description, duration, difficulty, relevance, prerequisites, outcomes, history | ✅ | — |
+| CUR-04 | Topic lesson, mark complete (XP + activity), next topic, quick check, ask tutor | ✅ | — |
+| CUR-05 | Continue / resume learning | ✅ | — |
+| CUR-06 | Resource / question counts per chapter | ⬜ | needs question bank |
+
+## M07 Textbook library (§12) · M08 Question bank (§13) · M09 Board archive (§14) · M10 Institution archive (§15)
+
+| ID | Feature | Status |
+|---|---|---|
+| LIB-01..27 | Browse/filter books, reader, TOC, page nav, zoom, bookmarks, page notes, highlights, ask AI, history | ⬜ |
+| QB-01 | Question model: all 16 types incl. CQ ক/খ/গ/ঘ | ⬜ |
+| QB-02 | Browse/filter/sort (class, subject, chapter, topic, outcome, difficulty, type, source, year, board, marks, verified, relevance) | ⬜ |
+| QB-03 | Answer reveal, explanation, steps, rubric, citations, mark right/wrong | ⬜ |
+| QB-04 | Bookmark, practice set, report, copy, print view, history, reattempt wrong | ⬜ |
+| BOARD-01..25 | Board/year/subject explorer, paper viewer, solutions, frequency analysis, timed paper, authenticity labels | ⬜ |
+| INST-01..18 | Institution directory, filters, papers, categories, visibility, duplicates, report | ⬜ |
+
+## M11 Exams (§16) · M12 Handwriting evaluator (§17)
+
+| ID | Feature | Status |
+|---|---|---|
+| EXAM-01 | 13 exam types | ⬜ |
+| EXAM-02 | Setup (subject, chapter, types, count, difficulty, time, marks, negative marking, mode, randomise, review policy) | ⬜ |
+| EXAM-03 | Taking: focus mode, timer, palette, mark for review, autosave, recovery, submit confirm, time-up | ⬜ |
+| EXAM-04 | Results: score, analysis by question/topic/difficulty, weak areas, recommendations, retake, history | ⬜ |
+| HW-01..22 | Upload pages, reorder, simulated OCR, correction, rubric score, AI vs teacher vs official marks | ⬜ |
+
+## M13 Planner (§18) · M14 Adaptive learning (§19) · M15 Flashcards (§20) · M16 Notes (§21)
+
+| ID | Feature | Status |
+|---|---|---|
+| PLAN-01..29 | Daily/weekly/monthly plans, calendar, timeline, tasks, reschedule, generation, insights | ⬜ |
+| ADAPT-01..23 | Mastery by topic/subject (model ✅), trends, heatmap, weak/strong, roadmap, recommendations | 🟡 (model only) |
+| FC-01..22 | Decks, sources (chapter/notes/chat/wrong answers), flip, ratings, SM-2-style queue, stats | ⬜ |
+| NOTE-01..24 | Notes dashboard, generate (chapter/topic/question/chat), types, editor, folders, tags, export | ⬜ |
+
+## M17 English coach (§22) · M18 Labs (§23) · M19 Audio (§24) · M20 Gamification (§25) · M21 Offline (§26)
+
+| ID | Feature | Status |
+|---|---|---|
+| ENG-01..18 | Grammar, vocabulary, writing feedback, reading, listening, speaking (simulated) | ⬜ |
+| LAB-01..21 | Physics, chemistry, biology and maths interactive labs, calculator | ⬜ |
+| AUD-01..17 | Audio library, player, speed, transcript, markers, playlist, progress | ⬜ |
+| GAME-01..17 | Streak (✅ model), XP/levels (✅ model), badges, missions, leaderboards (hideable) | 🟡 (model only) |
+| OFF-01..15 | Downloads, storage, sync status, conflicts, offline badges | 🟡 (offline simulation toggle + banner ✅) |
+
+## M22 Parent (§27) · M23 Teacher/reviewer (§28) · M24 Institution (§29)
+
+| ID | Feature | Status |
+|---|---|---|
+| PAR-01..20 | Guardian onboarding, linking, child overview, progress, consent, privacy | 🟡 (static home only) |
+| TEA-01..21 | Review queue, status flow, question CRUD, quizzes, assign, review submissions | 🟡 (static home only) |
+| INS-01..25 | Institution portal | ⬜ (role currently routed to "use web") |
+
+## M25 Notifications (§43) · M26 Profile & settings (§44) · M27 Search (§45)
+
+| ID | Feature | Status | Test |
+|---|---|---|---|
+| NOTIF-01 | Inbox, read/unread, mark all, filter, delete, deep link | ✅ | — |
+| NOTIF-02 | Detail view, preferences, push/email permission UI, in-app simulation | ⬜ | |
+| SET-01 | Theme (light/dark/system), language, text size, high contrast, reduced motion, Bangla numerals | ✅ | — |
+| SET-02 | Demo tools: simulate offline / server errors; storage usage; reset demo data | ✅ | — |
+| SET-03 | Profile (personal, academic, preferences, goals), subscription, billing, privacy, guardian, help, feedback, deletion | ⬜ | |
+| SRCH-01 | Global search across all content, suggestions, recent, popular, filters, grouping | ⬜ | |
+
+## M28 Cross-cutting (§49–55)
+
+| ID | Feature | Status |
+|---|---|---|
+| X-01 | Bangla/English UI via `Tr` dictionaries | 🟡 older screens (login, dashboards) still hard-code Bangla |
+| X-02 | Accessibility: semantics on cards, progress, banners; text scaling; reduced motion | 🟡 |
+| X-03 | Mock data consistency (exam → analytics, completion → progress, bookmarks, notes) | 🟡 completion → progress ✅ |
+| X-04 | Platform-neutral contracts (`contracts/*.schema.json`) | ⬜ |
+| X-05 | Docs set from spec §57 (mobile subset) | 🟡 this file + PROGRESS.md |
+
+## Web repo scope (tracked, not built here) 🌐
+
+Admin dashboard and management (§30–42), content coverage admin view (§46), marketing
+website (§47), and the web student app (§3A). The mobile app keeps API-ready repository
+interfaces so the same backend serves both.

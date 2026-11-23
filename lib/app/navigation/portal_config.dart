@@ -1,6 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../features/ai_tutor/presentation/ai_tutor_screen.dart';
+import '../../features/curriculum/presentation/learn_screen.dart';
+import '../../features/practice/presentation/practice_hub_screen.dart';
+import '../router/app_routes.dart';
 import '../../features/auth/domain/app_user.dart';
 import '../../features/dashboard/presentation/parent_home_screen.dart';
 import '../../features/dashboard/presentation/student_home_screen.dart';
@@ -25,13 +28,19 @@ class PortalTab {
   final Widget Function(PortalConfig config) builder;
 }
 
-/// An entry of the "more" menu, opened at /<role>/more/<slug>.
+/// An entry of the "more" menu.
 class PortalMenuItem {
-  const PortalMenuItem({required this.slug, required this.label, required this.icon});
+  const PortalMenuItem({required this.slug, required this.label, required this.icon, this.route, this.group});
 
   final String slug;
   final String label;
   final IconData icon;
+
+  /// Full-screen route the item opens. Null → `/<role>/more/<slug>` (role views not yet built).
+  final String? route;
+
+  /// Heading the item is listed under in the "more" menu.
+  final String? group;
 }
 
 /// Single source of truth for a role's navigation: tabs, routes and the "more" menu.
@@ -86,6 +95,13 @@ final PortalConfig studentPortal = PortalConfig(
   tabs: [
     _homeTab((_) => const StudentHomeScreen()),
     PortalTab(
+      slug: 'learn',
+      label: 'শিখি',
+      icon: Icons.menu_book_outlined,
+      selectedIcon: Icons.menu_book,
+      builder: (_) => const LearnScreen(),
+    ),
+    PortalTab(
       slug: 'ai-tutor',
       label: 'AI টিউটর',
       icon: Icons.smart_toy_outlined,
@@ -97,28 +113,35 @@ final PortalConfig studentPortal = PortalConfig(
       label: 'অনুশীলন',
       icon: Icons.quiz_outlined,
       selectedIcon: Icons.quiz,
-      builder: (_) => _placeholder('অনুশীলন ও পরীক্ষা', Icons.quiz_outlined),
-    ),
-    PortalTab(
-      slug: 'progress',
-      label: 'অগ্রগতি',
-      icon: Icons.insights_outlined,
-      selectedIcon: Icons.insights,
-      builder: (_) => _placeholder('ফলাফল ও অ্যানালিটিক্স', Icons.insights_outlined),
+      builder: (_) => const PracticeHubScreen(),
     ),
     _moreTab,
   ],
-  menuItems: const [
-    PortalMenuItem(slug: 'library', label: 'লাইব্রেরি', icon: Icons.menu_book_outlined),
-    PortalMenuItem(slug: 'questions', label: 'প্রশ্ন ব্যাংক', icon: Icons.help_outline),
-    PortalMenuItem(slug: 'photo-solver', label: 'ফটো সলভার', icon: Icons.photo_camera_outlined),
-    PortalMenuItem(slug: 'notes', label: 'নোটস', icon: Icons.sticky_note_2_outlined),
-    PortalMenuItem(slug: 'study-planner', label: 'স্টাডি প্ল্যানার', icon: Icons.calendar_month_outlined),
-    PortalMenuItem(slug: 'videos', label: 'ভিডিও ক্লাস', icon: Icons.ondemand_video_outlined),
-    PortalMenuItem(slug: 'practical-lab', label: 'প্র্যাকটিক্যাল ল্যাব', icon: Icons.science_outlined),
-    PortalMenuItem(slug: 'scholarships', label: 'স্কলারশিপ', icon: Icons.emoji_events_outlined),
-    PortalMenuItem(slug: 'career', label: 'ক্যারিয়ার', icon: Icons.work_outline),
-    PortalMenuItem(slug: 'notices', label: 'নোটিশ', icon: Icons.campaign_outlined),
+  menuItems: [
+    // Learning tools
+    const PortalMenuItem(slug: 'analytics', label: 'অগ্রগতি ও দুর্বলতা', icon: Icons.insights_outlined, route: AppRoutes.analytics, group: 'শেখা'),
+    const PortalMenuItem(slug: 'planner', label: 'স্টাডি প্ল্যানার', icon: Icons.calendar_month_outlined, route: AppRoutes.planner, group: 'শেখা'),
+    PortalMenuItem(slug: 'notes', label: 'নোটস', icon: Icons.sticky_note_2_outlined, route: AppRoutes.notes(), group: 'শেখা'),
+    PortalMenuItem(slug: 'flashcards', label: 'ফ্ল্যাশকার্ড', icon: Icons.style_outlined, route: AppRoutes.flashcards(), group: 'শেখা'),
+    const PortalMenuItem(slug: 'library', label: 'পাঠ্যবই লাইব্রেরি', icon: Icons.local_library_outlined, route: AppRoutes.library, group: 'শেখা'),
+    const PortalMenuItem(slug: 'audio', label: 'অডিও রিভিশন', icon: Icons.headphones_outlined, route: AppRoutes.audio, group: 'শেখা'),
+    const PortalMenuItem(slug: 'labs', label: 'বিজ্ঞান ও গণিত ল্যাব', icon: Icons.science_outlined, route: AppRoutes.labs, group: 'শেখা'),
+    const PortalMenuItem(slug: 'english', label: 'ইংরেজি কোচ', icon: Icons.translate, route: AppRoutes.english, group: 'শেখা'),
+    // AI tools
+    const PortalMenuItem(slug: 'voice', label: 'ভয়েস টিউটর', icon: Icons.mic_none, route: AppRoutes.voiceTutor, group: 'AI টুলস'),
+    const PortalMenuItem(slug: 'photo-solver', label: 'ফটো সলভার', icon: Icons.photo_camera_outlined, route: AppRoutes.photoSolver, group: 'AI টুলস'),
+    const PortalMenuItem(slug: 'handwriting', label: 'হাতের লেখা মূল্যায়ন', icon: Icons.draw_outlined, route: AppRoutes.handwriting, group: 'AI টুলস'),
+    // Archives
+    const PortalMenuItem(slug: 'board', label: 'বোর্ড প্রশ্ন আর্কাইভ', icon: Icons.history_edu_outlined, route: AppRoutes.boardArchive, group: 'প্রশ্ন আর্কাইভ'),
+    const PortalMenuItem(slug: 'institution-papers', label: 'স্কুল-কলেজের প্রশ্ন', icon: Icons.account_balance_outlined, route: AppRoutes.institutionArchive, group: 'প্রশ্ন আর্কাইভ'),
+    const PortalMenuItem(slug: 'bookmarks', label: 'বুকমার্ক', icon: Icons.bookmark_border, route: AppRoutes.bookmarks, group: 'প্রশ্ন আর্কাইভ'),
+    // Me
+    const PortalMenuItem(slug: 'achievements', label: 'অর্জন ও XP', icon: Icons.emoji_events_outlined, route: AppRoutes.achievements, group: 'আমি'),
+    const PortalMenuItem(slug: 'offline', label: 'অফলাইন ডাউনলোড', icon: Icons.download_for_offline_outlined, route: AppRoutes.offline, group: 'আমি'),
+    const PortalMenuItem(slug: 'profile', label: 'প্রোফাইল', icon: Icons.person_outline, route: AppRoutes.profile, group: 'আমি'),
+    const PortalMenuItem(slug: 'subscription', label: 'সাবস্ক্রিপশন', icon: Icons.workspace_premium_outlined, route: AppRoutes.subscription, group: 'আমি'),
+    const PortalMenuItem(slug: 'privacy', label: 'গোপনীয়তা ও নিরাপত্তা', icon: Icons.shield_outlined, route: AppRoutes.privacy, group: 'আমি'),
+    const PortalMenuItem(slug: 'support', label: 'সাহায্য ও মতামত', icon: Icons.support_agent, route: AppRoutes.support, group: 'আমি'),
   ],
 );
 

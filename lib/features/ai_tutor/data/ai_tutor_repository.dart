@@ -25,8 +25,8 @@ class AiTutorRepository {
       '/ai/tutor/ask',
       body: {
         'message': message,
-        if (subjectId != null) 'subjectId': subjectId,
-        if (chapterId != null) 'chapterId': chapterId,
+        'subjectId': ?subjectId,
+        'chapterId': ?chapterId,
       },
       parse: (data) => TutorAnswer.fromJson(data! as Map<String, dynamic>),
     );
