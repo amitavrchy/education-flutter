@@ -12,6 +12,11 @@ import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
 import '../../features/curriculum/presentation/topic_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/question_bank/application/practice_controller.dart';
+import '../../features/question_bank/presentation/bookmarks_screen.dart';
+import '../../features/question_bank/presentation/practice_session_screen.dart';
+import '../../features/question_bank/presentation/question_bank_screen.dart';
+import '../../features/question_bank/presentation/question_detail_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../shared/widgets/feature_placeholder_screen.dart';
 import '../navigation/portal_config.dart';
@@ -21,6 +26,8 @@ import 'auth_redirect.dart';
 
 /// Screen for a route whose module is still listed as incomplete in FEATURE_MATRIX.md.
 Widget _pending(String title, IconData icon) => FeaturePlaceholderScreen(title: title, icon: icon);
+
+String? _param(GoRouterState state, String key) => state.uri.queryParameters[key];
 
 /// Routes nested under a tab, so the bottom navigation stays visible while drilling down.
 List<RouteBase> _tabChildRoutes(PortalConfig config, PortalTab tab) {
@@ -52,8 +59,19 @@ List<RouteBase> _tabChildRoutes(PortalConfig config, PortalTab tab) {
       ),
     ],
     'practice' => [
-      GoRoute(path: 'bank', builder: (context, state) => _pending('প্রশ্ন ব্যাংক', Icons.help_outline)),
-      GoRoute(path: 'bookmarks', builder: (context, state) => _pending('বুকমার্ক', Icons.bookmark_border)),
+      GoRoute(
+        path: 'bank',
+        builder: (context, state) => QuestionBankScreen(
+          subjectId: _param(state, 'subject'),
+          chapterId: _param(state, 'chapter'),
+          topicId: _param(state, 'topic'),
+        ),
+      ),
+      GoRoute(
+        path: 'question/:id',
+        builder: (context, state) => QuestionDetailScreen(questionId: state.pathParameters['id']!),
+      ),
+      GoRoute(path: 'bookmarks', builder: (context, state) => const BookmarksScreen()),
       GoRoute(
         path: 'exams',
         builder: (context, state) => _pending('পরীক্ষা কেন্দ্র', Icons.assignment_outlined),
@@ -91,7 +109,15 @@ List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.profile, builder: (context, state) => _pending('প্রোফাইল', Icons.person_outline)),
   GoRoute(
     path: '/practice-session',
-    builder: (context, state) => _pending('অনুশীলন', Icons.quiz_outlined),
+    builder: (context, state) => PracticeSessionScreen(
+      request: PracticeRequest(
+        mode: _param(state, 'mode') ?? 'chapter',
+        subjectId: _param(state, 'subject'),
+        chapterId: _param(state, 'chapter'),
+        topicId: _param(state, 'topic'),
+        setId: _param(state, 'set'),
+      ),
+    ),
   ),
   GoRoute(path: '/exam/:id', builder: (context, state) => _pending('পরীক্ষা', Icons.timer_outlined)),
   GoRoute(path: AppRoutes.analytics, builder: (context, state) => _pending('অগ্রগতি', Icons.insights_outlined)),
