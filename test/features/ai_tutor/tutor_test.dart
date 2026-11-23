@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shikkhaai_mobile/core/l10n/tr.dart';
 import 'package:shikkhaai_mobile/core/settings/app_settings.dart';
 import 'package:shikkhaai_mobile/features/ai_tutor/application/tutor_controller.dart';
-import 'package:shikkhaai_mobile/features/ai_tutor/data/ai_tutor_repository.dart';
 import 'package:shikkhaai_mobile/features/ai_tutor/data/mock_tutor_engine.dart';
 import 'package:shikkhaai_mobile/features/ai_tutor/domain/tutor_models.dart';
 import 'package:shikkhaai_mobile/features/ai_tutor/presentation/tutor_chat_screen.dart';
