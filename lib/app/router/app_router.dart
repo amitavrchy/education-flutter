@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../features/ai_tutor/presentation/tutor_chat_screen.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -60,6 +61,15 @@ List<RouteBase> _tabChildRoutes(PortalConfig config, PortalTab tab) {
       GoRoute(
         path: 'topic/:id',
         builder: (context, state) => TopicScreen(topicId: state.pathParameters['id']!),
+      ),
+    ],
+    'ai-tutor' => [
+      GoRoute(
+        path: 'chat/:id',
+        builder: (context, state) => TutorChatScreen(
+          conversationId: state.pathParameters['id']!,
+          initialPrompt: _param(state, 'prompt'),
+        ),
       ),
     ],
     'practice' => [
