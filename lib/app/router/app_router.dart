@@ -15,6 +15,7 @@ import '../../features/book_avatar/presentation/avatar_gallery_screen.dart';
 import '../../features/book_avatar/presentation/avatar_role_screens.dart';
 import '../../features/insights/insights_screens.dart';
 import '../../features/library/library_screens.dart';
+import '../../features/search/presentation/search_screen.dart';
 import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
 import '../../features/curriculum/presentation/topic_screen.dart';
@@ -136,7 +137,7 @@ StatefulShellRoute _portalRoute(PortalConfig config) {
 List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
   GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsScreen()),
-  GoRoute(path: AppRoutes.search, builder: (context, state) => _pending('খুঁজুন', Icons.search)),
+  GoRoute(path: AppRoutes.search, builder: (context, state) => const SearchScreen()),
   GoRoute(path: AppRoutes.profile, builder: (context, state) => _pending('প্রোফাইল', Icons.person_outline)),
   GoRoute(
     path: '/practice-session',

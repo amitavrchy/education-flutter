@@ -168,7 +168,7 @@ voice and scope is an admin task, which stays on the web.
 | SET-01 | Theme (light/dark/system), language, text size, high contrast, reduced motion, Bangla numerals | ✅ | — |
 | SET-02 | Demo tools: simulate offline / server errors; storage usage; reset demo data | ✅ | — |
 | SET-03 | Profile (personal, academic, preferences, goals), subscription, billing, privacy, guardian, help, feedback, deletion | ⬜ | |
-| SRCH-01 | Global search across all content, suggestions, recent, popular, filters, grouping | ⬜ | |
+| SRCH-01 | Global search across subjects, chapters, topics, questions, books, avatar teachers, notes, flashcards and conversations; recent (persisted), popular, kind filters with counts, grouping, empty state → ask tutor | ✅ | W |
 
 ## M28 Cross-cutting (§49–55)
 
