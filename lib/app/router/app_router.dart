@@ -9,6 +9,7 @@ import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/account/account_screens.dart';
+import '../../features/ai_tools/ai_tools_screens.dart';
 import '../../features/archives/archive_screens.dart';
 import '../../features/auth/presentation/unsupported_role_screen.dart';
 import '../../features/book_avatar/presentation/avatar_classroom_screen.dart';
@@ -209,9 +210,9 @@ List<RouteBase> _moduleRoutes() => [
     builder: (context, state) => const InstitutionArchiveScreen(),
     routes: [GoRoute(path: ':id', builder: (context, state) => ArchivePaperScreen(paperId: state.pathParameters['id']!))],
   ),
-  GoRoute(path: AppRoutes.photoSolver, builder: (context, state) => _pending('ফটো সলভার', Icons.photo_camera_outlined)),
-  GoRoute(path: AppRoutes.voiceTutor, builder: (context, state) => _pending('ভয়েস টিউটর', Icons.mic_none)),
-  GoRoute(path: AppRoutes.handwriting, builder: (context, state) => _pending('হাতের লেখা মূল্যায়ন', Icons.draw_outlined)),
+  GoRoute(path: AppRoutes.photoSolver, builder: (context, state) => const PhotoSolverScreen()),
+  GoRoute(path: AppRoutes.voiceTutor, builder: (context, state) => const VoiceTutorScreen()),
+  GoRoute(path: AppRoutes.handwriting, builder: (context, state) => const HandwritingScreen()),
   GoRoute(path: AppRoutes.english, builder: (context, state) => _pending('ইংরেজি কোচ', Icons.translate)),
   GoRoute(path: AppRoutes.labs, builder: (context, state) => _pending('ল্যাব', Icons.science_outlined)),
   GoRoute(path: AppRoutes.audio, builder: (context, state) => _pending('অডিও রিভিশন', Icons.headphones_outlined)),

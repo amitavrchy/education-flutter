@@ -62,8 +62,9 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| VOICE-01..30 | Simulated voice session state machine, waveform, transcript, modes, history, limits | ⬜ |
-| IMG-01..19 | Pick/capture, preview, rotate/crop, multi-image, validation, simulated OCR, correction, solve, save | ⬜ |
+| VOICE-01..30 | Voice session (start/end/pause), push-to-talk + hands-free via speech_to_text, spoken answers via flutter_tts, listening/thinking/speaking states, waveform, live transcript, teaching modes, usage minutes, sample questions without a mic | ✅ `VoiceTutorScreen` (W); saved session history ⬜ |
+| IMG-01..19 | Camera/gallery/sample image, preview, rotate, retake, simulated OCR, editable extracted text, subject detection, step-by-step solution with book sources | ✅ `PhotoSolverScreen` (W); crop & multi-image ⬜ |
+| HWE-01..20 | Answer-sheet pages (camera/gallery/sample), reorder/remove, question pick, simulated rubric evaluation (criteria, strengths, missing points, tips), "AI estimate, not final" label, request teacher review | ✅ `HandwritingScreen` (U+W) |
 
 ## M06 Curriculum explorer (§11)
 
