@@ -136,8 +136,8 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| PAR-01..20 | Guardian onboarding, linking, child overview, progress, privacy (no consent step) | 🟡 (static home only; avatar usage ✅) |
-| TEA-01..21 | Review queue, status flow, question CRUD, quizzes, assign, review submissions | 🟡 (static home only) |
+| PAR-01..20 | Live child overview (week stats), link a child (phone + demo OTP), subject progress, exam results, weekly report, avatar usage (counts only); every view honours the student's sharing choices; no consent step | ✅ `parent_screens.dart` (W) |
+| TEA-01..21 | Live dashboard, classes & student mastery, answer-script evaluation (AI estimate → final marks + feedback), assignments, publish quizzes to students, AI question generator (drafts → review), materials, class analytics, avatar test/report fixes | ✅ `teacher_screens.dart` (U+W); full content review workflow stays on the web |
 | INS-01..25 | Institution portal | 🚫 removed (product decision 2026-11-24); role dropped from the app |
 
 ## M29 Per-book live 2D avatar teacher (product requirement, 2026-11-24)

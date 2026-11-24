@@ -82,4 +82,13 @@ abstract final class AppRoutes {
   static String avatarClass(String bookId, {String? sessionId}) => _q('$avatarTutor/$bookId', {'session': sessionId});
   static const String teacherAvatars = '/teacher-avatars';
   static const String avatarActivity = '/avatar-activity';
+
+  // ── Teacher & parent modules ──
+  static const String teacherAssignments = '/teacher-assignments';
+  static const String teacherExams = '/teacher-exams';
+  static const String questionGenerator = '/question-generator';
+  static const String teacherMaterials = '/teacher-materials';
+  static const String teacherAnalytics = '/teacher-analytics';
+  static const String parentReports = '/parent-reports';
+  static const String parentResults = '/parent-results';
 }

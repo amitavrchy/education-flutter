@@ -5,11 +5,10 @@ import '../../features/curriculum/presentation/learn_screen.dart';
 import '../../features/practice/presentation/practice_hub_screen.dart';
 import '../router/app_routes.dart';
 import '../../features/auth/domain/app_user.dart';
-import '../../features/dashboard/presentation/parent_home_screen.dart';
 import '../../features/dashboard/presentation/student_home_screen.dart';
-import '../../features/dashboard/presentation/teacher_home_screen.dart';
 import '../../features/more/presentation/more_menu_screen.dart';
-import '../../shared/widgets/feature_placeholder_screen.dart';
+import '../../features/parent/parent_screens.dart';
+import '../../features/teacher/teacher_screens.dart';
 
 /// One bottom-navigation tab of a portal.
 class PortalTab {
@@ -69,9 +68,6 @@ class PortalConfig {
     return null;
   }
 }
-
-Widget _placeholder(String title, IconData icon) =>
-    FeaturePlaceholderScreen(title: title, icon: icon);
 
 PortalTab _homeTab(Widget Function(PortalConfig config) builder) => PortalTab(
   slug: 'home',
@@ -156,24 +152,24 @@ final PortalConfig teacherPortal = PortalConfig(
       label: 'ক্লাস',
       icon: Icons.class_outlined,
       selectedIcon: Icons.class_,
-      builder: (_) => _placeholder('ক্লাস ও শিক্ষার্থী', Icons.class_outlined),
+      builder: (_) => const TeacherClassesScreen(),
     ),
     PortalTab(
       slug: 'evaluation',
       label: 'মূল্যায়ন',
       icon: Icons.fact_check_outlined,
       selectedIcon: Icons.fact_check,
-      builder: (_) => _placeholder('উত্তর মূল্যায়ন', Icons.fact_check_outlined),
+      builder: (_) => const TeacherEvaluationScreen(),
     ),
     _moreTab,
   ],
   menuItems: const [
-    PortalMenuItem(slug: 'assignments', label: 'অ্যাসাইনমেন্ট', icon: Icons.assignment_outlined),
-    PortalMenuItem(slug: 'exams', label: 'পরীক্ষা', icon: Icons.quiz_outlined),
-    PortalMenuItem(slug: 'question-generator', label: 'AI প্রশ্ন জেনারেটর', icon: Icons.auto_awesome_outlined),
-    PortalMenuItem(slug: 'materials', label: 'শিক্ষা উপকরণ', icon: Icons.folder_outlined),
+    PortalMenuItem(slug: 'assignments', label: 'অ্যাসাইনমেন্ট', icon: Icons.assignment_outlined, route: AppRoutes.teacherAssignments),
+    PortalMenuItem(slug: 'exams', label: 'পরীক্ষা', icon: Icons.quiz_outlined, route: AppRoutes.teacherExams),
+    PortalMenuItem(slug: 'question-generator', label: 'AI প্রশ্ন জেনারেটর', icon: Icons.auto_awesome_outlined, route: AppRoutes.questionGenerator),
+    PortalMenuItem(slug: 'materials', label: 'শিক্ষা উপকরণ', icon: Icons.folder_outlined, route: AppRoutes.teacherMaterials),
     PortalMenuItem(slug: 'avatars', label: 'অ্যাভাটার শিক্ষক', icon: Icons.co_present_outlined, route: AppRoutes.teacherAvatars),
-    PortalMenuItem(slug: 'analytics', label: 'অ্যানালিটিক্স', icon: Icons.insights_outlined),
+    PortalMenuItem(slug: 'analytics', label: 'অ্যানালিটিক্স', icon: Icons.insights_outlined, route: AppRoutes.teacherAnalytics),
   ],
 );
 
@@ -187,20 +183,20 @@ final PortalConfig parentPortal = PortalConfig(
       label: 'সন্তান',
       icon: Icons.family_restroom_outlined,
       selectedIcon: Icons.family_restroom,
-      builder: (_) => _placeholder('আমার সন্তান', Icons.family_restroom_outlined),
+      builder: (_) => const ParentChildrenScreen(),
     ),
     PortalTab(
       slug: 'progress',
       label: 'অগ্রগতি',
       icon: Icons.trending_up_outlined,
       selectedIcon: Icons.trending_up,
-      builder: (_) => _placeholder('অগ্রগতি ও ফলাফল', Icons.trending_up_outlined),
+      builder: (_) => const ParentProgressScreen(),
     ),
     _moreTab,
   ],
   menuItems: const [
-    PortalMenuItem(slug: 'reports', label: 'রিপোর্ট', icon: Icons.description_outlined),
-    PortalMenuItem(slug: 'results', label: 'ফলাফল', icon: Icons.emoji_events_outlined),
+    PortalMenuItem(slug: 'reports', label: 'রিপোর্ট', icon: Icons.description_outlined, route: AppRoutes.parentReports),
+    PortalMenuItem(slug: 'results', label: 'ফলাফল', icon: Icons.emoji_events_outlined, route: AppRoutes.parentResults),
     PortalMenuItem(slug: 'avatar-activity', label: 'অ্যাভাটার শিক্ষকের ব্যবহার', icon: Icons.co_present_outlined, route: AppRoutes.avatarActivity),
   ],
 );
