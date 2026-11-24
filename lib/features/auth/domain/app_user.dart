@@ -3,7 +3,6 @@ enum UserRole {
   student(key: 'STUDENT', pathSegment: 'student', labelBn: 'শিক্ষার্থী'),
   teacher(key: 'TEACHER', pathSegment: 'teacher', labelBn: 'শিক্ষক'),
   parent(key: 'PARENT', pathSegment: 'parent', labelBn: 'অভিভাবক'),
-  institutionAdmin(key: 'INSTITUTION_ADMIN', pathSegment: 'institution', labelBn: 'প্রতিষ্ঠান'),
   superAdmin(key: 'SUPER_ADMIN', pathSegment: 'admin', labelBn: 'অ্যাডমিন');
 
   const UserRole({required this.key, required this.pathSegment, required this.labelBn});
@@ -12,7 +11,7 @@ enum UserRole {
   final String pathSegment;
   final String labelBn;
 
-  /// Institution and super admins use the web dashboard; the app serves the other three.
+  /// Admins use the web dashboard; the app serves the other three.
   bool get supportedOnMobile =>
       this == UserRole.student || this == UserRole.teacher || this == UserRole.parent;
 

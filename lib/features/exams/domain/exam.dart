@@ -15,7 +15,6 @@ enum ExamType {
   dailyChallenge(Tr('ডেইলি চ্যালেঞ্জ', 'Daily challenge'), Icons.bolt),
   adaptive(Tr('অ্যাডাপটিভ পরীক্ষা', 'Adaptive exam'), Icons.auto_graph),
   custom(Tr('কাস্টম পরীক্ষা', 'Custom exam'), Icons.tune),
-  institution(Tr('প্রতিষ্ঠানের পরীক্ষা', 'Institution exam'), Icons.account_balance_outlined),
   teacherAssigned(Tr('শিক্ষকের দেওয়া', 'Teacher-assigned'), Icons.person_outline),
   mixed(Tr('মিশ্র অনুশীলন', 'Mixed practice'), Icons.shuffle),
   oral(Tr('মৌখিক অনুশীলন', 'Oral practice'), Icons.record_voice_over_outlined);
@@ -133,7 +132,7 @@ class ExamConfig {
   };
 }
 
-/// A ready-made exam offered to the student (model tests, teacher/institution exams…).
+/// A ready-made exam offered to the student (model tests, teacher exams…).
 @immutable
 class ExamTemplate {
   const ExamTemplate({

@@ -58,7 +58,6 @@ class MockAuthRepository implements AuthRepository {
     UserRole.student: 'রাফি আহমেদ',
     UserRole.teacher: 'নাসরিন সুলতানা',
     UserRole.parent: 'করিম উদ্দিন',
-    UserRole.institutionAdmin: 'ঢাকা আইডিয়াল কলেজ',
     UserRole.superAdmin: 'সিস্টেম অ্যাডমিন',
   };
 

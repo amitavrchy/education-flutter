@@ -202,5 +202,5 @@ final PortalConfig parentPortal = PortalConfig(
   ],
 );
 
-/// Portals available in the app (institution and super-admin use the web dashboard).
+/// Portals available in the app (admins use the web dashboard).
 final List<PortalConfig> mobilePortals = [studentPortal, teacherPortal, parentPortal];

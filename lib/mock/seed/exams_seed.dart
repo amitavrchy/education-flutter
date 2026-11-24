@@ -44,10 +44,10 @@ List<ExamTemplate> seedExamTemplates([DateTime? now]) {
     ),
     ExamTemplate(
       id: 'tpl-inst-bio',
-      type: ExamType.institution,
+      type: ExamType.teacherAssigned,
       title: const Tr('অর্ধবার্ষিক প্রস্তুতি: জীববিজ্ঞান', 'Half-yearly prep: Biology'),
-      assignedBy: const Tr('ঢাকা আইডিয়াল স্কুল (নমুনা প্রতিষ্ঠান)', 'Dhaka Ideal School (sample institution)'),
-      description: const Tr('প্রতিষ্ঠানের নির্ধারিত সময়ে খুলবে', 'Opens at the time set by your institution'),
+      assignedBy: const Tr('তাহমিনা আক্তার (জীববিজ্ঞান শিক্ষক)', 'Tahmina Akter (biology teacher)'),
+      description: const Tr('শিক্ষকের নির্ধারিত সময়ে খুলবে', 'Opens at the time set by your teacher'),
       config: const ExamConfig(subjectId: 'ssc-bio', questionCount: 5, timeLimitMinutes: 25, reviewPolicy: ReviewPolicy.afterSubmit),
       scheduledAt: t.subtract(const Duration(hours: 1)),
       createdAt: t.subtract(const Duration(days: 5)),

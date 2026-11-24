@@ -150,7 +150,7 @@ void main() {
       addTearDown(c.dispose);
       final ctl = c.read(examProvider.notifier);
       final tpl = c.read(examProvider).templates.first;
-      final future = ExamTemplate(id: 'x', type: ExamType.institution, title: const Tr.same('x'), config: tpl.config, scheduledAt: DateTime.now().add(const Duration(days: 1)));
+      final future = ExamTemplate(id: 'x', type: ExamType.teacherAssigned, title: const Tr.same('x'), config: tpl.config, scheduledAt: DateTime.now().add(const Duration(days: 1)));
       expect(() => ctl.start(template: future), throwsA(anything));
     });
   });

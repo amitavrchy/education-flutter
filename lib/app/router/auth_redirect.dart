@@ -11,7 +11,7 @@ bool _isInPortal(String location, UserRole role) {
 ///
 /// - while restoring the session → splash
 /// - signed out → login
-/// - web-only roles (institution, super admin) → "use the web dashboard" screen
+/// - web-only roles (admins) → "use the web dashboard" screen
 /// - signed in → own portal only; other portals redirect to the user's home
 String? resolveAuthRedirect(AuthState auth, String location) {
   if (auth is AuthUnknown) {
