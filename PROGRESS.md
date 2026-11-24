@@ -6,7 +6,7 @@ Handoff log for multi-session work. Read this first, then `docs/product/FEATURE_
 - Spec: `docs/MASTER_PROMPT.md` (never edit). This repo = Flutter student app + mobile role views.
 - Flutter 3.50.1 at `~/development/flutter/bin` (add to PATH). Material comes from
   `package:material_ui/material_ui.dart`, not `flutter/material`.
-- Commit coherent chunks locally; never push.
+- Commit coherent chunks (author amitavrchy). Push when the user asks.
 - Before committing: `flutter analyze` (must be clean) and `flutter test`.
 
 ## Architecture in one screen
@@ -44,6 +44,46 @@ notifications inbox, shared widgets. Left uncompiled mid-refactor without progre
   (`lib/features/planner/`, router entry, tests) — committed as WIP, **unverified, run
   `flutter analyze` + `flutter test` first**.
 
+### Session 4 (2026-11-24) — parity with the web app
+Product decisions (same as the web repo):
+- Institution portal removed: the institution admin role and the institution exam type are gone.
+  - Kept: the school/college question archive and a student's school name.
+- No guardian consent: students of any age sign up on their own. Guardians see only what the student shares.
+
+Built (each with tests; analyzer clean; 122 tests):
+- **Book avatar teacher** (`lib/features/book_avatar/`):
+  - Per-book animated 2D teacher, ported from the web SVG avatar.
+  - Ask by text or voice (`speech_to_text`); answers are spoken (`flutter_tts`) with lip-sync and captions.
+  - Answers come only from the book, with page citations that open the reader.
+  - Includes history, feedback and reports.
+  - Teacher view: test chat and report fixes. Parent view: usage counts only.
+  - Mic and speech permissions added for Android and iOS.
+- **Library**: book list and detail, page reader, bookmarks, continue reading, offline download.
+- **Live student dashboard**, adaptive analytics, achievements (XP, levels, badges, missions, demo leaderboard).
+- **Board archive and school/college archive**:
+  - Board-style sample papers: 9 boards × 10 years, with HSC 2020 omitted.
+  - Demo school/college directory.
+  - Every paper can be practised as a set.
+- **Global search** with grouped results and recent searches.
+- **Account**: profile, subscription (simulated checkout with coupons), privacy (sharing, export, deletion), help and tickets.
+- **AI tools**: voice tutor, photo solver (simulated OCR), handwriting evaluation (AI estimate).
+- **Study tools**: English coach, labs (motion, Ohm's law, periodic table, quadratic plotter), audio revision, offline downloads.
+- **Teacher portal**:
+  - Classes, evaluation queue, assignments.
+  - Publishing quizzes that students see.
+  - AI question generator, materials, analytics.
+- **Parent portal**: overview, link a child with the demo OTP, progress, results and reports. All views honour the student's privacy settings.
+- **Auth**: welcome, signup, OTP (`123456`), password reset, onboarding.
+
+Bugs fixed along the way:
+- The question seed gave physics questions subject `ssc` (it used `indexOf('-p')`).
+- The English coach produced "gos"/"haves".
+- The planner TabBar alignment was wrong.
+- Voice screens read a provider inside `dispose()`.
+- The shared test helpers now use in-memory token storage.
+
+No placeholder routes remain. Admin work (avatar editing, content management) stays on the web.
+
 ## Continue on another PC
 1. `git clone https://github.com/amitavrchy/education-flutter.git && cd education-flutter`
 2. `flutter pub get && flutter analyze && flutter test` (do not change the global Flutter SDK)
@@ -51,9 +91,6 @@ notifications inbox, shared widgets. Left uncompiled mid-refactor without progre
    docs/product/FEATURE_MATRIX.md; continue implementing the remaining incomplete features."*
 
 ## Next (in order)
-1. Dashboard on live data
-2. Planner (WIP — finish first); analytics/adaptive screen; gamification screen
-3. Board + institution archives; search
-4. Voice tutor, photo solver, handwriting, library, labs, English, audio, offline
-5. Onboarding/signup/OTP/role switcher; profile/subscription/privacy/support
-6. Parent + teacher views; contracts/ JSON schemas; remaining docs (spec §57)
+1. Connect the real API: repositories already sit behind interfaces. Avatar contract: web `docs/api/BOOK_AVATAR_CONTRACT.md`.
+2. Remaining ⬜ rows in `docs/product/FEATURE_MATRIX.md`: page notes/highlights, timed board paper, crop/multi-image, friend challenges, sync conflict UI.
+3. Device QA of voice (Bangla TTS/STT availability varies by phone) and accessibility pass.

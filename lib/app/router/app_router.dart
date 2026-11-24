@@ -8,7 +8,21 @@ import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
+import '../../features/account/account_screens.dart';
+import '../../features/ai_tools/ai_tools_screens.dart';
+import '../../features/archives/archive_screens.dart';
+import '../../features/auth/presentation/auth_flow_screens.dart';
 import '../../features/auth/presentation/unsupported_role_screen.dart';
+import '../../features/book_avatar/presentation/avatar_classroom_screen.dart';
+import '../../features/book_avatar/presentation/avatar_gallery_screen.dart';
+import '../../features/book_avatar/presentation/avatar_role_screens.dart';
+import '../../features/insights/insights_screens.dart';
+import '../../features/library/library_screens.dart';
+import '../../features/parent/parent_screens.dart';
+import '../../features/search/presentation/search_screen.dart';
+import '../../features/study_tools/audio_and_offline.dart';
+import '../../features/study_tools/english_and_labs.dart';
+import '../../features/teacher/teacher_screens.dart';
 import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
 import '../../features/curriculum/presentation/topic_screen.dart';
@@ -130,8 +144,8 @@ StatefulShellRoute _portalRoute(PortalConfig config) {
 List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
   GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsScreen()),
-  GoRoute(path: AppRoutes.search, builder: (context, state) => _pending('খুঁজুন', Icons.search)),
-  GoRoute(path: AppRoutes.profile, builder: (context, state) => _pending('প্রোফাইল', Icons.person_outline)),
+  GoRoute(path: AppRoutes.search, builder: (context, state) => const SearchScreen()),
+  GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
   GoRoute(
     path: '/practice-session',
     builder: (context, state) => PracticeSessionScreen(
@@ -145,7 +159,7 @@ List<RouteBase> _moduleRoutes() => [
     ),
   ),
   GoRoute(path: '/exam/:id', builder: (context, state) => ExamTakeScreen(attemptId: state.pathParameters['id']!)),
-  GoRoute(path: AppRoutes.analytics, builder: (context, state) => _pending('অগ্রগতি', Icons.insights_outlined)),
+  GoRoute(path: AppRoutes.analytics, builder: (context, state) => const AnalyticsScreen()),
   GoRoute(
     path: '/notes',
     builder: (context, state) => NotesScreen(chapterId: _param(state, 'chapter')),
@@ -163,20 +177,62 @@ List<RouteBase> _moduleRoutes() => [
     ],
   ),
   GoRoute(path: AppRoutes.planner, builder: (context, state) => const PlannerScreen()),
-  GoRoute(path: AppRoutes.library, builder: (context, state) => _pending('লাইব্রেরি', Icons.local_library_outlined)),
-  GoRoute(path: AppRoutes.boardArchive, builder: (context, state) => _pending('বোর্ড প্রশ্ন', Icons.history_edu_outlined)),
-  GoRoute(path: AppRoutes.institutionArchive, builder: (context, state) => _pending('স্কুল-কলেজের প্রশ্ন', Icons.account_balance_outlined)),
-  GoRoute(path: AppRoutes.photoSolver, builder: (context, state) => _pending('ফটো সলভার', Icons.photo_camera_outlined)),
-  GoRoute(path: AppRoutes.voiceTutor, builder: (context, state) => _pending('ভয়েস টিউটর', Icons.mic_none)),
-  GoRoute(path: AppRoutes.handwriting, builder: (context, state) => _pending('হাতের লেখা মূল্যায়ন', Icons.draw_outlined)),
-  GoRoute(path: AppRoutes.english, builder: (context, state) => _pending('ইংরেজি কোচ', Icons.translate)),
-  GoRoute(path: AppRoutes.labs, builder: (context, state) => _pending('ল্যাব', Icons.science_outlined)),
-  GoRoute(path: AppRoutes.audio, builder: (context, state) => _pending('অডিও রিভিশন', Icons.headphones_outlined)),
-  GoRoute(path: AppRoutes.achievements, builder: (context, state) => _pending('অর্জন', Icons.emoji_events_outlined)),
-  GoRoute(path: AppRoutes.offline, builder: (context, state) => _pending('অফলাইন', Icons.download_for_offline_outlined)),
-  GoRoute(path: AppRoutes.subscription, builder: (context, state) => _pending('সাবস্ক্রিপশন', Icons.workspace_premium_outlined)),
-  GoRoute(path: AppRoutes.support, builder: (context, state) => _pending('সাহায্য', Icons.support_agent)),
-  GoRoute(path: AppRoutes.privacy, builder: (context, state) => _pending('গোপনীয়তা', Icons.shield_outlined)),
+  GoRoute(
+    path: AppRoutes.avatarTutor,
+    builder: (context, state) => const AvatarGalleryScreen(),
+    routes: [
+      GoRoute(
+        path: ':bookId',
+        builder: (context, state) => AvatarClassroomScreen(bookId: state.pathParameters['bookId']!, sessionId: _param(state, 'session')),
+      ),
+    ],
+  ),
+  GoRoute(path: AppRoutes.teacherAvatars, builder: (context, state) => const TeacherAvatarsScreen()),
+  GoRoute(path: AppRoutes.avatarActivity, builder: (context, state) => const ParentAvatarActivityScreen()),
+  GoRoute(path: AppRoutes.teacherAssignments, builder: (context, state) => const TeacherAssignmentsScreen()),
+  GoRoute(path: AppRoutes.teacherExams, builder: (context, state) => const TeacherExamsScreen()),
+  GoRoute(path: AppRoutes.questionGenerator, builder: (context, state) => const QuestionGeneratorScreen()),
+  GoRoute(path: AppRoutes.teacherMaterials, builder: (context, state) => const TeacherMaterialsScreen()),
+  GoRoute(path: AppRoutes.teacherAnalytics, builder: (context, state) => const TeacherAnalyticsScreen()),
+  GoRoute(path: AppRoutes.parentReports, builder: (context, state) => const ParentReportsScreen()),
+  GoRoute(path: AppRoutes.parentResults, builder: (context, state) => const ParentResultsScreen()),
+  GoRoute(
+    path: AppRoutes.library,
+    builder: (context, state) => const LibraryScreen(),
+    routes: [
+      GoRoute(
+        path: ':id',
+        builder: (context, state) => BookScreen(bookId: state.pathParameters['id']!),
+        routes: [
+          GoRoute(
+            path: 'read',
+            builder: (context, state) => BookReaderScreen(bookId: state.pathParameters['id']!, page: int.tryParse(_param(state, 'page') ?? '')),
+          ),
+        ],
+      ),
+    ],
+  ),
+  GoRoute(
+    path: AppRoutes.boardArchive,
+    builder: (context, state) => const BoardArchiveScreen(),
+    routes: [GoRoute(path: ':id', builder: (context, state) => ArchivePaperScreen(paperId: state.pathParameters['id']!))],
+  ),
+  GoRoute(
+    path: AppRoutes.institutionArchive,
+    builder: (context, state) => const InstitutionArchiveScreen(),
+    routes: [GoRoute(path: ':id', builder: (context, state) => ArchivePaperScreen(paperId: state.pathParameters['id']!))],
+  ),
+  GoRoute(path: AppRoutes.photoSolver, builder: (context, state) => const PhotoSolverScreen()),
+  GoRoute(path: AppRoutes.voiceTutor, builder: (context, state) => const VoiceTutorScreen()),
+  GoRoute(path: AppRoutes.handwriting, builder: (context, state) => const HandwritingScreen()),
+  GoRoute(path: AppRoutes.english, builder: (context, state) => const EnglishCoachScreen()),
+  GoRoute(path: AppRoutes.labs, builder: (context, state) => const LabsScreen()),
+  GoRoute(path: AppRoutes.audio, builder: (context, state) => const AudioRevisionScreen()),
+  GoRoute(path: AppRoutes.achievements, builder: (context, state) => const AchievementsScreen()),
+  GoRoute(path: AppRoutes.offline, builder: (context, state) => const OfflineScreen()),
+  GoRoute(path: AppRoutes.subscription, builder: (context, state) => const SubscriptionScreen()),
+  GoRoute(path: AppRoutes.support, builder: (context, state) => const SupportScreen()),
+  GoRoute(path: AppRoutes.privacy, builder: (context, state) => const PrivacyScreen()),
 ];
 
 /// The app router. Rebuilds redirects whenever the auth state changes.
@@ -193,6 +249,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
       GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
       GoRoute(path: AppRoutes.unsupportedRole, builder: (context, state) => const UnsupportedRoleScreen()),
+      GoRoute(path: AppRoutes.welcome, builder: (context, state) => const WelcomeScreen()),
+      GoRoute(path: AppRoutes.register, builder: (context, state) => const RegisterScreen()),
+      GoRoute(path: AppRoutes.verifyOtp, builder: (context, state) => const VerifyOtpScreen()),
+      GoRoute(path: AppRoutes.forgotPassword, builder: (context, state) => const ForgotPasswordScreen()),
+      GoRoute(path: AppRoutes.resetPassword, builder: (context, state) => const ResetPasswordScreen()),
+      GoRoute(path: AppRoutes.onboarding, builder: (context, state) => const OnboardingScreen()),
       ..._moduleRoutes(),
       for (final portal in mobilePortals) _portalRoute(portal),
     ],

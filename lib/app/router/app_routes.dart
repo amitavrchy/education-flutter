@@ -5,6 +5,14 @@ abstract final class AppRoutes {
   static const String splash = '/splash';
   static const String login = '/login';
   static const String unsupportedRole = '/unsupported-role';
+  static const String welcome = '/welcome';
+  static const String register = '/register';
+  static const String verifyOtp = '/verify-otp';
+  static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
+
+  /// Screens a signed-out visitor may open.
+  static const Set<String> publicRoutes = {login, welcome, register, verifyOtp, forgotPassword, resetPassword};
   static const String notifications = '/notifications';
   static const String settings = '/settings';
   static const String search = '/search';
@@ -59,9 +67,11 @@ abstract final class AppRoutes {
   static const String planner = '/planner';
   static const String library = '/library';
   static String book(String id) => '/library/$id';
+  static String bookReader(String id, {int? page}) => _q('/library/$id/read', {'page': page?.toString()});
   static const String boardArchive = '/board';
   static String boardPaper(String id) => '/board/$id';
   static const String institutionArchive = '/institution-papers';
+  static String institutionPaper(String id) => '/institution-papers/$id';
   static const String photoSolver = '/photo-solver';
   static const String voiceTutor = '/voice-tutor';
   static const String handwriting = '/handwriting';
@@ -74,4 +84,19 @@ abstract final class AppRoutes {
   static const String support = '/support';
   static const String privacy = '/privacy';
   static const String onboarding = '/onboarding';
+
+  // ── Book avatar teacher ──
+  static const String avatarTutor = '/avatar-tutor';
+  static String avatarClass(String bookId, {String? sessionId}) => _q('$avatarTutor/$bookId', {'session': sessionId});
+  static const String teacherAvatars = '/teacher-avatars';
+  static const String avatarActivity = '/avatar-activity';
+
+  // ── Teacher & parent modules ──
+  static const String teacherAssignments = '/teacher-assignments';
+  static const String teacherExams = '/teacher-exams';
+  static const String questionGenerator = '/question-generator';
+  static const String teacherMaterials = '/teacher-materials';
+  static const String teacherAnalytics = '/teacher-analytics';
+  static const String parentReports = '/parent-reports';
+  static const String parentResults = '/parent-results';
 }

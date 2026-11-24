@@ -59,7 +59,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             ),
             IconButton(tooltip: context.tr(PlanStrings.settings), icon: const Icon(Icons.tune), onPressed: () => _settings(context, ref)),
           ],
-          bottom: TabBar(tabs: [
+          bottom: TabBar(tabAlignment: TabAlignment.fill, tabs: [
             Tab(text: context.tr(PlanStrings.today)),
             Tab(text: context.tr(PlanStrings.week)),
             Tab(text: context.tr(PlanStrings.month)),

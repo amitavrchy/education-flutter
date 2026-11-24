@@ -11,14 +11,14 @@ bool _isInPortal(String location, UserRole role) {
 ///
 /// - while restoring the session → splash
 /// - signed out → login
-/// - web-only roles (institution, super admin) → "use the web dashboard" screen
+/// - web-only roles (admins) → "use the web dashboard" screen
 /// - signed in → own portal only; other portals redirect to the user's home
 String? resolveAuthRedirect(AuthState auth, String location) {
   if (auth is AuthUnknown) {
     return location == AppRoutes.splash ? null : AppRoutes.splash;
   }
   if (auth is Unauthenticated) {
-    return location == AppRoutes.login ? null : AppRoutes.login;
+    return AppRoutes.publicRoutes.contains(location) ? null : AppRoutes.login;
   }
 
   final role = (auth as Authenticated).user.role;
@@ -27,7 +27,9 @@ String? resolveAuthRedirect(AuthState auth, String location) {
   }
 
   final home = AppRoutes.portalHome(role);
-  const entryRoutes = {AppRoutes.splash, AppRoutes.login, AppRoutes.unsupportedRole};
+  // The OTP screen finishes signup (it routes on by itself); other entry screens go home.
+  if (location == AppRoutes.verifyOtp) return null;
+  final entryRoutes = {AppRoutes.splash, AppRoutes.unsupportedRole, ...AppRoutes.publicRoutes};
   if (entryRoutes.contains(location) || location == '/${role.pathSegment}') return home;
 
   final inOtherPortal = UserRole.values.any(

@@ -189,7 +189,7 @@ class ExamController extends Notifier<ExamState> {
     return done;
   }
 
-  /// Teachers / institutions publish new exams (used by the role portals).
+  /// Teachers publish new exams (used by the role portals).
   Future<void> publishTemplate(ExamTemplate t) async {
     state = ExamState(templates: [t, ...state.templates.where((x) => x.id != t.id)], attempts: state.attempts);
     await _templates.upsert(t);

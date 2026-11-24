@@ -15,7 +15,7 @@ class UnsupportedRoleScreen extends ConsumerWidget {
         child: EmptyState(
           icon: Icons.desktop_windows_outlined,
           title: 'এই অ্যাকাউন্টটি ওয়েব ড্যাশবোর্ডের জন্য',
-          message: 'প্রতিষ্ঠান ও অ্যাডমিন অ্যাকাউন্ট ShikkhaAI ওয়েবসাইট থেকে ব্যবহার করুন।',
+          message: 'অ্যাডমিন অ্যাকাউন্ট ShikkhaAI ওয়েবসাইট থেকে ব্যবহার করুন।',
           action: OutlinedButton.icon(
             onPressed: () => ref.read(authControllerProvider.notifier).logout(),
             icon: const Icon(Icons.logout),

@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>বইয়ের অ্যাভাটার শিক্ষককে কথা বলে প্রশ্ন করার জন্য মাইক্রোফোন লাগে।</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>তোমার মুখে বলা প্রশ্ন লেখায় রূপান্তর করতে স্পিচ রিকগনিশন লাগে।</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

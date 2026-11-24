@@ -42,9 +42,6 @@ void main() {
     final admin = _signedInAs(UserRole.superAdmin);
     expect(resolveAuthRedirect(admin, '/student/home'), AppRoutes.unsupportedRole);
     expect(resolveAuthRedirect(admin, AppRoutes.unsupportedRole), isNull);
-    expect(
-      resolveAuthRedirect(_signedInAs(UserRole.institutionAdmin), AppRoutes.login),
-      AppRoutes.unsupportedRole,
-    );
+    expect(resolveAuthRedirect(admin, AppRoutes.login), AppRoutes.unsupportedRole);
   });
 }
