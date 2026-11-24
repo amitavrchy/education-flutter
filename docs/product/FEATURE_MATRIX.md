@@ -42,7 +42,7 @@ generic with retry).
 
 | ID | Feature | Status | Notes |
 |---|---|---|---|
-| DASH-01..24 | 24 widgets (greeting, goal, weekly chart, streak, recommendations, continue, exams, quick tutor, recent chats, weak topics, revision, sessions, subject performance, completion, daily quiz, saved questions, model tests, achievements, notices, subscription, calendar, notifications, resources, summary) | 🟡 | Only the greeting, hard-coded stats and quick actions exist; must read live state |
+| DASH-01..24 | 24 widgets (greeting, goal, weekly chart, streak, recommendations, continue, exams, quick tutor, recent chats, weak topics, revision, sessions, subject performance, completion, daily quiz, saved questions, model tests, achievements, notices, subscription, calendar, notifications, resources, summary) | 🟡 | Live: greeting, week stats (study time, practised, average score, streak), today's plan, continue reading, upcoming exams, weak-topic alert, quick actions (avatar, tutor, photo, model test). Other widgets ⬜ |
 | DASH-25 | Customise / reorder widgets | ⬜ | `AppSettings.dashboardOrder/hiddenWidgets` already persisted |
 
 ## M03 AI private tutor (§8)
@@ -75,6 +75,12 @@ generic with retry).
 | CUR-04 | Topic lesson, mark complete (XP + activity), next topic, quick check, ask tutor | ✅ | — |
 | CUR-05 | Continue / resume learning | ✅ | — |
 | CUR-06 | Resource / question counts per chapter | ⬜ | question bank now exists; counts not yet shown |
+
+## Adaptive analytics (§21)
+
+| ID | Feature | Status |
+|---|---|---|
+| ADP-01..18 | Subject mastery, weak/strong chapters with practise links, accuracy, 7-day study chart, exam score trend | ✅ `AnalyticsScreen` (W); misconception mapping & prerequisite graph ⬜ |
 
 ## M07 Textbook library (§12) · M08 Question bank (§13) · M09 Board archive (§14) · M10 Institution archive (§15)
 
@@ -122,7 +128,7 @@ generic with retry).
 | ENG-01..18 | Grammar, vocabulary, writing feedback, reading, listening, speaking (simulated) | ⬜ |
 | LAB-01..21 | Physics, chemistry, biology and maths interactive labs, calculator | ⬜ |
 | AUD-01..17 | Audio library, player, speed, transcript, markers, playlist, progress | ⬜ |
-| GAME-01..17 | Streak (✅ model), XP/levels (✅ model), badges, missions, leaderboards (hideable) | 🟡 (model only) |
+| GAME-01..17 | Streak, XP/levels, badges, weekly missions, demo leaderboard (hidden by the competitive toggle) | ✅ `AchievementsScreen` (W); friend challenges ⬜ |
 | OFF-01..15 | Downloads, storage, sync status, conflicts, offline badges | 🟡 (offline simulation toggle + banner ✅) |
 
 ## M22 Parent (§27) · M23 Teacher/reviewer (§28) · M24 Institution (§29)

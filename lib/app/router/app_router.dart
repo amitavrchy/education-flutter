@@ -12,6 +12,7 @@ import '../../features/auth/presentation/unsupported_role_screen.dart';
 import '../../features/book_avatar/presentation/avatar_classroom_screen.dart';
 import '../../features/book_avatar/presentation/avatar_gallery_screen.dart';
 import '../../features/book_avatar/presentation/avatar_role_screens.dart';
+import '../../features/insights/insights_screens.dart';
 import '../../features/library/library_screens.dart';
 import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
@@ -149,7 +150,7 @@ List<RouteBase> _moduleRoutes() => [
     ),
   ),
   GoRoute(path: '/exam/:id', builder: (context, state) => ExamTakeScreen(attemptId: state.pathParameters['id']!)),
-  GoRoute(path: AppRoutes.analytics, builder: (context, state) => _pending('অগ্রগতি', Icons.insights_outlined)),
+  GoRoute(path: AppRoutes.analytics, builder: (context, state) => const AnalyticsScreen()),
   GoRoute(
     path: '/notes',
     builder: (context, state) => NotesScreen(chapterId: _param(state, 'chapter')),
@@ -203,7 +204,7 @@ List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.english, builder: (context, state) => _pending('ইংরেজি কোচ', Icons.translate)),
   GoRoute(path: AppRoutes.labs, builder: (context, state) => _pending('ল্যাব', Icons.science_outlined)),
   GoRoute(path: AppRoutes.audio, builder: (context, state) => _pending('অডিও রিভিশন', Icons.headphones_outlined)),
-  GoRoute(path: AppRoutes.achievements, builder: (context, state) => _pending('অর্জন', Icons.emoji_events_outlined)),
+  GoRoute(path: AppRoutes.achievements, builder: (context, state) => const AchievementsScreen()),
   GoRoute(path: AppRoutes.offline, builder: (context, state) => _pending('অফলাইন', Icons.download_for_offline_outlined)),
   GoRoute(path: AppRoutes.subscription, builder: (context, state) => _pending('সাবস্ক্রিপশন', Icons.workspace_premium_outlined)),
   GoRoute(path: AppRoutes.support, builder: (context, state) => _pending('সাহায্য', Icons.support_agent)),
