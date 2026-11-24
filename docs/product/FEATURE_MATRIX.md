@@ -93,8 +93,8 @@ generic with retry).
 | QB-04 | Bookmark, practice sets CRUD, report, copy, print view, history, reattempt wrong, topic coverage, related | ✅ U/W |
 | QB-05 | Practice session: quick / daily (weak topics) / mixed / wrong / bookmarks / set; instant check; updates mastery + XP | ✅ U/W |
 | QB-06 | Image/diagram assets inside questions | ⬜ (diagram questions are text-described) |
-| BOARD-01..25 | Board/year/subject explorer, paper viewer, solutions, frequency analysis, timed paper, authenticity labels | ⬜ |
-| INST-01..18 | Institution directory, filters, papers, categories, visibility, duplicates, report | ⬜ |
+| BOARD-01..25 | Board/year/subject explorer (9 boards × 10 years, HSC 2020 omitted), paper viewer → question detail with solutions, practise a paper, chapter frequency, "board-style sample" labels | ✅ `BoardArchiveScreen` (U+W); timed paper mode ⬜ |
+| INST-01..18 | Demo school/college directory, search, school/college filter, papers with categories, practise a paper | ✅ `InstitutionArchiveScreen` (U); visibility & duplicate report ⬜ |
 
 ## M11 Exams (§16) · M12 Handwriting evaluator (§17)
 

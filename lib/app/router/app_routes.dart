@@ -63,6 +63,7 @@ abstract final class AppRoutes {
   static const String boardArchive = '/board';
   static String boardPaper(String id) => '/board/$id';
   static const String institutionArchive = '/institution-papers';
+  static String institutionPaper(String id) => '/institution-papers/$id';
   static const String photoSolver = '/photo-solver';
   static const String voiceTutor = '/voice-tutor';
   static const String handwriting = '/handwriting';

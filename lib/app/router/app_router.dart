@@ -8,6 +8,7 @@ import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
+import '../../features/archives/archive_screens.dart';
 import '../../features/auth/presentation/unsupported_role_screen.dart';
 import '../../features/book_avatar/presentation/avatar_classroom_screen.dart';
 import '../../features/book_avatar/presentation/avatar_gallery_screen.dart';
@@ -196,8 +197,16 @@ List<RouteBase> _moduleRoutes() => [
       ),
     ],
   ),
-  GoRoute(path: AppRoutes.boardArchive, builder: (context, state) => _pending('বোর্ড প্রশ্ন', Icons.history_edu_outlined)),
-  GoRoute(path: AppRoutes.institutionArchive, builder: (context, state) => _pending('স্কুল-কলেজের প্রশ্ন', Icons.account_balance_outlined)),
+  GoRoute(
+    path: AppRoutes.boardArchive,
+    builder: (context, state) => const BoardArchiveScreen(),
+    routes: [GoRoute(path: ':id', builder: (context, state) => ArchivePaperScreen(paperId: state.pathParameters['id']!))],
+  ),
+  GoRoute(
+    path: AppRoutes.institutionArchive,
+    builder: (context, state) => const InstitutionArchiveScreen(),
+    routes: [GoRoute(path: ':id', builder: (context, state) => ArchivePaperScreen(paperId: state.pathParameters['id']!))],
+  ),
   GoRoute(path: AppRoutes.photoSolver, builder: (context, state) => _pending('ফটো সলভার', Icons.photo_camera_outlined)),
   GoRoute(path: AppRoutes.voiceTutor, builder: (context, state) => _pending('ভয়েস টিউটর', Icons.mic_none)),
   GoRoute(path: AppRoutes.handwriting, builder: (context, state) => _pending('হাতের লেখা মূল্যায়ন', Icons.draw_outlined)),

@@ -5,7 +5,8 @@ import '../../core/l10n/tr.dart';
 import '../../features/curriculum/domain/curriculum_models.dart';
 import '../../features/question_bank/domain/question.dart';
 
-String _subjectOf(String chapterId) => chapterId.substring(0, chapterId.indexOf('-p'));
+/// 'ssc-phy-p1-c3' → 'ssc-phy' (the paper marker is `-p` + digit, so '-phy' must not match).
+String _subjectOf(String chapterId) => chapterId.substring(0, chapterId.indexOf(RegExp(r'-p\d')));
 
 Question _mcq(
   String id,
