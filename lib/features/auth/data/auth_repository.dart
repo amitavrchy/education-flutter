@@ -9,6 +9,9 @@ import '../domain/app_user.dart';
 abstract interface class AuthRepository {
   Future<AuthSession> login({required String identifier, required String password});
 
+  /// Creates an account once the OTP was verified (students and parents sign up themselves).
+  Future<AuthSession> register({required String name, required String identifier, required String password, required UserRole role});
+
   Future<void> logout();
 }
 
@@ -42,6 +45,17 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AuthSession> register({required String name, required String identifier, required String password, required UserRole role}) async {
+    await _api.post<Map<String, dynamic>>(
+      '/auth/register',
+      body: {'name': name, 'identifier': identifier, 'password': password, 'role': role.key},
+      parse: (data) => data! as Map<String, dynamic>,
+      skipAuth: true,
+    );
+    return login(identifier: identifier, password: password);
+  }
+
+  @override
   Future<void> logout() async {
     await _api.sendNoContent('POST', '/auth/logout');
   }
@@ -72,6 +86,15 @@ class MockAuthRepository implements AuthRepository {
     return AuthSession(
       accessToken: 'mock-token-${role.pathSegment}',
       user: AppUser(id: 'mock-${role.pathSegment}', name: _names[role]!, role: role, email: identifier),
+    );
+  }
+
+  @override
+  Future<AuthSession> register({required String name, required String identifier, required String password, required UserRole role}) async {
+    await Future<void>.delayed(delay);
+    return AuthSession(
+      accessToken: 'mock-token-${role.pathSegment}',
+      user: AppUser(id: 'mock-${role.pathSegment}', name: name, role: role, email: identifier),
     );
   }
 

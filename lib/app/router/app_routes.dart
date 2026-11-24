@@ -5,6 +5,14 @@ abstract final class AppRoutes {
   static const String splash = '/splash';
   static const String login = '/login';
   static const String unsupportedRole = '/unsupported-role';
+  static const String welcome = '/welcome';
+  static const String register = '/register';
+  static const String verifyOtp = '/verify-otp';
+  static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
+
+  /// Screens a signed-out visitor may open.
+  static const Set<String> publicRoutes = {login, welcome, register, verifyOtp, forgotPassword, resetPassword};
   static const String notifications = '/notifications';
   static const String settings = '/settings';
   static const String search = '/search';

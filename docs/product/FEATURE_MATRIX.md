@@ -24,19 +24,19 @@ generic with retry).
 
 | ID | Feature | Role | Flutter screen | Mock source | Status | Test |
 |---|---|---|---|---|---|---|
-| AUTH-01 | Welcome screen | all | — | — | ⬜ | — |
+| AUTH-01 | Welcome screen (3 slides) | all | `WelcomeScreen` | — | ✅ | — |
 | AUTH-02 | Email / phone login with validation | all | `LoginScreen` | `MockAuthRepository` | ✅ | W |
-| AUTH-03 | Signup | student/parent | — | — | ⬜ | — |
-| AUTH-04 | Mock OTP verification | all | — | — | ⬜ | — |
-| AUTH-05 | Password recovery / reset UI | all | — | — | ⬜ | — |
+| AUTH-03 | Signup (student/parent; validation; terms; teacher by invitation) | student/parent | `RegisterScreen` | `MockAuthRepository.register` | ✅ | W |
+| AUTH-04 | Mock OTP verification (demo 123456, wrong code, resend countdown) | all | `VerifyOtpScreen` | — | ✅ | W |
+| AUTH-05 | Password recovery / reset UI | all | `ForgotPasswordScreen`, `ResetPasswordScreen` | — | ✅ | — |
 | AUTH-06 | Remember session / restore | all | `SplashScreen` | `TokenStorage` | ✅ | W |
 | AUTH-07 | Logout (with confirm) | all | Settings | — | ✅ | — |
 | AUTH-08 | Session expiry simulation (401 → sign out) | all | interceptor | — | ✅ | U |
 | AUTH-09 | Demo role switcher | all | — | — | ⬜ | — |
-| AUTH-10 | Account deletion request | student | — | — | ⬜ | — |
+| AUTH-10 | Account deletion request (30-day, cancellable) | student | `PrivacyScreen` | `AccountController` | ✅ | W |
 | AUTH-11 | Language selection | all | Settings | `AppSettings` | ✅ | — |
 | AUTH-12 | Privacy notice (guardian consent for under-18s removed 2026-11-24: any age signs up alone) | student | — | — | ⬜ | — |
-| AUTH-13 | Onboarding wizard (19 fields, steps, validation, save/resume, review, completion) | student | — | `StudentProfile` (model only) | ⬜ | — |
+| AUTH-13 | Onboarding wizard (about you, academic, subjects, goals, study time, review → saves profile) | student | `OnboardingScreen` | `StudentProfileController` | ✅ | W |
 
 ## M02 Student dashboard (§7)
 

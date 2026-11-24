@@ -1,5 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../../app/router/app_routes.dart';
+import '../../../core/l10n/tr.dart';
+import 'auth_flow_screens.dart';
 
 import '../../../core/config/env.dart';
 import '../../../core/constants/app_constants.dart';
@@ -125,6 +130,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             )
                           : const Text('লগইন'),
                     ),
+                    TextButton(key: const Key('login.forgot'), onPressed: () => context.go(AppRoutes.forgotPassword), child: Text(context.tr(AuthFlowStrings.forgot))),
+                    OutlinedButton(key: const Key('login.register'), onPressed: () => context.go(AppRoutes.register), child: Text(context.tr(AuthFlowStrings.register))),
                     if (Env.useMockApi) ...[
                       const SizedBox(height: AppSpacing.lg),
                       Text(

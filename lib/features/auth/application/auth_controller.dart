@@ -65,6 +65,13 @@ class AuthController extends Notifier<AuthState> {
     state = Authenticated(session.user);
   }
 
+  /// Signs in a freshly registered account (after OTP verification).
+  Future<void> register({required String name, required String identifier, required String password, required UserRole role}) async {
+    final session = await _repository.register(name: name.trim(), identifier: identifier.trim(), password: password, role: role);
+    await _storage.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken, userJson: jsonEncode(session.user.toJson()));
+    state = Authenticated(session.user);
+  }
+
   Future<void> logout() async {
     try {
       await _repository.logout();
