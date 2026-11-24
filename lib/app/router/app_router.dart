@@ -8,6 +8,7 @@ import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
+import '../../features/account/account_screens.dart';
 import '../../features/archives/archive_screens.dart';
 import '../../features/auth/presentation/unsupported_role_screen.dart';
 import '../../features/book_avatar/presentation/avatar_classroom_screen.dart';
@@ -138,7 +139,7 @@ List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
   GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsScreen()),
   GoRoute(path: AppRoutes.search, builder: (context, state) => const SearchScreen()),
-  GoRoute(path: AppRoutes.profile, builder: (context, state) => _pending('প্রোফাইল', Icons.person_outline)),
+  GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
   GoRoute(
     path: '/practice-session',
     builder: (context, state) => PracticeSessionScreen(
@@ -216,9 +217,9 @@ List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.audio, builder: (context, state) => _pending('অডিও রিভিশন', Icons.headphones_outlined)),
   GoRoute(path: AppRoutes.achievements, builder: (context, state) => const AchievementsScreen()),
   GoRoute(path: AppRoutes.offline, builder: (context, state) => _pending('অফলাইন', Icons.download_for_offline_outlined)),
-  GoRoute(path: AppRoutes.subscription, builder: (context, state) => _pending('সাবস্ক্রিপশন', Icons.workspace_premium_outlined)),
-  GoRoute(path: AppRoutes.support, builder: (context, state) => _pending('সাহায্য', Icons.support_agent)),
-  GoRoute(path: AppRoutes.privacy, builder: (context, state) => _pending('গোপনীয়তা', Icons.shield_outlined)),
+  GoRoute(path: AppRoutes.subscription, builder: (context, state) => const SubscriptionScreen()),
+  GoRoute(path: AppRoutes.support, builder: (context, state) => const SupportScreen()),
+  GoRoute(path: AppRoutes.privacy, builder: (context, state) => const PrivacyScreen()),
 ];
 
 /// The app router. Rebuilds redirects whenever the auth state changes.

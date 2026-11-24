@@ -167,7 +167,7 @@ voice and scope is an admin task, which stays on the web.
 | NOTIF-02 | Detail view, preferences, push/email permission UI, in-app simulation | ⬜ | |
 | SET-01 | Theme (light/dark/system), language, text size, high contrast, reduced motion, Bangla numerals | ✅ | — |
 | SET-02 | Demo tools: simulate offline / server errors; storage usage; reset demo data | ✅ | — |
-| SET-03 | Profile (personal, academic, preferences, goals), subscription, billing, privacy, guardian, help, feedback, deletion | ⬜ | |
+| SET-03 | Profile (academic info, goals), subscription (plans, monthly/yearly, coupons, simulated bKash/Nagad/card checkout with a declining test card, cancel/resume, invoices), privacy (guardian sharing, leaderboard, chat history, retention, data export, 30-day deletion), help (FAQ search, support tickets) | ✅ | U+W |
 | SRCH-01 | Global search across subjects, chapters, topics, questions, books, avatar teachers, notes, flashcards and conversations; recent (persisted), popular, kind filters with counts, grouping, empty state → ask tutor | ✅ | W |
 
 ## M28 Cross-cutting (§49–55)
