@@ -74,4 +74,10 @@ abstract final class AppRoutes {
   static const String support = '/support';
   static const String privacy = '/privacy';
   static const String onboarding = '/onboarding';
+
+  // ── Book avatar teacher ──
+  static const String avatarTutor = '/avatar-tutor';
+  static String avatarClass(String bookId, {String? sessionId}) => _q('$avatarTutor/$bookId', {'session': sessionId});
+  static const String teacherAvatars = '/teacher-avatars';
+  static const String avatarActivity = '/avatar-activity';
 }

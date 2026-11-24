@@ -1,7 +1,8 @@
 # Feature Matrix — EduMentor AI Flutter app
 
 Scope of **this repo**: the Flutter student app (all student features, spec §48) plus the
-mobile views for parent, teacher/reviewer and institution roles. The admin dashboard
+mobile views for parent and teacher/reviewer roles (the institution portal was removed by product
+decision on 2026-11-24). The admin dashboard
 (spec §30–42, §46–47) and the marketing website belong to the separate web repo; they are
 listed at the end so every spec feature stays tracked.
 
@@ -34,7 +35,7 @@ generic with retry).
 | AUTH-09 | Demo role switcher | all | — | — | ⬜ | — |
 | AUTH-10 | Account deletion request | student | — | — | ⬜ | — |
 | AUTH-11 | Language selection | all | Settings | `AppSettings` | ✅ | — |
-| AUTH-12 | Consent, privacy, guardian consent | student | — | — | ⬜ | — |
+| AUTH-12 | Privacy notice (guardian consent for under-18s removed 2026-11-24: any age signs up alone) | student | — | — | ⬜ | — |
 | AUTH-13 | Onboarding wizard (19 fields, steps, validation, save/resume, review, completion) | student | — | `StudentProfile` (model only) | ⬜ | — |
 
 ## M02 Student dashboard (§7)
@@ -93,7 +94,7 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| EXAM-01 | 13 exam types (templates seeded for model, daily, teacher, institution, board-sample, full, oral; chapter/subject/custom/adaptive from setup) | ✅ |
+| EXAM-01 | 13 exam types (templates seeded for model, daily, teacher, board-sample, full, oral; institution exam type removed; chapter/subject/custom/adaptive from setup) | ✅ |
 | EXAM-02 | Setup: subject, chapters, types, count, difficulty, time, negative marking, mode, randomise, review policy; live pool validation | ✅ |
 | EXAM-03 | Taking: immersive focus mode, timer + autosave, palette, mark for review, prev/next, keyboard shortcuts, written editor, handwritten photo upload, submit confirm, time-up auto-submit, recovery | ✅ U/W |
 | EXAM-04 | Results: score, grade/GPA, counts, time, accuracy, difficulty/topic analysis, question review, weak areas → lessons/practice, teacher feedback, retake, printable, history + trend chart | ✅ U/W |
@@ -128,9 +129,29 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| PAR-01..20 | Guardian onboarding, linking, child overview, progress, consent, privacy | 🟡 (static home only) |
+| PAR-01..20 | Guardian onboarding, linking, child overview, progress, privacy (no consent step) | 🟡 (static home only; avatar usage ✅) |
 | TEA-01..21 | Review queue, status flow, question CRUD, quizzes, assign, review submissions | 🟡 (static home only) |
-| INS-01..25 | Institution portal | ⬜ (role currently routed to "use web") |
+| INS-01..25 | Institution portal | 🚫 removed (product decision 2026-11-24); role dropped from the app |
+
+## M29 Per-book live 2D avatar teacher (product requirement, 2026-11-24)
+
+Code: `lib/features/book_avatar/` (engine, controller, voice, painter, screens). Same contract
+as the web (`docs/api/BOOK_AVATAR_CONTRACT.md` in the web repo). Editing an avatar's look,
+voice and scope is an admin task, which stays on the web.
+
+| ID | Feature | Role | Flutter screen | Status | Test |
+|---|---|---|---|---|---|
+| AVT-01 | One avatar per sample textbook, varied look/name per book | all | `AvatarGalleryScreen` | ✅ | U |
+| AVT-02 | Animated 2D teacher: breathing, blinking, lip-sync, listening/thinking/speaking cues, reduced motion | all | `TeacherAvatar` | ✅ | W |
+| AVT-03 | Ask by text | student | `AvatarClassroomScreen` | ✅ | W |
+| AVT-04 | Ask by voice (speech_to_text), hands-free, sample questions when recognition is unavailable | student | `AvatarClassroomScreen` | ✅ | — |
+| AVT-05 | Spoken answers (flutter_tts) with captions, speed, mute; silent lip-sync when no voice | student | `AvatarClassroomScreen` | ✅ | — |
+| AVT-06 | Answers only from the book, with page citations and a page viewer | student | `AvatarClassroomScreen` | ✅ | U+W |
+| AVT-07 | Out-of-book questions declined with book-topic suggestions; chapter scope respected | student | engine | ✅ | U |
+| AVT-08 | Class history, helpful/not helpful, report a wrong answer | student | `AvatarClassroomScreen` | ✅ | U |
+| AVT-09 | Teacher: avatar profile + test chat; resolve/dismiss reported answers | teacher | `TeacherAvatarsScreen` | ✅ | U+W |
+| AVT-10 | Parent: usage counts only (no transcripts) | parent | `ParentAvatarActivityScreen` | ✅ | U |
+| AVT-11 | Offline: avatar disabled with a clear message | student | `AvatarClassroomScreen` | ✅ | U |
 
 ## M25 Notifications (§43) · M26 Profile & settings (§44) · M27 Search (§45)
 

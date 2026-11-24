@@ -128,6 +128,7 @@ final PortalConfig studentPortal = PortalConfig(
     const PortalMenuItem(slug: 'labs', label: 'বিজ্ঞান ও গণিত ল্যাব', icon: Icons.science_outlined, route: AppRoutes.labs, group: 'শেখা'),
     const PortalMenuItem(slug: 'english', label: 'ইংরেজি কোচ', icon: Icons.translate, route: AppRoutes.english, group: 'শেখা'),
     // AI tools
+    const PortalMenuItem(slug: 'avatar-tutor', label: 'বইয়ের শিক্ষক (অ্যাভাটার)', icon: Icons.co_present_outlined, route: AppRoutes.avatarTutor, group: 'AI টুলস'),
     const PortalMenuItem(slug: 'voice', label: 'ভয়েস টিউটর', icon: Icons.mic_none, route: AppRoutes.voiceTutor, group: 'AI টুলস'),
     const PortalMenuItem(slug: 'photo-solver', label: 'ফটো সলভার', icon: Icons.photo_camera_outlined, route: AppRoutes.photoSolver, group: 'AI টুলস'),
     const PortalMenuItem(slug: 'handwriting', label: 'হাতের লেখা মূল্যায়ন', icon: Icons.draw_outlined, route: AppRoutes.handwriting, group: 'AI টুলস'),
@@ -171,6 +172,7 @@ final PortalConfig teacherPortal = PortalConfig(
     PortalMenuItem(slug: 'exams', label: 'পরীক্ষা', icon: Icons.quiz_outlined),
     PortalMenuItem(slug: 'question-generator', label: 'AI প্রশ্ন জেনারেটর', icon: Icons.auto_awesome_outlined),
     PortalMenuItem(slug: 'materials', label: 'শিক্ষা উপকরণ', icon: Icons.folder_outlined),
+    PortalMenuItem(slug: 'avatars', label: 'অ্যাভাটার শিক্ষক', icon: Icons.co_present_outlined, route: AppRoutes.teacherAvatars),
     PortalMenuItem(slug: 'analytics', label: 'অ্যানালিটিক্স', icon: Icons.insights_outlined),
   ],
 );
@@ -199,6 +201,7 @@ final PortalConfig parentPortal = PortalConfig(
   menuItems: const [
     PortalMenuItem(slug: 'reports', label: 'রিপোর্ট', icon: Icons.description_outlined),
     PortalMenuItem(slug: 'results', label: 'ফলাফল', icon: Icons.emoji_events_outlined),
+    PortalMenuItem(slug: 'avatar-activity', label: 'অ্যাভাটার শিক্ষকের ব্যবহার', icon: Icons.co_present_outlined, route: AppRoutes.avatarActivity),
   ],
 );
 

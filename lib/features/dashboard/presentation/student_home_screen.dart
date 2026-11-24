@@ -38,6 +38,11 @@ class StudentHomeScreen extends StatelessWidget {
             onTap: () => context.go('/student/ai-tutor'),
           ),
           _QuickAction(
+            icon: Icons.co_present_outlined,
+            title: 'বইয়ের শিক্ষককে প্রশ্ন করো (অ্যাভাটার)',
+            onTap: () => context.push('/avatar-tutor'),
+          ),
+          _QuickAction(
             icon: Icons.photo_camera_outlined,
             title: 'ছবি তুলে সমাধান',
             onTap: () => context.go('/student/more/photo-solver'),
