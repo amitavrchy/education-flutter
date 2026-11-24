@@ -80,7 +80,7 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| LIB-01..27 | Browse/filter books, reader, TOC, page nav, zoom, bookmarks, page notes, highlights, ask AI, history | ⬜ |
+| LIB-01..27 | Browse/filter books, reader, TOC, page nav, zoom (text size), bookmarks, continue reading, offline download, ask the book's avatar teacher, citation deep links | 🟡 ✅ U+W for these; page notes & highlights ⬜ |
 | QB-01 | Question model: 15 types incl. CQ ক/খ/গ/ঘ, matching, fill-in, proof, case/passage | ✅ U |
 | QB-02 | Browse/filter/sort (subject, chapter, type, difficulty, source, year, board, marks, verified, relevance, search; recent/difficulty/frequency), pagination | ✅ U |
 | QB-03 | Answer reveal, explanation, steps, alt method, rubric, citations, self-mark right/wrong | ✅ |

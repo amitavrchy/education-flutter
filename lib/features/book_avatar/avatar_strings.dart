@@ -56,6 +56,7 @@ abstract final class AvatarStrings {
   static const cancel = Tr('বাতিল', 'Cancel');
   static const submit = Tr('পাঠাও', 'Submit');
   static const sourceSheet = Tr('বইয়ের পৃষ্ঠা', 'Book page');
+  static const openInBook = Tr('বইয়ে এই পৃষ্ঠা খুলুন', 'Open this page in the book');
   static const sampleBookNote = Tr(
     'নমুনা পাঠ্যবই — ডেমোর জন্য লেখা কৃত্রিম অংশ, আসল NCTB বই নয়।',
     'Sample textbook — synthetic text written for the demo, not a real NCTB book.',

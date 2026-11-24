@@ -12,6 +12,7 @@ import '../../features/auth/presentation/unsupported_role_screen.dart';
 import '../../features/book_avatar/presentation/avatar_classroom_screen.dart';
 import '../../features/book_avatar/presentation/avatar_gallery_screen.dart';
 import '../../features/book_avatar/presentation/avatar_role_screens.dart';
+import '../../features/library/library_screens.dart';
 import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
 import '../../features/curriculum/presentation/topic_screen.dart';
@@ -178,7 +179,22 @@ List<RouteBase> _moduleRoutes() => [
   ),
   GoRoute(path: AppRoutes.teacherAvatars, builder: (context, state) => const TeacherAvatarsScreen()),
   GoRoute(path: AppRoutes.avatarActivity, builder: (context, state) => const ParentAvatarActivityScreen()),
-  GoRoute(path: AppRoutes.library, builder: (context, state) => _pending('লাইব্রেরি', Icons.local_library_outlined)),
+  GoRoute(
+    path: AppRoutes.library,
+    builder: (context, state) => const LibraryScreen(),
+    routes: [
+      GoRoute(
+        path: ':id',
+        builder: (context, state) => BookScreen(bookId: state.pathParameters['id']!),
+        routes: [
+          GoRoute(
+            path: 'read',
+            builder: (context, state) => BookReaderScreen(bookId: state.pathParameters['id']!, page: int.tryParse(_param(state, 'page') ?? '')),
+          ),
+        ],
+      ),
+    ],
+  ),
   GoRoute(path: AppRoutes.boardArchive, builder: (context, state) => _pending('বোর্ড প্রশ্ন', Icons.history_edu_outlined)),
   GoRoute(path: AppRoutes.institutionArchive, builder: (context, state) => _pending('স্কুল-কলেজের প্রশ্ন', Icons.account_balance_outlined)),
   GoRoute(path: AppRoutes.photoSolver, builder: (context, state) => _pending('ফটো সলভার', Icons.photo_camera_outlined)),

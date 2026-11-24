@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../../app/router/app_routes.dart';
 
 import '../../../core/l10n/tr.dart';
 import '../../../core/network/api_exception.dart';
@@ -340,6 +343,16 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
               RichContent(c.excerpt),
               const SizedBox(height: AppSpacing.md),
               InfoBanner(message: context.tr(AvatarStrings.sampleBookNote)),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                key: const Key('avatar.openInBook'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  this.context.push(AppRoutes.bookReader(widget.bookId, page: c.page));
+                },
+                icon: const Icon(Icons.menu_book_outlined),
+                label: Text(context.tr(AvatarStrings.openInBook)),
+              ),
             ],
           ),
         ),

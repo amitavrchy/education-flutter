@@ -59,6 +59,7 @@ abstract final class AppRoutes {
   static const String planner = '/planner';
   static const String library = '/library';
   static String book(String id) => '/library/$id';
+  static String bookReader(String id, {int? page}) => _q('/library/$id/read', {'page': page?.toString()});
   static const String boardArchive = '/board';
   static String boardPaper(String id) => '/board/$id';
   static const String institutionArchive = '/institution-papers';
