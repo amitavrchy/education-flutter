@@ -89,7 +89,7 @@ class VoiceTutorScreen extends ConsumerStatefulWidget {
 enum _VState { idle, listening, thinking, speaking }
 
 class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
-  late final AvatarVoice _voice = ref.read(avatarVoiceProvider);
+  late final AvatarVoice _voice;
   final List<(bool, String)> _turns = [];
   bool _active = false;
   bool _paused = false;
@@ -100,6 +100,12 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
   String _interim = '';
   DateTime? _startedAt;
   int _speech = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _voice = ref.read(avatarVoiceProvider);
+  }
 
   @override
   void dispose() {

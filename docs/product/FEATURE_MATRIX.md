@@ -126,11 +126,11 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| ENG-01..18 | Grammar, vocabulary, writing feedback, reading, listening, speaking (simulated) | ⬜ |
-| LAB-01..21 | Physics, chemistry, biology and maths interactive labs, calculator | ⬜ |
-| AUD-01..17 | Audio library, player, speed, transcript, markers, playlist, progress | ⬜ |
+| ENG-01..18 | Writing check (grammar corrections with reasons), vocabulary cards with pronunciation, grammar quiz with score, speaking practice (speech_to_text → correction → TTS read-back) | ✅ `EnglishCoachScreen` (W); reading/listening comprehension sets ⬜ |
+| LAB-01..21 | Motion (v = u + at, chart), Ohm's law circuit (I, P, bulb brightness), periodic table 1–20 (mass, period, shells), quadratic graph plotter with roots | ✅ `LabsScreen` (W); biology diagrams & more experiments ⬜ |
+| AUD-01..17 | Lesson library per topic, play/pause via device TTS, speed, transcript, listening progress, continue listening, favourites | ✅ `AudioRevisionScreen` (W); chapter markers & downloads ⬜ |
 | GAME-01..17 | Streak, XP/levels, badges, weekly missions, demo leaderboard (hidden by the competitive toggle) | ✅ `AchievementsScreen` (W); friend challenges ⬜ |
-| OFF-01..15 | Downloads, storage, sync status, conflicts, offline badges | 🟡 (offline simulation toggle + banner ✅) |
+| OFF-01..15 | Downloaded books (remove), always-offline notes/flashcards, storage usage, last sync + sync now (fails offline), content version, offline simulation toggle, offline banners | ✅ `OfflineScreen` (W); conflict resolution UI ⬜ |
 
 ## M22 Parent (§27) · M23 Teacher/reviewer (§28) · M24 Institution (§29)
 

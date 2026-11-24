@@ -18,6 +18,8 @@ import '../../features/book_avatar/presentation/avatar_role_screens.dart';
 import '../../features/insights/insights_screens.dart';
 import '../../features/library/library_screens.dart';
 import '../../features/search/presentation/search_screen.dart';
+import '../../features/study_tools/audio_and_offline.dart';
+import '../../features/study_tools/english_and_labs.dart';
 import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
 import '../../features/curriculum/presentation/topic_screen.dart';
@@ -213,11 +215,11 @@ List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.photoSolver, builder: (context, state) => const PhotoSolverScreen()),
   GoRoute(path: AppRoutes.voiceTutor, builder: (context, state) => const VoiceTutorScreen()),
   GoRoute(path: AppRoutes.handwriting, builder: (context, state) => const HandwritingScreen()),
-  GoRoute(path: AppRoutes.english, builder: (context, state) => _pending('ইংরেজি কোচ', Icons.translate)),
-  GoRoute(path: AppRoutes.labs, builder: (context, state) => _pending('ল্যাব', Icons.science_outlined)),
-  GoRoute(path: AppRoutes.audio, builder: (context, state) => _pending('অডিও রিভিশন', Icons.headphones_outlined)),
+  GoRoute(path: AppRoutes.english, builder: (context, state) => const EnglishCoachScreen()),
+  GoRoute(path: AppRoutes.labs, builder: (context, state) => const LabsScreen()),
+  GoRoute(path: AppRoutes.audio, builder: (context, state) => const AudioRevisionScreen()),
   GoRoute(path: AppRoutes.achievements, builder: (context, state) => const AchievementsScreen()),
-  GoRoute(path: AppRoutes.offline, builder: (context, state) => _pending('অফলাইন', Icons.download_for_offline_outlined)),
+  GoRoute(path: AppRoutes.offline, builder: (context, state) => const OfflineScreen()),
   GoRoute(path: AppRoutes.subscription, builder: (context, state) => const SubscriptionScreen()),
   GoRoute(path: AppRoutes.support, builder: (context, state) => const SupportScreen()),
   GoRoute(path: AppRoutes.privacy, builder: (context, state) => const PrivacyScreen()),

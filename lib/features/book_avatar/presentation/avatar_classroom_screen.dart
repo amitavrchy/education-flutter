@@ -40,7 +40,7 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final _rand = math.Random(7);
-  late final AvatarVoice _voice = ref.read(avatarVoiceProvider);
+  late final AvatarVoice _voice;
 
   String? _sessionId;
   bool _starting = false;
@@ -65,6 +65,7 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
   @override
   void initState() {
     super.initState();
+    _voice = ref.read(avatarVoiceProvider);
     _sessionId = widget.sessionId;
   }
 
