@@ -10,9 +10,11 @@ abstract final class AppRoutes {
   static const String verifyOtp = '/verify-otp';
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
+  static const String sessionExpired = '/session-expired';
+  static const String consent = '/consent';
 
   /// Screens a signed-out visitor may open.
-  static const Set<String> publicRoutes = {login, welcome, register, verifyOtp, forgotPassword, resetPassword};
+  static const Set<String> publicRoutes = {login, welcome, register, verifyOtp, forgotPassword, resetPassword, sessionExpired};
   static const String notifications = '/notifications';
   static const String notificationPrefs = '/notifications/preferences';
   static const String settings = '/settings';

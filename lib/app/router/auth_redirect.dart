@@ -18,7 +18,8 @@ String? resolveAuthRedirect(AuthState auth, String location) {
     return location == AppRoutes.splash ? null : AppRoutes.splash;
   }
   if (auth is Unauthenticated) {
-    return AppRoutes.publicRoutes.contains(location) ? null : AppRoutes.login;
+    if (AppRoutes.publicRoutes.contains(location)) return null;
+    return auth.expired ? AppRoutes.sessionExpired : AppRoutes.login;
   }
 
   final role = (auth as Authenticated).user.role;
@@ -30,6 +31,7 @@ String? resolveAuthRedirect(AuthState auth, String location) {
   // The OTP screen finishes signup (it routes on by itself); other entry screens go home.
   if (location == AppRoutes.verifyOtp) return null;
   final entryRoutes = {AppRoutes.splash, AppRoutes.unsupportedRole, ...AppRoutes.publicRoutes};
+  if (location == AppRoutes.consent) return null;
   if (entryRoutes.contains(location) || location == '/${role.pathSegment}') return home;
 
   final inOtherPortal = UserRole.values.any(

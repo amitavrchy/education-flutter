@@ -336,7 +336,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
         await ref.read(studentProfileProvider.notifier).update((s) => s.copyWith(name: p.name, onboarded: false));
       }
       if (!mounted) return;
-      context.go(p.role == UserRole.student ? AppRoutes.onboarding : AppRoutes.portalHome(p.role));
+      context.go(AppRoutes.consent);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -594,4 +594,82 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
     );
   }
+}
+
+abstract final class ConsentStrings {
+  static const title = Tr('গোপনীয়তা ও সম্মতি', 'Privacy & consent');
+  static const intro = Tr('শুরু করার আগে জেনে নাও আমরা তোমার তথ্য কীভাবে ব্যবহার করি। যেকোনো বয়সের শিক্ষার্থী নিজেই অ্যাকাউন্ট খুলতে পারে।', 'Before you start, see how we use your data. Students of any age can create their own account.');
+  static const p1 = Tr('তোমার পড়াশোনার তথ্য শুধু শেখানো ও অগ্রগতি দেখানোর জন্য ব্যবহার হয়। আমরা তথ্য বিক্রি করি না।', 'Your learning data is used only to teach you and show progress. We never sell data.');
+  static const p2 = Tr('AI কথোপকথন ব্যক্তিগত — অভিভাবক বা শিক্ষক দেখতে পান না, যদি না তুমি নিজে শেয়ার করো।', 'AI conversations are private — guardians and teachers cannot see them unless you share them.');
+  static const p3 = Tr('AI-এর উত্তর ভুল হতে পারে; বইয়ের উৎস দেখে মিলিয়ে নাও। নম্বর AI-এর আনুমানিক, চূড়ান্ত নয়।', 'AI answers can be wrong; check the textbook sources. Marks from AI are estimates, not final.');
+  static const p4 = Tr('তুমি যেকোনো সময় তথ্য ডাউনলোড বা অ্যাকাউন্ট মুছে ফেলার অনুরোধ করতে পারো।', 'You can download your data or ask to delete your account at any time.');
+  static const terms = Tr('শর্তাবলি ও গোপনীয়তা নীতি পড়েছি এবং মেনে নিচ্ছি', 'I have read and accept the terms and privacy policy');
+  static const ai = Tr('বুঝেছি যে AI-এর উত্তর ও নম্বর আনুমানিক', 'I understand AI answers and marks are estimates');
+  static const updates = Tr('পড়ার টিপস ও নতুন ফিচারের খবর পেতে চাই (ঐচ্ছিক)', 'Send me study tips and feature news (optional)');
+  static const accept = Tr('সম্মতি দিয়ে এগিয়ে যাও', 'Agree and continue');
+}
+
+/// Privacy notice and consent after signup (AUTH-16). No guardian consent step.
+class ConsentScreen extends ConsumerStatefulWidget {
+  const ConsentScreen({super.key});
+
+  @override
+  ConsumerState<ConsentScreen> createState() => _ConsentScreenState();
+}
+
+class _ConsentScreenState extends ConsumerState<ConsentScreen> {
+  bool _terms = false;
+  bool _ai = false;
+  bool _updates = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authControllerProvider);
+    final role = auth is Authenticated ? auth.user.role : UserRole.student;
+    return _authShell(
+      context,
+      title: context.tr(ConsentStrings.title),
+      back: false,
+      children: [
+        Text(context.tr(ConsentStrings.intro)),
+        const SizedBox(height: AppSpacing.md),
+        for (final (icon, t) in [(Icons.lock_outline, ConsentStrings.p1), (Icons.forum_outlined, ConsentStrings.p2), (Icons.auto_awesome_outlined, ConsentStrings.p3), (Icons.download_outlined, ConsentStrings.p4)])
+          ListTile(contentPadding: EdgeInsets.zero, leading: Icon(icon), title: Text(context.tr(t))),
+        CheckboxListTile(key: const Key('consent.terms'), contentPadding: EdgeInsets.zero, value: _terms, onChanged: (v) => setState(() => _terms = v ?? false), title: Text(context.tr(ConsentStrings.terms))),
+        CheckboxListTile(key: const Key('consent.ai'), contentPadding: EdgeInsets.zero, value: _ai, onChanged: (v) => setState(() => _ai = v ?? false), title: Text(context.tr(ConsentStrings.ai))),
+        CheckboxListTile(contentPadding: EdgeInsets.zero, value: _updates, onChanged: (v) => setState(() => _updates = v ?? false), title: Text(context.tr(ConsentStrings.updates))),
+        const SizedBox(height: AppSpacing.md),
+        FilledButton(
+          key: const Key('consent.accept'),
+          onPressed: _terms && _ai ? () => context.go(role == UserRole.student ? AppRoutes.onboarding : AppRoutes.portalHome(role)) : null,
+          child: Text(context.tr(ConsentStrings.accept)),
+        ),
+      ],
+    );
+  }
+}
+
+abstract final class ExpiredStrings {
+  static const title = Tr('সেশনের মেয়াদ শেষ', 'Session expired');
+  static const body = Tr('নিরাপত্তার জন্য তোমাকে সাইন আউট করা হয়েছে। তোমার অফলাইন নোট ও অগ্রগতি এই ডিভাইসে সংরক্ষিত আছে।', 'For your security you were signed out. Your offline notes and progress are still saved on this device.');
+  static const again = Tr('আবার লগইন করো', 'Sign in again');
+}
+
+/// Shown after a 401 (AUTH-11).
+class SessionExpiredScreen extends StatelessWidget {
+  const SessionExpiredScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => _authShell(
+    context,
+    title: context.tr(ExpiredStrings.title),
+    back: false,
+    children: [
+      const Icon(Icons.lock_clock_outlined, size: 64),
+      const SizedBox(height: AppSpacing.md),
+      Text(context.tr(ExpiredStrings.body), textAlign: TextAlign.center),
+      const SizedBox(height: AppSpacing.lg),
+      FilledButton(key: const Key('expired.login'), onPressed: () => context.go(AppRoutes.login), child: Text(context.tr(ExpiredStrings.again))),
+    ],
+  );
 }

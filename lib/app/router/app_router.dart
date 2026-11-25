@@ -270,6 +270,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.forgotPassword, builder: (context, state) => const ForgotPasswordScreen()),
       GoRoute(path: AppRoutes.resetPassword, builder: (context, state) => const ResetPasswordScreen()),
       GoRoute(path: AppRoutes.onboarding, builder: (context, state) => const OnboardingScreen()),
+      GoRoute(path: AppRoutes.consent, builder: (context, state) => const ConsentScreen()),
+      GoRoute(path: AppRoutes.sessionExpired, builder: (context, state) => const SessionExpiredScreen()),
       ..._moduleRoutes(),
       for (final portal in mobilePortals) _portalRoute(portal),
     ],

@@ -157,6 +157,30 @@ class SettingsScreen extends ConsumerWidget {
                   value: settings.simulateErrors,
                   onChanged: (v) => controller.update((s) => s.copyWith(simulateErrors: v)),
                 ),
+                if (Env.useMockApi && user != null) ...[
+                  ListTile(
+                    leading: const Icon(Icons.switch_account_outlined),
+                    title: Text(context.tr(const Tr('ডেমো ভূমিকা বদলাও', 'Switch demo role'))),
+                    subtitle: Wrap(
+                      spacing: AppSpacing.xs,
+                      children: [
+                        for (final r in const [UserRole.student, UserRole.teacher, UserRole.parent])
+                          ChoiceChip(
+                            key: Key('settings.role.${r.pathSegment}'),
+                            label: Text(r.labelBn),
+                            selected: user.role == r,
+                            onSelected: user.role == r ? null : (_) => ref.read(authControllerProvider.notifier).switchDemoRole(r),
+                          ),
+                      ],
+                    ),
+                  ),
+                  ListTile(
+                    key: const Key('settings.expire'),
+                    leading: const Icon(Icons.lock_clock_outlined),
+                    title: Text(context.tr(const Tr('সেশনের মেয়াদ শেষ সিমুলেট করো', 'Simulate session expiry'))),
+                    onTap: () => ref.read(authControllerProvider.notifier).onUnauthorized(),
+                  ),
+                ],
               ],
             ),
           ),

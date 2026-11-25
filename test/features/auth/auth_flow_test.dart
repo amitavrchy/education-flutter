@@ -41,6 +41,7 @@ void main() {
         GoRoute(path: AppRoutes.register, builder: (_, _) => const RegisterScreen()),
         GoRoute(path: AppRoutes.verifyOtp, builder: (_, _) => const VerifyOtpScreen()),
         GoRoute(path: AppRoutes.onboarding, builder: (_, _) => const OnboardingScreen()),
+        GoRoute(path: AppRoutes.consent, builder: (_, _) => const ConsentScreen()),
         GoRoute(path: AppRoutes.login, builder: (_, _) => const Scaffold(body: Text('login'))),
         GoRoute(path: '/student/home', builder: (_, _) => const Scaffold(body: Text('student home'))),
       ],
@@ -91,6 +92,16 @@ void main() {
     await tester.tap(find.byKey(const Key('otp.verify')));
     await tester.pumpAndSettle();
     expect(container.read(authControllerProvider), isA<Authenticated>());
+
+    // Privacy & consent before onboarding.
+    await tester.ensureVisible(find.byKey(const Key('consent.terms')));
+    await tester.tap(find.byKey(const Key('consent.terms')));
+    await tester.ensureVisible(find.byKey(const Key('consent.ai')));
+    await tester.tap(find.byKey(const Key('consent.ai')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('consent.accept')));
+    await tester.tap(find.byKey(const Key('consent.accept')));
+    await tester.pumpAndSettle();
 
     for (var i = 0; i < 6; i++) {
       await tester.ensureVisible(find.byKey(const Key('ob.next')));

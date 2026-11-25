@@ -18,7 +18,10 @@ final class AuthUnknown extends AuthState {
 }
 
 final class Unauthenticated extends AuthState {
-  const Unauthenticated();
+  const Unauthenticated({this.expired = false});
+
+  /// Signed out because the session expired (401), not by the user.
+  final bool expired;
 }
 
 final class Authenticated extends AuthState {
@@ -88,9 +91,12 @@ class AuthController extends Notifier<AuthState> {
   /// The backend rejected our token: drop the session without calling the API again.
   void onUnauthorized() {
     if (state is! Authenticated) return;
-    state = const Unauthenticated();
+    state = const Unauthenticated(expired: true);
     unawaited(_storage.clear());
   }
+
+  /// Demo tool (AUTH-09): signs in as another mock role without the login form.
+  Future<void> switchDemoRole(UserRole role) => login(identifier: '${role.pathSegment}@shikkha.ai', password: 'demo');
 }
 
 final authControllerProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);

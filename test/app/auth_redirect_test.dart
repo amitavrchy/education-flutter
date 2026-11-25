@@ -44,4 +44,9 @@ void main() {
     expect(resolveAuthRedirect(admin, AppRoutes.unsupportedRole), isNull);
     expect(resolveAuthRedirect(admin, AppRoutes.login), AppRoutes.unsupportedRole);
   });
+
+  test('an expired session goes to the session-expired screen, which is public', () {
+    expect(resolveAuthRedirect(const Unauthenticated(expired: true), '/student/home'), AppRoutes.sessionExpired);
+    expect(resolveAuthRedirect(const Unauthenticated(expired: true), AppRoutes.sessionExpired), isNull);
+  });
 }
