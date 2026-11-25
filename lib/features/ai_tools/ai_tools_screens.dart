@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -14,15 +15,27 @@ import '../../core/network/api_exception.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../shared/widgets/app_page_scaffold.dart';
+import '../../core/utils/time_format.dart';
+import '../../mock/seed/curriculum_seed.dart';
 import '../../shared/widgets/badges.dart';
+import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/feedback.dart';
 import '../../shared/widgets/rich_content.dart';
 import '../../shared/widgets/section_header.dart';
+import '../teacher/teacher_data.dart';
+import 'ai_tools_data.dart';
+import '../account/account_controller.dart';
 import '../ai_tutor/data/ai_tutor_repository.dart';
 import '../ai_tutor/domain/tutor_models.dart';
 import '../book_avatar/application/avatar_voice.dart';
 import '../book_avatar/data/book_avatar_engine.dart';
+import '../flashcards/application/flashcards_controller.dart';
+import '../flashcards/domain/flashcard.dart';
+import '../notes/application/notes_controller.dart';
+import '../parent/guardian_controller.dart' show selfChildName;
+import '../notes/domain/note.dart';
 import '../profile/application/student_profile_controller.dart';
+import '../question_bank/application/practice_controller.dart';
 import '../question_bank/data/question_repository.dart';
 import '../question_bank/domain/question.dart';
 
@@ -68,6 +81,66 @@ abstract final class AiToolStrings {
   static const reviewRequested = Tr('শিক্ষকের কাছে পাঠানো হয়েছে', 'Sent to your teacher');
   static const estimateNote = Tr('এটি AI-এর আনুমানিক নম্বর, চূড়ান্ত নয়। চূড়ান্ত নম্বর শিক্ষক দেবেন।', 'This is an AI estimate, not final. Your teacher gives the final mark.');
   static const needPage = Tr('অন্তত একটি পৃষ্ঠার ছবি দাও', 'Add at least one page photo');
+  static const settings = Tr('ভয়েস সেটিংস', 'Voice settings');
+  static const language = Tr('ভাষা', 'Language');
+  static const mixed = Tr('বাংলা-ইংরেজি মিশ্র', 'Mixed Bangla-English');
+  static const voiceType = Tr('কণ্ঠ', 'Voice');
+  static const voiceFemale = Tr('নারী কণ্ঠ', 'Female voice');
+  static const voiceMale = Tr('পুরুষ কণ্ঠ', 'Male voice');
+  static const speed = Tr('কথার গতি', 'Speaking speed');
+  static const mic = Tr('মাইক্রোফোন', 'Microphone');
+  static const micPhone = Tr('ফোনের মাইক', 'Phone microphone');
+  static const micHeadset = Tr('হেডসেট / ইয়ারফোন', 'Headset / earphones');
+  static const micDenied = Tr(
+    'মাইক্রোফোনের অনুমতি নেই বা স্পিচ রিকগনিশন নেই। ফোনের সেটিংসে অনুমতি দাও, অথবা নিচের নমুনা প্রশ্ন বা লেখা ব্যবহার করো।',
+    'No microphone permission or speech recognition. Allow it in phone settings, or use the sample questions or typing below.',
+  );
+  static const typeInstead = Tr('অথবা লিখে জিজ্ঞেস করো…', 'Or type your question…');
+  static const interrupt = Tr('থামিয়ে প্রশ্ন করো', 'Interrupt and ask');
+  static const network = Tr('নেটওয়ার্ক', 'Network');
+  static const netGood = Tr('ভালো', 'Good');
+  static const netPoor = Tr('দুর্বল', 'Poor');
+  static const netOffline = Tr('অফলাইন', 'Offline');
+  static const limitReached = Tr('এই মাসের ভয়েস মিনিট শেষ ({n} মিনিট)। প্রো নিলে মাসে ৩০০ মিনিট।', "This month's voice minutes are used up ({n} min). Pro gives 300 a month.");
+  static const usage = Tr('এই মাসে ব্যবহার: {a}/{b} মিনিট', 'Used this month: {a}/{b} min');
+  static const toNotes = Tr('নোটে রাখো', 'Save as notes');
+  static const toSummary = Tr('সারাংশ', 'Summary');
+  static const toCards = Tr('ফ্ল্যাশকার্ড বানাও', 'Make flashcards');
+  static const savedNotes = Tr('নোট তৈরি হয়েছে', 'Notes created');
+  static const savedCards = Tr('ফ্ল্যাশকার্ড ডেক তৈরি হয়েছে', 'Flashcard deck created');
+  static const summaryTitle = Tr('কথোপকথনের সারাংশ', 'Conversation summary');
+  static const history = Tr('আগের সেশন', 'Past sessions');
+  static const noHistory = Tr('কোনো সংরক্ষিত সেশন নেই', 'No saved sessions');
+  static const sessionSaved = Tr('সেশন সংরক্ষিত হয়েছে', 'Session saved');
+  static const multi = Tr('একাধিক ছবি একসাথে ({n})', 'Multiple images ({n})');
+  static const crop = Tr('ক্রপ', 'Crop');
+  static const cropFull = Tr('পুরো ছবি', 'Full image');
+  static const cropTop = Tr('উপরের অর্ধেক', 'Top half');
+  static const cropBottom = Tr('নিচের অর্ধেক', 'Bottom half');
+  static const cropCenter = Tr('মাঝখান', 'Centre');
+  static const badFile = Tr('শুধু JPG/PNG/HEIC ছবি, ১০ MB পর্যন্ত', 'Only JPG/PNG/HEIC images up to 10 MB');
+  static const chapter = Tr('অধ্যায়', 'Chapter');
+  static const explanation = Tr('ব্যাখ্যা', 'Explanation');
+  static const saveNote = Tr('নোটে সংরক্ষণ', 'Save to notes');
+  static const addPractice = Tr('অনুশীলন তালিকায় যোগ', 'Add to practice list');
+  static const addedPractice = Tr('অনুশীলন তালিকায় (বুকমার্ক) যোগ হয়েছে', 'Added to your practice list (bookmarks)');
+  static const reportOcr = Tr('OCR ভুল রিপোর্ট', 'Report OCR error');
+  static const reportedOcr = Tr('ধন্যবাদ — OCR ভুল রিপোর্ট হয়েছে', 'Thanks — OCR error reported');
+  static const recent = Tr('সাম্প্রতিক সমাধান', 'Recent solves');
+  static const original = Tr('মূল লেখা (ছবি)', 'Original (image)');
+  static const ocrText = Tr('পড়া লেখা — ঠিক করে নাও', 'Extracted text — correct it');
+  static const mapped = Tr('প্রশ্নের সাথে মিলানো', 'Mapped to question');
+  static const compare = Tr('মডেল উত্তরের সাথে তুলনা', 'Compared with the model answer');
+  static const modelAnswer = Tr('মডেল উত্তর', 'Model answer');
+  static const evalHistory = Tr('মূল্যায়নের ইতিহাস', 'Evaluation history');
+  static const beforeAfter = Tr('আগের চেষ্টার তুলনায়: {d}', 'Compared with the last attempt: {d}');
+  static const reattempt = Tr('আবার চেষ্টা করো', 'Reattempt');
+  static const export = Tr('মতামত কপি', 'Copy feedback');
+  static const exported = Tr('মতামত কপি হয়েছে', 'Feedback copied');
+  static const stageAi = Tr('AI আনুমানিক', 'AI estimate');
+  static const stageTeacher = Tr('শিক্ষক পর্যালোচিত', 'Teacher reviewed');
+  static const stageOfficial = Tr('চূড়ান্ত (অফিসিয়াল)', 'Official');
+  static const stageRequested = Tr('শিক্ষকের অপেক্ষায়', 'Waiting for teacher');
 }
 
 TutorContext _context(WidgetRef ref, BuildContext context, TeachingMode mode) {
@@ -91,6 +164,7 @@ enum _VState { idle, listening, thinking, speaking }
 class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
   late final AvatarVoice _voice;
   final List<(bool, String)> _turns = [];
+  final _typed = TextEditingController();
   bool _active = false;
   bool _paused = false;
   bool _handsFree = true;
@@ -100,6 +174,11 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
   String _interim = '';
   DateTime? _startedAt;
   int _speech = 0;
+  String _lang = 'auto';
+  bool _male = false;
+  double _rate = 1;
+  bool _headset = false;
+  String? _sessionId;
 
   @override
   void initState() {
@@ -109,16 +188,36 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
 
   @override
   void dispose() {
+    _typed.dispose();
     unawaited(_voice.stopSpeaking());
     unawaited(_voice.stopListening());
     super.dispose();
   }
 
+  /// Recognition / speech language: Bangla, English, or mixed (Bangla engine, English terms kept).
+  String _speechLang(BuildContext context) => switch (_lang) {
+    'en' => 'en',
+    'bn' || 'mixed' => 'bn',
+    _ => context.isBangla ? 'bn' : 'en',
+  };
+
+  TutorLanguage _tutorLang(BuildContext context) => switch (_lang) {
+    'en' => TutorLanguage.en,
+    'mixed' => TutorLanguage.mixed,
+    'bn' => TutorLanguage.bn,
+    _ => context.isBangla ? TutorLanguage.bn : TutorLanguage.en,
+  };
+
+  bool get _overLimit {
+    final used = ref.read(aiToolsProvider).minutesThisMonth(DateTime.now()) + (_startedAt == null ? 0 : DateTime.now().difference(_startedAt!).inMinutes);
+    return used >= voiceAllowance(ref.read(accountProvider).plan);
+  }
+
   Future<void> _listen() async {
     if (!_active || _paused) return;
-    final lang = context.isBangla ? 'bn' : 'en';
+    final lang = _speechLang(context);
     _canListen ??= await _voice.canListen();
-    if (_canListen != true || !mounted) return;
+    if (_canListen != true || !mounted) return setState(() {});
     setState(() => _state = _VState.listening);
     final ok = await _voice.listen(
       lang: lang,
@@ -135,24 +234,40 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
     if (!ok && mounted) setState(() => _canListen = false);
   }
 
+  /// Stops the tutor mid-answer and listens again (VOICE-16).
+  Future<void> _interrupt() async {
+    _speech++;
+    await _voice.stopSpeaking();
+    if (!mounted) return;
+    setState(() => _state = _VState.idle);
+    unawaited(_listen());
+  }
+
   Future<void> _ask(String q) async {
+    if (_overLimit) {
+      if (mounted) context.showSnack(AiToolStrings.limitReached.fill({'n': voiceAllowance(ref.read(accountProvider).plan)}));
+      return;
+    }
     final id = ++_speech;
+    final base = _context(ref, context, _mode);
+    final ctx = TutorContext(level: base.level, classYear: base.classYear, curriculumVersionId: base.curriculumVersionId, mode: _mode, language: _tutorLang(context));
     await _voice.stopListening();
+    if (!mounted) return;
     setState(() {
       _turns.add((true, q));
       _state = _VState.thinking;
     });
     try {
-      final reply = await ref.read(mockSimulatorProvider).run(() => ref.read(mockTutorEngineProvider).answer(query: q, context: _context(ref, context, _mode)));
+      final reply = await ref.read(mockSimulatorProvider).run(() => ref.read(mockTutorEngineProvider).answer(query: q, context: ctx));
       if (!mounted || id != _speech) return;
       setState(() {
         _turns.add((false, reply.text));
         _state = _VState.speaking;
       });
-      final lang = context.isBangla ? 'bn' : 'en';
+      final lang = _speechLang(context);
       final spoken = BookAvatarEngine.toSpoken(reply.text, lang);
-      final ok = await _voice.speak(spoken, lang: lang);
-      if (!ok) await Future<void>.delayed(Duration(milliseconds: (math.min(8000, spoken.length * 60) * _voice.simulationScale).round()));
+      final ok = await _voice.speak(spoken, lang: lang, rate: _rate, pitch: _male ? 0.8 : 1.1);
+      if (!ok) await Future<void>.delayed(Duration(milliseconds: (math.min(8000, spoken.length * 60) / _rate * _voice.simulationScale).round()));
       if (!mounted || id != _speech) return;
       setState(() => _state = _VState.idle);
       if (_handsFree) unawaited(_listen());
@@ -163,28 +278,96 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
     }
   }
 
-  void _toggleSession() {
+  Future<void> _toggleSession() async {
     if (_active) {
       _speech++;
       unawaited(_voice.stopSpeaking());
       unawaited(_voice.stopListening());
+      final started = _startedAt ?? DateTime.now();
       setState(() {
         _active = false;
         _state = _VState.idle;
       });
+      if (_turns.isNotEmpty) {
+        await ref
+            .read(aiToolsProvider.notifier)
+            .saveSession(
+              VoiceSession(
+                id: _sessionId ?? 'vs-${started.microsecondsSinceEpoch}',
+                startedAt: started,
+                endedAt: DateTime.now(),
+                mode: _mode.name,
+                language: _lang == 'auto' ? _speechLang(context) : _lang,
+                turns: [..._turns],
+              ),
+            );
+        if (mounted) context.showSnack(AiToolStrings.sessionSaved);
+      }
     } else {
+      if (_overLimit) return context.showSnack(AiToolStrings.limitReached.fill({'n': voiceAllowance(ref.read(accountProvider).plan)}));
       setState(() {
         _active = true;
         _paused = false;
         _startedAt = DateTime.now();
+        _sessionId = 'vs-${_startedAt!.microsecondsSinceEpoch}';
+        _turns.clear();
       });
       unawaited(_listen());
     }
   }
 
+  String get _transcript => [for (final (s, t) in _turns) '${s ? '🧑' : '🤖'} $t'].join('\n\n');
+
+  Future<void> _toNotes() async {
+    await ref
+        .read(notesProvider.notifier)
+        .create(
+          title: '${context.tr(AiToolStrings.voice)} — ${_turns.firstWhere((t) => t.$1, orElse: () => (true, '')).$2}',
+          body: _transcript,
+          source: NoteSource.conversation,
+          type: NoteType.detailed,
+          aiGenerated: true,
+        );
+    if (mounted) context.showSnack(AiToolStrings.savedNotes);
+  }
+
+  Future<void> _toCards() async {
+    final pairs = <(String, String)>[
+      for (var i = 0; i + 1 < _turns.length; i++)
+        if (_turns[i].$1 && !_turns[i + 1].$1) (_turns[i].$2, _turns[i + 1].$2.split('\n').first.replaceAll(RegExp(r'[*#>]'), '').trim()),
+    ];
+    await ref.read(flashcardsProvider.notifier).createDeck(context.tr(AiToolStrings.voice), source: DeckSource.conversation, cards: pairs, ai: true);
+    if (mounted) context.showSnack(AiToolStrings.savedCards);
+  }
+
+  void _summary() {
+    final points = [
+      for (final (s, t) in _turns)
+        if (!s) t.split('\n').firstWhere((l) => l.trim().isNotEmpty, orElse: () => '').replaceAll(RegExp(r'[*#>]'), '').trim(),
+    ];
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.tr(AiToolStrings.summaryTitle)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [for (final p in points) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('• $p'))],
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.tr(const Tr('ঠিক আছে', 'OK'))))],
+      ),
+    );
+  }
+
+  void _history() => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const _VoiceHistorySheet());
+
   @override
   Widget build(BuildContext context) {
-    final offline = ref.watch(appSettingsProvider.select((s) => s.simulateOffline));
+    final settings = ref.watch(appSettingsProvider);
+    final offline = settings.simulateOffline;
+    final tools = ref.watch(aiToolsProvider);
+    final plan = ref.watch(accountProvider.select((a) => a.plan));
     final text = Theme.of(context).textTheme;
     final c = Theme.of(context).colorScheme;
     final status = switch (_state) {
@@ -193,14 +376,36 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
       _VState.speaking => AiToolStrings.speaking,
       _VState.idle => AiToolStrings.ready,
     };
+    final (netLabel, netIcon, netColor) = offline
+        ? (AiToolStrings.netOffline, Icons.signal_wifi_off, c.error)
+        : settings.simulateErrors
+        ? (AiToolStrings.netPoor, Icons.network_check, Colors.orange)
+        : (AiToolStrings.netGood, Icons.signal_wifi_4_bar, Colors.green);
     final samples = context.isBangla ? const ['নিউটনের দ্বিতীয় সূত্র কী?', 'ত্বরণ কাকে বলে?', 'মোল কী?'] : const ["What is Newton's second law?", 'What is acceleration?', 'What is a mole?'];
+    final used = tools.minutesThisMonth(DateTime.now());
     return AppPageScaffold(
       title: context.tr(AiToolStrings.voice),
+      actions: [IconButton(key: const Key('voice.history'), tooltip: context.tr(AiToolStrings.history), icon: const Icon(Icons.history), onPressed: _history)],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [Expanded(child: Text(context.tr(AiToolStrings.voiceHint))), const SimulatedBadge()]),
-          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(child: Text(context.tr(AiToolStrings.voiceHint))),
+              const SimulatedBadge(),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Icon(netIcon, size: 16, color: netColor),
+              const SizedBox(width: 4),
+              Text('${context.tr(AiToolStrings.network)}: ${context.tr(netLabel)}', key: const Key('voice.network'), style: text.labelSmall),
+              const Spacer(),
+              Text(context.tr(AiToolStrings.usage.fill({'a': used, 'b': voiceAllowance(plan)})), style: text.labelSmall),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<TeachingMode>(
             isExpanded: true,
             initialValue: _mode,
@@ -208,13 +413,75 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
             items: [for (final m in TeachingMode.values.where((m) => m != TeachingMode.englishCoach)) DropdownMenuItem(value: m, child: Text(context.tr(m.label)))],
             onChanged: (m) => setState(() => _mode = m ?? _mode),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          ExpansionTile(
+            key: const Key('voice.settings'),
+            tilePadding: EdgeInsets.zero,
+            title: Text(context.tr(AiToolStrings.settings)),
+            children: [
+              SegmentedButton<String>(
+                segments: [
+                  const ButtonSegment(value: 'bn', label: Text('বাংলা')),
+                  const ButtonSegment(value: 'en', label: Text('English')),
+                  ButtonSegment(
+                    value: 'mixed',
+                    label: Text(context.tr(AiToolStrings.mixed), overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+                emptySelectionAllowed: true,
+                selected: {if (_lang != 'auto') _lang},
+                onSelectionChanged: (v) => setState(() => _lang = v.isEmpty ? 'auto' : v.first),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<bool>(
+                      initialValue: _male,
+                      decoration: InputDecoration(labelText: context.tr(AiToolStrings.voiceType)),
+                      items: [
+                        DropdownMenuItem(value: false, child: Text(context.tr(AiToolStrings.voiceFemale))),
+                        DropdownMenuItem(value: true, child: Text(context.tr(AiToolStrings.voiceMale))),
+                      ],
+                      onChanged: (v) => setState(() => _male = v ?? _male),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: DropdownButtonFormField<bool>(
+                      initialValue: _headset,
+                      isExpanded: true,
+                      decoration: InputDecoration(labelText: context.tr(AiToolStrings.mic)),
+                      items: [
+                        DropdownMenuItem(value: false, child: Text(context.tr(AiToolStrings.micPhone))),
+                        DropdownMenuItem(value: true, child: Text(context.tr(AiToolStrings.micHeadset))),
+                      ],
+                      onChanged: (v) => setState(() => _headset = v ?? _headset),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text('${context.tr(AiToolStrings.speed)}: ${_rate.toStringAsFixed(2)}×'),
+                  Expanded(
+                    child: Slider(key: const Key('voice.speed'), value: _rate, min: 0.5, max: 1.5, divisions: 4, onChanged: (v) => setState(() => _rate = v)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           Center(
             child: _Waveform(active: _state == _VState.listening || _state == _VState.speaking, color: _state == _VState.listening ? c.error : c.primary),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Center(child: Semantics(liveRegion: true, child: Text(context.tr(status), style: text.titleMedium))),
-          if (_interim.isNotEmpty) Center(child: Text('“$_interim”', style: text.bodySmall?.copyWith(fontStyle: FontStyle.italic))),
+          Center(
+            child: Semantics(liveRegion: true, child: Text(context.tr(status), style: text.titleMedium)),
+          ),
+          if (_interim.isNotEmpty)
+            Center(
+              child: Text('“$_interim”', style: text.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+            ),
           const SizedBox(height: AppSpacing.md),
           Wrap(
             alignment: WrapAlignment.center,
@@ -222,8 +489,15 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
             runSpacing: AppSpacing.sm,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              FilledButton.icon(key: const Key('voice.session'), onPressed: offline ? null : _toggleSession, icon: Icon(_active ? Icons.call_end : Icons.play_arrow), label: Text(context.tr(_active ? AiToolStrings.end : AiToolStrings.start))),
-              if (_active)
+              FilledButton.icon(
+                key: const Key('voice.session'),
+                onPressed: offline ? null : _toggleSession,
+                icon: Icon(_active ? Icons.call_end : Icons.play_arrow),
+                label: Text(context.tr(_active ? AiToolStrings.end : AiToolStrings.start)),
+              ),
+              if (_active && _state == _VState.speaking)
+                OutlinedButton.icon(key: const Key('voice.interrupt'), onPressed: _interrupt, icon: const Icon(Icons.pan_tool_outlined), label: Text(context.tr(AiToolStrings.interrupt)))
+              else if (_active)
                 IconButton.filled(
                   tooltip: context.tr(AiToolStrings.listening),
                   onPressed: _state == _VState.thinking ? null : _listen,
@@ -240,28 +514,106 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
                   },
                   child: Text(context.tr(_paused ? AiToolStrings.resume : AiToolStrings.pause)),
                 ),
-              Row(mainAxisSize: MainAxisSize.min, children: [Text(context.tr(AiToolStrings.handsFree)), Switch(value: _handsFree, onChanged: (v) => setState(() => _handsFree = v))]),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(context.tr(AiToolStrings.handsFree)),
+                  Switch(value: _handsFree, onChanged: (v) => setState(() => _handsFree = v)),
+                ],
+              ),
             ],
           ),
           if (_active && _canListen == false) ...[
+            const SizedBox(height: AppSpacing.sm),
+            InfoBanner(key: const Key('voice.micDenied'), message: context.tr(AiToolStrings.micDenied), tone: Tone.warning, icon: Icons.mic_off_outlined),
             SectionHeader(title: context.tr(AiToolStrings.sample)),
-            Wrap(spacing: AppSpacing.xs, children: [for (final s in samples) ActionChip(label: Text(s), onPressed: () => _ask(s))]),
-          ],
-          if (_startedAt != null) Padding(padding: const EdgeInsets.only(top: AppSpacing.sm), child: Text(context.tr(AiToolStrings.minutes.fill({'n': DateTime.now().difference(_startedAt!).inMinutes})), style: text.bodySmall)),
-          if (_turns.isNotEmpty) SectionHeader(title: context.tr(AiToolStrings.transcript)),
-          for (final (student, t) in _turns)
-            Align(
-              alignment: student ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                constraints: const BoxConstraints(maxWidth: 520),
-                decoration: BoxDecoration(color: student ? c.primaryContainer : c.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
-                child: student ? Text(t) : RichContent(t),
-              ),
+            Wrap(
+              spacing: AppSpacing.xs,
+              children: [for (final s in samples) ActionChip(label: Text(s), onPressed: () => _ask(s))],
             ),
+            const SizedBox(height: AppSpacing.sm),
+            TextField(
+              key: const Key('voice.typed'),
+              controller: _typed,
+              textInputAction: TextInputAction.send,
+              decoration: InputDecoration(
+                hintText: context.tr(AiToolStrings.typeInstead),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: () {
+                    if (_typed.text.trim().isEmpty) return;
+                    unawaited(_ask(_typed.text.trim()));
+                    _typed.clear();
+                  },
+                ),
+              ),
+              onSubmitted: (v) {
+                if (v.trim().isEmpty) return;
+                unawaited(_ask(v.trim()));
+                _typed.clear();
+              },
+            ),
+          ],
+          if (_turns.isNotEmpty) ...[
+            SectionHeader(title: context.tr(AiToolStrings.transcript)),
+            for (final (student, t) in _turns)
+              Align(
+                alignment: student ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  decoration: BoxDecoration(color: student ? c.primaryContainer : c.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
+                  child: student ? Text(t) : RichContent(t),
+                ),
+              ),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                OutlinedButton.icon(key: const Key('voice.toNotes'), onPressed: _toNotes, icon: const Icon(Icons.sticky_note_2_outlined), label: Text(context.tr(AiToolStrings.toNotes))),
+                OutlinedButton.icon(key: const Key('voice.summary'), onPressed: _summary, icon: const Icon(Icons.summarize_outlined), label: Text(context.tr(AiToolStrings.toSummary))),
+                OutlinedButton.icon(key: const Key('voice.toCards'), onPressed: _toCards, icon: const Icon(Icons.style_outlined), label: Text(context.tr(AiToolStrings.toCards))),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _VoiceHistorySheet extends ConsumerWidget {
+  const _VoiceHistorySheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessions = ref.watch(aiToolsProvider).sessions;
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.7,
+      child: sessions.isEmpty
+          ? EmptyState(title: context.tr(AiToolStrings.noHistory), icon: Icons.history)
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+              children: [
+                Text(context.tr(AiToolStrings.history), style: Theme.of(context).textTheme.titleMedium),
+                for (final s in sessions)
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(s.title.isEmpty ? '—' : s.title),
+                    subtitle: Text('${relativeTime(s.startedAt, context.lang)} · ${context.n(s.minutes)} min · ${context.tr(TeachingMode.values.byName(s.mode).label)}'),
+                    trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => ref.read(aiToolsProvider.notifier).deleteSession(s.id)),
+                    children: [
+                      for (final (st, t) in s.turns)
+                        ListTile(
+                          dense: true,
+                          leading: Icon(st ? Icons.person_outline : Icons.smart_toy_outlined, size: 18),
+                          title: Text(t, maxLines: 4, overflow: TextOverflow.ellipsis),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
     );
   }
 }
@@ -317,6 +669,33 @@ class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixi
 /// Simulated OCR: deterministically "reads" one of the bank's questions from the image.
 Question _ocr(List<Question> bank, int seed) => bank[seed.abs() % bank.length];
 
+/// Accepted image types and size (IMG-08).
+bool validImageFile(String path, int bytes) {
+  final ext = path.split('.').last.toLowerCase();
+  return const {'jpg', 'jpeg', 'png', 'heic', 'webp'}.contains(ext) && bytes <= 10 * 1024 * 1024;
+}
+
+enum CropArea {
+  full(AiToolStrings.cropFull, Alignment.center, 1),
+  top(AiToolStrings.cropTop, Alignment.topCenter, 0.5),
+  bottom(AiToolStrings.cropBottom, Alignment.bottomCenter, 0.5),
+  center(AiToolStrings.cropCenter, Alignment.center, 0.6);
+
+  const CropArea(this.label, this.alignment, this.heightFactor);
+
+  final Tr label;
+  final Alignment alignment;
+  final double heightFactor;
+}
+
+class _Shot {
+  _Shot(this.path);
+
+  final String? path;
+  int turns = 0;
+  CropArea crop = CropArea.full;
+}
+
 class PhotoSolverScreen extends ConsumerStatefulWidget {
   const PhotoSolverScreen({super.key});
 
@@ -325,12 +704,12 @@ class PhotoSolverScreen extends ConsumerStatefulWidget {
 }
 
 class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
-  String? _path;
-  bool _demo = false;
-  int _turns = 0;
+  final List<_Shot> _shots = [];
+  int _current = 0;
   bool _reading = false;
   final _text = TextEditingController();
   Question? _detected;
+  String? _chapterId;
   TutorReply? _answer;
   bool _solving = false;
 
@@ -340,31 +719,47 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
     super.dispose();
   }
 
-  Future<void> _pick(ImageSource? source) async {
-    String? path;
-    if (source != null) {
+  Future<void> _pick(ImageSource? source, {bool add = false, bool multi = false}) async {
+    final paths = <String?>[];
+    if (source == null) {
+      paths.add(null);
+    } else {
       try {
-        path = (await ImagePicker().pickImage(source: source, maxWidth: 1600, imageQuality: 80))?.path;
+        final picker = ImagePicker();
+        final files = multi ? await picker.pickMultiImage(maxWidth: 1600, imageQuality: 80) : [?await picker.pickImage(source: source, maxWidth: 1600, imageQuality: 80)];
+        for (final f in files) {
+          if (!validImageFile(f.path, await f.length())) {
+            if (mounted) context.showSnack(AiToolStrings.badFile);
+            continue;
+          }
+          paths.add(f.path);
+        }
       } on Object {
-        path = null;
+        // Picker unavailable (simulator / tests).
       }
-      if (path == null) return;
+      if (paths.isEmpty) return;
     }
     setState(() {
-      _path = path;
-      _demo = source == null;
-      _turns = 0;
-      _reading = true;
+      if (!add) _shots.clear();
+      _shots.addAll(paths.map(_Shot.new));
+      _current = _shots.length - 1;
       _answer = null;
     });
+    await _read();
+  }
+
+  Future<void> _read() async {
+    setState(() => _reading = true);
     try {
+      final key = _shots.map((s) => s.path ?? 'demo').join('|');
       final q = await ref.read(mockSimulatorProvider).run(() {
         final bank = ref.read(questionRepositoryProvider).cached;
-        return _ocr(bank, (path ?? 'demo').hashCode);
+        return _ocr(bank, key.hashCode);
       }, latencyFactor: 3);
       if (!mounted) return;
       setState(() {
         _detected = q;
+        _chapterId = q.chapterId;
         _text.text = context.tr(q.stem).replaceAll(RegExp(r'[*#]'), '');
         _reading = false;
       });
@@ -379,11 +774,40 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
     setState(() => _solving = true);
     try {
       final ctx = _context(ref, context, TeachingMode.stepByStep);
-      final r = await ref.read(mockSimulatorProvider).run(
-        () => ref.read(mockTutorEngineProvider).answer(query: _text.text, context: TutorContext(level: ctx.level, classYear: ctx.classYear, curriculumVersionId: ctx.curriculumVersionId, mode: ctx.mode, language: ctx.language, subjectId: _detected?.subjectId)),
-        latencyFactor: 2,
-      );
-      if (mounted) setState(() => _answer = r);
+      final r = await ref
+          .read(mockSimulatorProvider)
+          .run(
+            () => ref
+                .read(mockTutorEngineProvider)
+                .answer(
+                  query: _text.text,
+                  context: TutorContext(
+                    level: ctx.level,
+                    classYear: ctx.classYear,
+                    curriculumVersionId: ctx.curriculumVersionId,
+                    mode: ctx.mode,
+                    language: ctx.language,
+                    subjectId: _detected?.subjectId,
+                    chapterId: _chapterId,
+                  ),
+                ),
+            latencyFactor: 2,
+          );
+      if (!mounted) return;
+      setState(() => _answer = r);
+      await ref
+          .read(aiToolsProvider.notifier)
+          .addSolve(
+            PhotoSolve(
+              id: 'ps-${DateTime.now().microsecondsSinceEpoch}',
+              at: DateTime.now(),
+              text: _text.text,
+              subjectId: _detected?.subjectId ?? '',
+              chapterId: _chapterId,
+              answer: r.text,
+              images: _shots.length,
+            ),
+          );
     } on ApiException catch (e) {
       if (mounted) context.showErrorSnack(e);
     } finally {
@@ -391,23 +815,46 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
     }
   }
 
+  Future<void> _crop() async {
+    final shot = _shots[_current];
+    final c = await showDialog<CropArea>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(ctx.tr(AiToolStrings.crop)),
+        children: [
+          for (final a in CropArea.values)
+            ListTile(leading: Icon(a == shot.crop ? Icons.radio_button_checked : Icons.radio_button_unchecked), title: Text(ctx.tr(a.label)), onTap: () => Navigator.pop(ctx, a)),
+        ],
+      ),
+    );
+    if (c != null) setState(() => shot.crop = c);
+  }
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final has = _path != null || _demo;
+    final has = _shots.isNotEmpty;
+    final subject = _detected == null ? null : subjectById(_detected!.subjectId);
+    final recent = ref.watch(aiToolsProvider).solves;
+    final bookmarks = ref.watch(practiceProvider).bookmarks;
     return AppPageScaffold(
       title: context.tr(AiToolStrings.photo),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [Expanded(child: Text(context.tr(AiToolStrings.photoHint))), const SimulatedBadge()]),
+          Row(
+            children: [
+              Expanded(child: Text(context.tr(AiToolStrings.photoHint))),
+              const SimulatedBadge(),
+            ],
+          ),
           const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: [
               FilledButton.icon(onPressed: () => _pick(ImageSource.camera), icon: const Icon(Icons.photo_camera_outlined), label: Text(context.tr(AiToolStrings.camera))),
-              OutlinedButton.icon(onPressed: () => _pick(ImageSource.gallery), icon: const Icon(Icons.photo_library_outlined), label: Text(context.tr(AiToolStrings.gallery))),
+              OutlinedButton.icon(onPressed: () => _pick(ImageSource.gallery, multi: true), icon: const Icon(Icons.photo_library_outlined), label: Text(context.tr(AiToolStrings.gallery))),
               OutlinedButton.icon(key: const Key('photo.demo'), onPressed: () => _pick(null), icon: const Icon(Icons.image_outlined), label: Text(context.tr(AiToolStrings.demoImage))),
             ],
           ),
@@ -418,16 +865,55 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
               child: SizedBox(
                 height: 180,
                 child: RotatedBox(
-                  quarterTurns: _turns,
-                  child: _path != null && File(_path!).existsSync()
-                      ? Image.file(File(_path!), fit: BoxFit.cover)
-                      : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Center(child: Icon(Icons.description_outlined, size: 64))),
+                  quarterTurns: _shots[_current].turns,
+                  child: ClipRect(
+                    child: Align(
+                      alignment: _shots[_current].crop.alignment,
+                      heightFactor: _shots[_current].crop.heightFactor,
+                      child: _shots[_current].path != null && File(_shots[_current].path!).existsSync()
+                          ? Image.file(File(_shots[_current].path!), fit: BoxFit.cover, width: double.infinity)
+                          : SizedBox(
+                              height: 180,
+                              child: ColoredBox(
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                child: const Center(child: Icon(Icons.description_outlined, size: 64)),
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ),
-            Row(
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  for (var i = 0; i < _shots.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.xs, top: AppSpacing.xs),
+                      child: ChoiceChip(label: Text(context.n(i + 1)), selected: i == _current, onSelected: (_) => setState(() => _current = i)),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: ActionChip(
+                      key: const Key('photo.addImage'),
+                      avatar: const Icon(Icons.add, size: 16),
+                      label: Text(context.tr(AiToolStrings.multi.fill({'n': _shots.length}))),
+                      onPressed: () => _pick(null, add: true),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Wrap(
               children: [
-                TextButton.icon(onPressed: () => setState(() => _turns = (_turns + 1) % 4), icon: const Icon(Icons.rotate_right), label: Text(context.tr(AiToolStrings.rotate))),
+                TextButton.icon(
+                  onPressed: () => setState(() => _shots[_current].turns = (_shots[_current].turns + 1) % 4),
+                  icon: const Icon(Icons.rotate_right),
+                  label: Text(context.tr(AiToolStrings.rotate)),
+                ),
+                TextButton.icon(key: const Key('photo.crop'), onPressed: _crop, icon: const Icon(Icons.crop), label: Text(context.tr(AiToolStrings.crop))),
                 TextButton.icon(onPressed: () => _pick(ImageSource.camera), icon: const Icon(Icons.refresh), label: Text(context.tr(AiToolStrings.retake))),
               ],
             ),
@@ -437,21 +923,103 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
             SectionHeader(title: context.tr(AiToolStrings.extracted)),
             TextField(key: const Key('photo.text'), controller: _text, minLines: 2, maxLines: 6),
             const SizedBox(height: AppSpacing.xs),
-            Text(context.tr(AiToolStrings.detected.fill({'s': _detected!.subjectId})), style: text.bodySmall),
+            Row(
+              children: [
+                Expanded(child: Text(context.tr(AiToolStrings.detected.fill({'s': subject == null ? _detected!.subjectId : context.tr(subject.name)})), style: text.bodySmall)),
+                TextButton.icon(
+                  key: const Key('photo.report'),
+                  onPressed: () async {
+                    await ref.read(aiToolsProvider.notifier).reportOcr();
+                    if (context.mounted) context.showSnack(AiToolStrings.reportedOcr);
+                  },
+                  icon: const Icon(Icons.flag_outlined, size: 18),
+                  label: Text(context.tr(AiToolStrings.reportOcr)),
+                ),
+              ],
+            ),
+            if (subject != null)
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: subject.chapters.any((c) => c.id == _chapterId) ? _chapterId : subject.chapters.first.id,
+                decoration: InputDecoration(labelText: context.tr(AiToolStrings.chapter)),
+                items: [
+                  for (final ch in subject.chapters)
+                    DropdownMenuItem(
+                      value: ch.id,
+                      child: Text(context.tr(ch.title), overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _chapterId = v),
+              ),
             const SizedBox(height: AppSpacing.sm),
             FilledButton.icon(key: const Key('photo.solve'), onPressed: _solving ? null : _solve, icon: const Icon(Icons.auto_awesome), label: Text(context.tr(AiToolStrings.solve))),
           ],
           if (_solving) const Padding(padding: EdgeInsets.all(AppSpacing.md), child: LinearProgressIndicator()),
           if (_answer != null) ...[
             SectionHeader(title: context.tr(AiToolStrings.solution)),
-            Card(margin: EdgeInsets.zero, child: Padding(padding: const EdgeInsets.all(AppSpacing.md), child: RichContent(_answer!.text))),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(padding: const EdgeInsets.all(AppSpacing.md), child: RichContent(_answer!.text)),
+            ),
+            if (_detected?.explanation != null) ...[SectionHeader(title: context.tr(AiToolStrings.explanation)), RichContent(context.tr(_detected!.explanation!))],
             if (_answer!.sources.isNotEmpty)
               Wrap(
                 spacing: AppSpacing.xs,
                 children: [
                   for (final s in _answer!.sources)
-                    ActionChip(avatar: const Icon(Icons.menu_book_outlined, size: 16), label: Text('${s.chapterTitle} · ${context.n(s.page)}'), onPressed: () => context.push(AppRoutes.bookReader(s.bookId, page: s.page))),
+                    ActionChip(
+                      avatar: const Icon(Icons.menu_book_outlined, size: 16),
+                      label: Text('${s.chapterTitle} · ${context.n(s.page)}'),
+                      onPressed: () => context.push(AppRoutes.bookReader(s.bookId, page: s.page)),
+                    ),
                 ],
+              ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                OutlinedButton.icon(
+                  key: const Key('photo.saveNote'),
+                  onPressed: () async {
+                    await ref
+                        .read(notesProvider.notifier)
+                        .create(
+                          title: _text.text.length > 50 ? '${_text.text.substring(0, 50)}…' : _text.text,
+                          body: '${_text.text}\n\n${_answer!.text}',
+                          source: NoteSource.question,
+                          subjectId: _detected?.subjectId,
+                          chapterId: _chapterId,
+                          aiGenerated: true,
+                        );
+                    if (context.mounted) context.showSnack(AiToolStrings.savedNotes);
+                  },
+                  icon: const Icon(Icons.sticky_note_2_outlined),
+                  label: Text(context.tr(AiToolStrings.saveNote)),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('photo.practice'),
+                  onPressed: _detected == null || bookmarks.contains(_detected!.id)
+                      ? null
+                      : () async {
+                          await ref.read(practiceProvider.notifier).toggleBookmark(_detected!.id);
+                          if (context.mounted) context.showSnack(AiToolStrings.addedPractice);
+                        },
+                  icon: Icon(_detected != null && bookmarks.contains(_detected!.id) ? Icons.bookmark_added : Icons.playlist_add),
+                  label: Text(context.tr(AiToolStrings.addPractice)),
+                ),
+              ],
+            ),
+          ],
+          if (recent.isNotEmpty) ...[
+            SectionHeader(title: context.tr(AiToolStrings.recent)),
+            for (final r in recent.take(5))
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                leading: const Icon(Icons.history),
+                title: Text(r.text, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text(relativeTime(r.at, context.lang)),
+                children: [RichContent(r.answer)],
               ),
           ],
         ],
@@ -496,6 +1064,14 @@ HandwritingResult evaluateHandwriting(Question q, int pages) {
   );
 }
 
+/// Simulated OCR of an answer script: the model answer with a few student-style slips.
+String simulatedScriptText(Question q, AppLanguage lang, int pages) {
+  final answer = q.answer.of(lang).replaceAll(RegExp(r'[*#$=]'), '');
+  final words = answer.split(RegExp(r'\s+'));
+  final keep = (words.length * (0.6 + math.min(0.35, pages * 0.1))).round().clamp(1, words.length);
+  return words.take(keep).join(' ');
+}
+
 class HandwritingScreen extends ConsumerStatefulWidget {
   const HandwritingScreen({super.key});
 
@@ -504,43 +1080,165 @@ class HandwritingScreen extends ConsumerStatefulWidget {
 }
 
 class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
-  final List<String> _pages = [];
+  final List<_Shot> _pages = [];
+  final _ocrText = TextEditingController();
   String? _questionId;
   HandwritingResult? _result;
+  EvaluationRecord? _record;
   bool _busy = false;
-  bool _requested = false;
+  bool _ocrDone = false;
+
+  @override
+  void dispose() {
+    _ocrText.dispose();
+    super.dispose();
+  }
 
   Future<void> _add(ImageSource? source) async {
-    if (source == null) return setState(() => _pages.add('demo-${_pages.length + 1}'));
+    if (source == null) return setState(() => _pages.add(_Shot(null)));
     try {
       final f = await ImagePicker().pickImage(source: source, maxWidth: 1600, imageQuality: 80);
-      if (f != null) setState(() => _pages.add(f.path));
+      if (f == null) return;
+      if (!validImageFile(f.path, await f.length())) {
+        if (mounted) context.showSnack(AiToolStrings.badFile);
+        return;
+      }
+      setState(() => _pages.add(_Shot(f.path)));
     } on Object {
       // Picker unavailable (simulator/tests): ignore.
     }
   }
 
+  void _reset() => setState(() {
+    _pages.clear();
+    _result = null;
+    _record = null;
+    _ocrDone = false;
+    _ocrText.clear();
+  });
+
+  Future<void> _runOcr(Question q) async {
+    if (_pages.isEmpty) return context.showSnack(AiToolStrings.needPage);
+    final lang = context.lang;
+    setState(() => _busy = true);
+    try {
+      final t = await ref.read(mockSimulatorProvider).run(() => simulatedScriptText(q, lang, _pages.length), latencyFactor: 2);
+      if (mounted) {
+        setState(() {
+          _ocrText.text = t;
+          _ocrDone = true;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) context.showErrorSnack(e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _evaluate(Question q) async {
+    setState(() => _busy = true);
+    try {
+      final r = await ref.read(mockSimulatorProvider).run(() => evaluateHandwriting(q, _pages.length), latencyFactor: 3);
+      final rec = EvaluationRecord(
+        id: 'ev-${DateTime.now().microsecondsSinceEpoch}',
+        at: DateTime.now(),
+        questionId: q.id,
+        pages: _pages.length,
+        marks: r.marks,
+        total: r.total,
+        criteria: r.criteria,
+        extracted: _ocrText.text,
+      );
+      await ref.read(aiToolsProvider.notifier).addEvaluation(rec);
+      if (mounted) {
+        setState(() {
+          _result = r;
+          _record = rec;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) context.showErrorSnack(e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Sends the script to the teacher portal's evaluation queue.
+  Future<void> _requestReview(Question q) async {
+    final rec = _record;
+    final r = _result;
+    if (rec == null || r == null) return;
+    final sub = Submission(
+      id: 'sub-${rec.id}',
+      student: selfChildName,
+      classId: teacherClasses.firstWhere((c) => c.subjectId == q.subjectId, orElse: () => teacherClasses.first).id,
+      title: context.tr(q.stem).replaceAll(RegExp(r'[*#$]'), '').split('\n').first,
+      aiMarks: r.marks,
+      total: r.total,
+      pages: rec.pages,
+    );
+    await ref.read(teacherProvider.notifier).addSubmission(sub);
+    await ref.read(aiToolsProvider.notifier).linkSubmission(rec.id, sub.id);
+    if (mounted) {
+      setState(() => _record = rec.withSubmission(sub.id));
+      context.showSnack(AiToolStrings.reviewRequested);
+    }
+  }
+
+  String _feedbackText(Question q, HandwritingResult r) => [
+    '${context.tr(AiToolStrings.handwriting)} — ${context.tr(q.stem).replaceAll(RegExp(r'[*#$]'), '')}',
+    '${context.tr(AiToolStrings.estimate)}: ${r.marks}/${r.total}',
+    for (final (n, g, m) in r.criteria) '• ${context.tr(n)}: ${math.min(g, m.toDouble())}/$m',
+    '',
+    '${context.tr(AiToolStrings.strengths)}: ${r.strengths.map(context.tr).join('; ')}',
+    '${context.tr(AiToolStrings.missing)}: ${r.missing.map(context.tr).join('; ')}',
+    '${context.tr(AiToolStrings.tips)}: ${r.tips.map(context.tr).join('; ')}',
+    '',
+    context.tr(AiToolStrings.estimateNote),
+  ].join('\n');
+
   @override
   Widget build(BuildContext context) {
-    final bank = [for (final q in ref.watch(questionRepositoryProvider).cached) if (q.type != QuestionType.mcq) q];
+    final bank = [
+      for (final q in ref.watch(questionRepositoryProvider).cached)
+        if (q.type != QuestionType.mcq) q,
+    ];
     final q = bank.where((x) => x.id == _questionId).firstOrNull ?? (bank.isEmpty ? null : bank.first);
     final text = Theme.of(context).textTheme;
+    final history = ref.watch(aiToolsProvider).evaluations;
+    final submissions = {for (final s in ref.watch(teacherProvider).submissions) s.id: s};
+    final previous = q == null || _record == null ? null : history.where((e) => e.questionId == q.id && e.id != _record!.id).firstOrNull;
+    final sub = _record?.submissionId == null ? null : submissions[_record!.submissionId];
     return AppPageScaffold(
       title: context.tr(AiToolStrings.handwriting),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [Expanded(child: Text(context.tr(AiToolStrings.hwHint))), const SimulatedBadge()]),
+          Row(
+            children: [
+              Expanded(child: Text(context.tr(AiToolStrings.hwHint))),
+              const SimulatedBadge(),
+            ],
+          ),
           const SizedBox(height: AppSpacing.md),
           if (q != null)
             DropdownButtonFormField<String>(
               isExpanded: true,
               initialValue: q.id,
               decoration: InputDecoration(labelText: context.tr(AiToolStrings.question)),
-              items: [for (final x in bank) DropdownMenuItem(value: x.id, child: Text(context.tr(x.stem).replaceAll(RegExp(r'[*#$]'), ''), maxLines: 1, overflow: TextOverflow.ellipsis))],
+              items: [
+                for (final x in bank)
+                  DropdownMenuItem(
+                    value: x.id,
+                    child: Text(context.tr(x.stem).replaceAll(RegExp(r'[*#$]'), ''), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
               onChanged: (v) => setState(() {
                 _questionId = v;
                 _result = null;
+                _record = null;
+                _ocrDone = false;
               }),
             ),
           SectionHeader(title: context.tr(AiToolStrings.pages.fill({'n': _pages.length}))),
@@ -553,14 +1251,29 @@ class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
                 children: [
                   for (final (i, p) in _pages.indexed)
                     Container(
-                      key: ValueKey('$p-$i'),
+                      key: ObjectKey(p),
                       width: 72,
                       margin: const EdgeInsets.only(right: AppSpacing.sm),
                       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
                       child: Stack(
                         children: [
                           Center(child: Text(context.n(i + 1), style: text.titleLarge)),
-                          Positioned(right: 0, top: 0, child: IconButton(visualDensity: VisualDensity.compact, iconSize: 16, onPressed: () => setState(() => _pages.removeAt(i)), icon: const Icon(Icons.close))),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: IconButton(visualDensity: VisualDensity.compact, iconSize: 16, onPressed: () => setState(() => _pages.removeAt(i)), icon: const Icon(Icons.close)),
+                          ),
+                          Positioned(
+                            left: 0,
+                            bottom: 0,
+                            child: IconButton(
+                              tooltip: context.tr(AiToolStrings.crop),
+                              visualDensity: VisualDensity.compact,
+                              iconSize: 16,
+                              onPressed: () => setState(() => p.crop = CropArea.values[(p.crop.index + 1) % CropArea.values.length]),
+                              icon: Icon(p.crop == CropArea.full ? Icons.crop_free : Icons.crop),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -576,46 +1289,156 @@ class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          FilledButton.icon(
-            key: const Key('hw.evaluate'),
-            onPressed: _busy || q == null
-                ? null
-                : () async {
-                    if (_pages.isEmpty) return context.showSnack(AiToolStrings.needPage);
-                    setState(() => _busy = true);
-                    try {
-                      final r = await ref.read(mockSimulatorProvider).run(() => evaluateHandwriting(q, _pages.length), latencyFactor: 3);
-                      if (mounted) setState(() => _result = r);
-                    } on ApiException catch (e) {
-                      if (context.mounted) context.showErrorSnack(e);
-                    } finally {
-                      if (mounted) setState(() => _busy = false);
-                    }
-                  },
-            icon: const Icon(Icons.fact_check_outlined),
-            label: Text(context.tr(AiToolStrings.evaluate)),
-          ),
+          if (!_ocrDone)
+            FilledButton.icon(
+              key: const Key('hw.evaluate'),
+              onPressed: _busy || q == null
+                  ? null
+                  : () async {
+                      await _runOcr(q);
+                      if (_ocrDone && mounted) await _evaluate(q);
+                    },
+              icon: const Icon(Icons.fact_check_outlined),
+              label: Text(context.tr(AiToolStrings.evaluate)),
+            ),
           if (_busy) const Padding(padding: EdgeInsets.all(AppSpacing.md), child: LinearProgressIndicator()),
+          if (_ocrDone && q != null) ...[
+            SectionHeader(title: context.tr(AiToolStrings.mapped)),
+            Text(context.tr(q.stem).replaceAll(RegExp(r'[*#$]'), ''), style: text.bodySmall),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(context.tr(AiToolStrings.original), style: text.labelMedium),
+                      const SizedBox(height: 4),
+                      Container(
+                        height: 120,
+                        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+                        child: const Center(child: Icon(Icons.draw_outlined, size: 40)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(context.tr(AiToolStrings.ocrText), style: text.labelMedium),
+                      const SizedBox(height: 4),
+                      TextField(key: const Key('hw.ocr'), controller: _ocrText, minLines: 5, maxLines: 5, style: text.bodySmall),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SectionHeader(title: context.tr(AiToolStrings.compare)),
+            ExpansionTile(tilePadding: EdgeInsets.zero, title: Text(context.tr(AiToolStrings.modelAnswer)), children: [RichContent(context.tr(q.answer))]),
+          ],
           if (_result case final r?) ...[
             SectionHeader(title: context.tr(AiToolStrings.estimate)),
-            Text('${context.n(r.marks)} / ${context.n(r.total)}', key: const Key('hw.marks'), style: text.headlineMedium),
+            Row(
+              children: [
+                Text('${context.n(r.marks)} / ${context.n(r.total)}', key: const Key('hw.marks'), style: text.headlineMedium),
+                const SizedBox(width: AppSpacing.sm),
+                Pill(
+                  context.tr(switch (sub) {
+                    null => AiToolStrings.stageAi,
+                    final x when x.official => AiToolStrings.stageOfficial,
+                    final x when x.reviewed => AiToolStrings.stageTeacher,
+                    _ => AiToolStrings.stageRequested,
+                  }),
+                  tone: sub == null ? Tone.warning : (sub.reviewed ? Tone.success : Tone.info),
+                ),
+              ],
+            ),
+            if (sub != null && sub.reviewed)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  '${context.tr(sub.official ? AiToolStrings.stageOfficial : AiToolStrings.stageTeacher)}: ${context.n(sub.finalMarks!)}/${context.n(sub.total)}${(sub.feedback ?? '').isEmpty ? '' : ' — ${sub.feedback}'}',
+                  style: text.titleSmall,
+                ),
+              ),
+            if (previous != null)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  context.tr(
+                    AiToolStrings.beforeAfter.fill({'d': '${context.n(previous.marks)} → ${context.n(r.marks)} (${r.marks >= previous.marks ? '+' : ''}${context.n(r.marks - previous.marks)})'}),
+                  ),
+                  key: const Key('hw.compare'),
+                  style: text.bodySmall,
+                ),
+              ),
             for (final (name, got, max) in r.criteria)
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: Row(children: [Expanded(child: Text(context.tr(name))), Text('${context.n(math.min(got, max.toDouble()))} / ${context.n(max)}')]),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(context.tr(name))),
+                    Text('${context.n(math.min(got, max.toDouble()))} / ${context.n(max)}'),
+                  ],
+                ),
               ),
             const SizedBox(height: AppSpacing.sm),
-            for (final (title, items, icon) in [(AiToolStrings.strengths, r.strengths, Icons.check_circle_outline), (AiToolStrings.missing, r.missing, Icons.error_outline), (AiToolStrings.tips, r.tips, Icons.lightbulb_outline)]) ...[
+            for (final (title, items, icon) in [
+              (AiToolStrings.strengths, r.strengths, Icons.check_circle_outline),
+              (AiToolStrings.missing, r.missing, Icons.error_outline),
+              (AiToolStrings.tips, r.tips, Icons.lightbulb_outline),
+            ]) ...[
               Text(context.tr(title), style: text.titleSmall),
               for (final t in items) ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(icon, size: 18), title: Text(context.tr(t))),
             ],
             InfoBanner(message: context.tr(AiToolStrings.estimateNote), tone: Tone.warning),
             const SizedBox(height: AppSpacing.sm),
-            OutlinedButton.icon(
-              onPressed: _requested ? null : () => setState(() => _requested = true),
-              icon: Icon(_requested ? Icons.check : Icons.send_outlined),
-              label: Text(context.tr(_requested ? AiToolStrings.reviewRequested : AiToolStrings.teacherReview)),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                OutlinedButton.icon(
+                  key: const Key('hw.review'),
+                  onPressed: _record?.submissionId != null || q == null ? null : () => _requestReview(q),
+                  icon: Icon(_record?.submissionId != null ? Icons.check : Icons.send_outlined),
+                  label: Text(context.tr(_record?.submissionId != null ? AiToolStrings.reviewRequested : AiToolStrings.teacherReview)),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('hw.export'),
+                  onPressed: q == null
+                      ? null
+                      : () async {
+                          await Clipboard.setData(ClipboardData(text: _feedbackText(q, r)));
+                          if (context.mounted) context.showSnack(AiToolStrings.exported);
+                        },
+                  icon: const Icon(Icons.copy),
+                  label: Text(context.tr(AiToolStrings.export)),
+                ),
+                OutlinedButton.icon(key: const Key('hw.reattempt'), onPressed: _reset, icon: const Icon(Icons.replay), label: Text(context.tr(AiToolStrings.reattempt))),
+              ],
             ),
+          ],
+          if (history.isNotEmpty) ...[
+            SectionHeader(title: context.tr(AiToolStrings.evalHistory)),
+            for (final e in history.take(8))
+              Builder(
+                builder: (context) {
+                  final hq = ref.read(questionRepositoryProvider).cached.where((x) => x.id == e.questionId).firstOrNull;
+                  final s = e.submissionId == null ? null : submissions[e.submissionId];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(s?.official ?? false ? Icons.verified : Icons.description_outlined),
+                    title: Text(hq == null ? '—' : context.tr(hq.stem).replaceAll(RegExp(r'[*#$]'), ''), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(
+                      '${relativeTime(e.at, context.lang)} · ${context.tr(s == null ? AiToolStrings.stageAi : (s.official ? AiToolStrings.stageOfficial : (s.reviewed ? AiToolStrings.stageTeacher : AiToolStrings.stageRequested)))}',
+                    ),
+                    trailing: Text(s?.finalMarks != null ? '${context.n(s!.finalMarks!)}/${context.n(e.total)}' : '~${context.n(e.marks)}/${context.n(e.total)}'),
+                  );
+                },
+              ),
           ],
         ],
       ),

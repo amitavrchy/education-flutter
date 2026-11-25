@@ -334,6 +334,9 @@ class TeacherController extends Notifier<TeacherState> {
     ));
   }
 
+  /// A student's answer script sent for teacher review (from the handwriting evaluator).
+  Future<void> addSubmission(Submission s) => _save(TeacherState(assignments: state.assignments, submissions: [s, ...state.submissions], materials: state.materials, notes: state.notes));
+
   /// Grades one student's assignment work (TCH-15, TCH-17).
   Future<void> gradeWork(String assignmentId, String student, double marks, String note) => _save(TeacherState(
     assignments: [for (final a in state.assignments) a.id == assignmentId ? a.grade(student, marks, note) : a],
