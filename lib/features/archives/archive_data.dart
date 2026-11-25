@@ -1,4 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/l10n/tr.dart';
+import '../../core/storage/local_store.dart';
 import '../../mock/seed/curriculum_seed.dart';
 import '../book_avatar/application/avatar_controller.dart' show mixHash;
 import '../curriculum/domain/curriculum_models.dart';
@@ -117,3 +120,65 @@ ArchivePaper? paperById(List<Question> bank, String id) {
   }
   return institutionPapers(bank).where((p) => p.id == id).firstOrNull;
 }
+
+/// Board exam sitting (BRD-07).
+enum BoardExamType {
+  regular(Tr('নিয়মিত', 'Regular')),
+  supplementary(Tr('সম্পূরক', 'Supplementary'));
+
+  const BoardExamType(this.label);
+  final Tr label;
+}
+
+/// Who may see an institution paper (INQ-13).
+bool paperIsPrivate(ArchivePaper p) => !p.isBoard && mixHash('vis:${p.id}') % 5 == 0;
+
+/// Teacher-uploaded vs. collected (INQ-16).
+bool paperTeacherUploaded(ArchivePaper p) => !p.isBoard && mixHash('up:${p.id}') % 3 == 0;
+
+/// Another paper with mostly the same questions (INQ-18), or null.
+ArchivePaper? duplicateOf(ArchivePaper p, List<ArchivePaper> all) {
+  for (final o in all) {
+    if (o.id == p.id || o.subject.id != p.subject.id) continue;
+    final shared = o.questionIds.where(p.questionIds.contains).length;
+    if (shared >= (p.questionIds.length * 0.6).ceil()) return o;
+  }
+  return null;
+}
+
+/// Saved papers and content reports (persisted).
+class ArchiveState {
+  const ArchiveState({this.saved = const [], this.reported = const {}});
+
+  final List<String> saved;
+
+  /// Paper id → reason.
+  final Map<String, String> reported;
+}
+
+class ArchiveController extends Notifier<ArchiveState> {
+  static const _col = 'archive';
+  late LocalStore _store;
+
+  @override
+  ArchiveState build() {
+    _store = watchStore(ref);
+    final d = _store.get(_col, 'me');
+    return ArchiveState(saved: (d?['saved'] as List? ?? const []).cast<String>(), reported: (d?['reported'] as Map? ?? const {}).cast<String, String>());
+  }
+
+  Future<void> _save(ArchiveState s) async {
+    state = s;
+    await _store.put(_col, 'me', {'saved': s.saved, 'reported': s.reported});
+  }
+
+  Future<bool> toggleSaved(String paperId) async {
+    final on = !state.saved.contains(paperId);
+    await _save(ArchiveState(saved: on ? [paperId, ...state.saved] : [for (final x in state.saved) if (x != paperId) x], reported: state.reported));
+    return on;
+  }
+
+  Future<void> report(String paperId, String reason) => _save(ArchiveState(saved: state.saved, reported: {...state.reported, paperId: reason}));
+}
+
+final archiveProvider = NotifierProvider<ArchiveController, ArchiveState>(ArchiveController.new);

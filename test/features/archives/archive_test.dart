@@ -36,7 +36,7 @@ void main() {
 
     await tester.pumpWidget(testApp(const ArchivePaperScreen(paperId: 'bp-dhaka-2024-ssc-phy'), lang: AppLanguage.en));
     await tester.pumpAndSettle();
-    expect(find.text('Board-style sample'), findsOneWidget);
+    expect(find.text('Board-style sample (synthetic)'), findsOneWidget);
     expect(find.byKey(const Key('paper.practise')), findsOneWidget);
   });
 }
