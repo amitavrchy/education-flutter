@@ -32,8 +32,21 @@ void main() {
   testWidgets('labs compute motion, current and quadratic roots', (tester) async {
     await tester.pumpWidget(testApp(const LabsScreen(), lang: AppLanguage.en));
     await tester.pumpAndSettle();
+    Future<void> open(String id) async {
+      if (find.byType(LabScreen).evaluate().isNotEmpty) {
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+      }
+      await tester.ensureVisible(find.byKey(Key('lab.open.$id')));
+      await tester.tap(find.byKey(Key('lab.open.$id')));
+      await tester.pumpAndSettle();
+    }
+
+    await open('motion');
     expect(find.text('v = 8.0 m/s · s = 20.0 m'), findsOneWidget);
+    await open('circuit');
     expect(find.textContaining('I = V / R = 2.00 A'), findsOneWidget);
+    await open('graphs');
     expect(find.textContaining('x = 2.00, -2.00'), findsOneWidget);
   });
 
