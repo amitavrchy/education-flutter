@@ -14,6 +14,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/progress.dart';
 import '../../../shared/widgets/search_field.dart';
 import '../../../shared/widgets/section_header.dart';
+import '../../../mock/seed/curriculum_seed.dart';
 import '../../profile/application/student_profile_controller.dart';
 import '../../progress/application/learning_progress_controller.dart';
 import '../application/curriculum_providers.dart';
@@ -40,6 +41,14 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     final subjects = _showAll ? ref.watch(subjectsByLevelProvider(profile.level)) : ref.watch(mySubjectsProvider);
     return AppPageScaffold(
       title: context.tr(CurriculumStrings.learn),
+      actions: [
+        IconButton(
+          key: const Key('learn.hierarchy'),
+          tooltip: context.tr(const Tr('কারিকুলাম কাঠামো', 'Curriculum structure')),
+          icon: const Icon(Icons.account_tree_outlined),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CurriculumHierarchyScreen())),
+        ),
+      ],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -228,6 +237,60 @@ class _SearchResults extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [for (final h in hits) Padding(padding: const EdgeInsets.only(bottom: AppSpacing.sm), child: h)],
+      ),
+    );
+  }
+}
+
+/// Full curriculum hierarchy (CUR-01): level → subject → chapter → topic → learning outcome.
+class CurriculumHierarchyScreen extends ConsumerWidget {
+  const CurriculumHierarchyScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = ref.watch(learningProgressProvider);
+    return AppPageScaffold(
+      title: context.tr(const Tr('কারিকুলাম কাঠামো', 'Curriculum structure')),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final level in EducationLevel.values)
+            Card(
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: ExpansionTile(
+                key: Key('tree.${level.code}'),
+                leading: const Icon(Icons.school_outlined),
+                title: Text('${context.tr(level.label)} (${level.classes.map(context.n).join('–')})'),
+                children: [
+                  for (final s in seedSubjects.where((x) => x.level == level))
+                    ExpansionTile(
+                      key: Key('tree.${s.id}'),
+                      leading: Icon(s.icon, color: s.color),
+                      title: Text(context.tr(s.name)),
+                      subtitle: Text('${context.n(s.chapters.length)} · ${context.pct(p.subjectCompletion(s) * 100)}'),
+                      childrenPadding: const EdgeInsets.only(left: AppSpacing.md),
+                      children: [
+                        for (final c in s.chapters)
+                          ExpansionTile(
+                            title: Text('${context.n(c.number)}. ${context.tr(c.title)}'),
+                            childrenPadding: const EdgeInsets.only(left: AppSpacing.md),
+                            children: [
+                              for (final t in c.topics)
+                                ListTile(
+                                  dense: true,
+                                  leading: Icon(p.topic(t.id).completed ? Icons.check_circle : Icons.radio_button_unchecked, size: 18),
+                                  title: Text(context.tr(t.title)),
+                                  subtitle: Text(t.outcomes.map((o) => '• ${context.tr(o.text)}').join('\n')),
+                                  onTap: () => context.go(AppRoutes.topic(t.id)),
+                                ),
+                            ],
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

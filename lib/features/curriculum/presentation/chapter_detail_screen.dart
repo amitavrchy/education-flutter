@@ -14,7 +14,11 @@ import '../../../shared/widgets/badges.dart';
 import '../../../shared/widgets/cards.dart';
 import '../../../shared/widgets/progress.dart';
 import '../../../shared/widgets/section_header.dart';
+import '../../../mock/seed/tutor_knowledge_seed.dart';
+import '../../book_avatar/data/book_catalog.dart';
+import '../../notes/application/notes_controller.dart';
 import '../../progress/application/learning_progress_controller.dart';
+import '../../question_bank/data/question_repository.dart';
 import '../application/curriculum_providers.dart';
 import '../curriculum_strings.dart';
 import '../data/curriculum_repository.dart';
@@ -53,6 +57,11 @@ class _ChapterBody extends ConsumerWidget {
     final progress = ref.watch(learningProgressProvider);
     final repo = ref.watch(curriculumRepositoryProvider);
     final completion = progress.chapterCompletion(c);
+    // Resource and question counts (CUR-13, CUR-14).
+    final questionCount = ref.watch(questionRepositoryProvider).cached.where((q) => q.chapterId == c.id).length;
+    final noteCount = ref.watch(notesProvider).where((n) => n.chapterId == c.id).length;
+    final audioCount = tutorScenarios.where((x) => x.chapterId == c.id).length;
+    final bookPage = bookById('book-${s.id}')?.firstPageOf(c.id);
     final nextTopic = c.topics.where((t) => !progress.topic(t.id).completed).firstOrNull ?? c.topics.firstOrNull;
     final history = [
       for (final t in c.topics)
@@ -103,6 +112,32 @@ class _ChapterBody extends ConsumerWidget {
                         icon: Icons.local_fire_department_outlined),
                     Pill(context.tr(CurriculumStrings.topicCount.fill({'n': c.topics.length}))),
                     if (c.hasLab) Pill(context.tr(CurriculumStrings.lab_), tone: Tone.info, icon: Icons.science_outlined),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  key: const Key('chapter.counts'),
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    ActionChip(
+                      avatar: const Icon(Icons.quiz_outlined, size: 16),
+                      label: Text(context.tr(const Tr('{n}টি প্রশ্ন', '{n} questions').fill({'n': questionCount}))),
+                      onPressed: () => context.go(AppRoutes.questionBank(subjectId: s.id, chapterId: c.id)),
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.sticky_note_2_outlined, size: 16),
+                      label: Text(context.tr(const Tr('{n}টি নোট', '{n} notes').fill({'n': noteCount}))),
+                      onPressed: () => context.push(AppRoutes.notes(chapterId: c.id)),
+                    ),
+                    if (audioCount > 0)
+                      ActionChip(avatar: const Icon(Icons.headphones_outlined, size: 16), label: Text(context.tr(const Tr('{n}টি অডিও', '{n} audio').fill({'n': audioCount}))), onPressed: () => context.push(AppRoutes.audio)),
+                    if (bookPage != null)
+                      ActionChip(
+                        avatar: const Icon(Icons.menu_book_outlined, size: 16),
+                        label: Text(context.tr(const Tr('বইয়ের পৃষ্ঠা {n}', 'Book page {n}').fill({'n': bookPage}))),
+                        onPressed: () => context.push(AppRoutes.bookReader('book-${s.id}', page: bookPage)),
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
