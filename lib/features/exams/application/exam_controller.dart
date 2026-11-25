@@ -185,6 +185,7 @@ class ExamController extends Notifier<ExamState> {
       body: Tr('তুমি ${toBanglaDigits(pct)}% নম্বর পেয়েছ। বিস্তারিত বিশ্লেষণ দেখো।', 'You scored $pct%. See the detailed analysis.'),
       createdAt: now,
       route: '/student/practice/results/${a.id}',
+      audience: 'student',
     ));
     return done;
   }

@@ -39,18 +39,21 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _restore() async {
+    // The provider can be disposed before the microtask runs (short-lived reads in tests).
+    if (!ref.mounted) return;
+    final storage = _storage;
     try {
-      final token = await _storage.readAccessToken();
-      final userJson = await _storage.readUserJson();
-      if (state is! AuthUnknown) return;
+      final token = await storage.readAccessToken();
+      final userJson = await storage.readUserJson();
+      if (!ref.mounted || state is! AuthUnknown) return;
       if (token == null || userJson == null) {
         state = const Unauthenticated();
         return;
       }
       state = Authenticated(AppUser.fromJson(jsonDecode(userJson) as Map<String, dynamic>));
     } catch (_) {
-      await _storage.clear();
-      if (state is AuthUnknown) state = const Unauthenticated();
+      await storage.clear();
+      if (ref.mounted && state is AuthUnknown) state = const Unauthenticated();
     }
   }
 

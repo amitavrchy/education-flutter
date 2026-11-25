@@ -262,6 +262,7 @@ class PlannerController extends Notifier<PlannerState> {
       body: Tr('$hh:$mm — ${first.title.bn} (${today.length}টি কাজ)', '$hh:$mm — ${first.title.en} (${today.length} tasks)'),
       createdAt: DateTime.now(),
       route: '/planner',
+      audience: 'student',
     ));
     return true;
   }
