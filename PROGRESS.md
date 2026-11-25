@@ -84,6 +84,29 @@ Bugs fixed along the way:
 
 No placeholder routes remain. Admin work (avatar editing, content management) stays on the web.
 
+### Session 5 (2026-11-25) — full student/parent/teacher parity with the web
+Scope agreed with the owner: every student, parent and teacher feature and flow of the web app,
+on mock data (real API later). Admin dashboard and marketing site stay web-only.
+Branch `feat/web-parity` (from `origin/main`). Analyzer clean, 190 tests.
+
+- Notifications: role audiences, detail, archive, preferences, push permission UI, simulation, urgent banner.
+- Parent: multi-child guardian portal (link code + OTP, per-link sharing, calendar, feedback + reply,
+  goals, reports, privacy). The device's student is live data; student privacy always wins.
+- Teacher: content review workflow with status flow and role permissions, question authoring,
+  rubrics, evaluation stages (AI / teacher / official), per-student submissions, students, history.
+- Student: 24 dashboard widgets + customise; adaptive analytics (heatmap, gaps, roadmap); gamification
+  (challenges, milestones, celebrations, friend challenges); library notes/highlights/AI explain;
+  board + school archives (solved view, timed exam, trends, visibility, duplicates); AI tools
+  (voice prefs/history/conversation tools, multi-image photo solver, handwriting OCR + teacher review);
+  English coach (all skills + mock exam); 21 labs; audio (podcasts, markers, playlist, downloads);
+  offline (conflicts, retry, offline quizzes); preferences + security; consent + session-expired;
+  wider search; chapter counts + hierarchy; planner list view.
+- Cross-portal links: teacher review → student notification + guardian feedback; student review
+  request → teacher queue; guardian reply → teacher inbox.
+
+Still open (honest list): question image assets (QB-06), Bangla-only portal menu/role labels (X-01),
+formal accessibility audit (X-02), JSON-schema contracts (X-04), real API wiring.
+
 ## Continue on another PC
 1. `git clone https://github.com/amitavrchy/education-flutter.git && cd education-flutter`
 2. `flutter pub get && flutter analyze && flutter test` (do not change the global Flutter SDK)
@@ -91,6 +114,8 @@ No placeholder routes remain. Admin work (avatar editing, content management) st
    docs/product/FEATURE_MATRIX.md; continue implementing the remaining incomplete features."*
 
 ## Next (in order)
-1. Connect the real API: repositories already sit behind interfaces. Avatar contract: web `docs/api/BOOK_AVATAR_CONTRACT.md`.
-2. Remaining ⬜ rows in `docs/product/FEATURE_MATRIX.md`: page notes/highlights, timed board paper, crop/multi-image, friend challenges, sync conflict UI.
-3. Device QA of voice (Bangla TTS/STT availability varies by phone) and accessibility pass.
+1. Connect the real API (backend repo `education-backend`): repositories already sit behind interfaces.
+   New persisted stores this session (`guardian`, `teacherReview`, `aiTools`, `english`, `archive`,
+   `gamification`, `learningPrefs`, `notificationPrefs`) each need an endpoint.
+2. Translate portal menu labels and role names (X-01); add question image assets (QB-06).
+3. Device QA of voice (Bangla TTS/STT availability varies by phone) and an accessibility pass.

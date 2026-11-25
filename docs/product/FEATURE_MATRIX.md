@@ -32,18 +32,20 @@ generic with retry).
 | AUTH-06 | Remember session / restore | all | `SplashScreen` | `TokenStorage` | ✅ | W |
 | AUTH-07 | Logout (with confirm) | all | Settings | — | ✅ | — |
 | AUTH-08 | Session expiry simulation (401 → sign out) | all | interceptor | — | ✅ | U |
-| AUTH-09 | Demo role switcher | all | — | — | ⬜ | — |
+| AUTH-09 | Demo role switcher (student/teacher/parent) | all | Settings → demo tools | `AuthController.switchDemoRole` | ✅ | U |
 | AUTH-10 | Account deletion request (30-day, cancellable) | student | `PrivacyScreen` | `AccountController` | ✅ | W |
 | AUTH-11 | Language selection | all | Settings | `AppSettings` | ✅ | — |
-| AUTH-12 | Privacy notice (guardian consent for under-18s removed 2026-11-24: any age signs up alone) | student | — | — | ⬜ | — |
+| AUTH-12 | Privacy notice & consent after OTP (terms + AI-estimate notice; no guardian consent) | all | `ConsentScreen` | — | ✅ | W |
+| AUTH-14 | Session-expired screen after a 401 | all | `SessionExpiredScreen` | `Unauthenticated(expired)` | ✅ | U |
+| AUTH-15 | Profile photo upload (change / remove) | student | `ProfileAvatar` | `LearningPrefs.avatarPath` | ✅ | — |
 | AUTH-13 | Onboarding wizard (about you, academic, subjects, goals, study time, review → saves profile) | student | `OnboardingScreen` | `StudentProfileController` | ✅ | W |
 
 ## M02 Student dashboard (§7)
 
 | ID | Feature | Status | Notes |
 |---|---|---|---|
-| DASH-01..24 | 24 widgets (greeting, goal, weekly chart, streak, recommendations, continue, exams, quick tutor, recent chats, weak topics, revision, sessions, subject performance, completion, daily quiz, saved questions, model tests, achievements, notices, subscription, calendar, notifications, resources, summary) | 🟡 | Live: greeting, week stats (study time, practised, average score, streak), today's plan, continue reading, upcoming exams, weak-topic alert, quick actions (avatar, tutor, photo, model test). Other widgets ⬜ |
-| DASH-25 | Customise / reorder widgets | ⬜ | `AppSettings.dashboardOrder/hiddenWidgets` already persisted |
+| DASH-01..24 | 24 widgets (greeting, goal, weekly chart, streak, recommendations, continue, exams + countdown, quick tutor, recent chats, weak topics, revision, sessions, subject performance, completion, daily quiz, saved questions, model tests, achievements, notices, subscription, calendar, notifications, resources, summary) | ✅ W | All on live data (`DashWidget`) |
+| DASH-25 | Customise / reorder / hide widgets | ✅ W | `DashboardCustomiseSheet`, persisted in `AppSettings` |
 
 ## M03 AI private tutor (§8)
 
@@ -62,9 +64,9 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| VOICE-01..30 | Voice session (start/end/pause), push-to-talk + hands-free via speech_to_text, spoken answers via flutter_tts, listening/thinking/speaking states, waveform, live transcript, teaching modes, usage minutes, sample questions without a mic | ✅ `VoiceTutorScreen` (W); saved session history ⬜ |
-| IMG-01..19 | Camera/gallery/sample image, preview, rotate, retake, simulated OCR, editable extracted text, subject detection, step-by-step solution with book sources | ✅ `PhotoSolverScreen` (W); crop & multi-image ⬜ |
-| HWE-01..20 | Answer-sheet pages (camera/gallery/sample), reorder/remove, question pick, simulated rubric evaluation (criteria, strengths, missing points, tips), "AI estimate, not final" label, request teacher review | ✅ `HandwritingScreen` (U+W) |
+| VOICE-01..30 | Voice session, push-to-talk + hands-free, language bn/en/mixed, voice type, speed, mic choice, interrupt, network indicator, mic-permission error with typing, monthly limit by plan, conversation → notes / summary / flashcards, saved session history | ✅ `VoiceTutorScreen` (W) |
+| IMG-01..19 | Camera/gallery/sample, multiple images, crop, rotate, retake, file validation, simulated OCR, editable text, subject + chapter, solution with sources, explanation, save to notes, add to practice, OCR report, history | ✅ `PhotoSolverScreen` (W) |
+| HWE-01..24 | Pages (camera/gallery/sample), reorder, crop, OCR text beside the original, question mapping, model-answer comparison, rubric estimate, history with before/after, reattempt, copy feedback, teacher review into the teacher portal, AI / teacher / official labels | ✅ `HandwritingScreen` (U+W) |
 
 ## M06 Curriculum explorer (§11)
 
@@ -75,27 +77,27 @@ generic with retry).
 | CUR-03 | Chapter detail: description, duration, difficulty, relevance, prerequisites, outcomes, history | ✅ | — |
 | CUR-04 | Topic lesson, mark complete (XP + activity), next topic, quick check, ask tutor | ✅ | — |
 | CUR-05 | Continue / resume learning | ✅ | — |
-| CUR-06 | Resource / question counts per chapter | ⬜ | question bank now exists; counts not yet shown |
+| CUR-06 | Resource / question counts per chapter; hierarchy browser (level → outcome) | ✅ | W |
 
 ## Adaptive analytics (§21)
 
 | ID | Feature | Status |
 |---|---|---|
-| ADP-01..18 | Subject mastery, weak/strong chapters with practise links, accuracy, 7-day study chart, exam score trend | ✅ `AnalyticsScreen` (W); misconception mapping & prerequisite graph ⬜ |
+| ADP-01..24 | Overview (deltas, mastery, accuracy trend, difficulty, consistency, exam trend), topics (heatmap, strengths vs weaknesses, common mistakes, knowledge gaps, prerequisites), roadmap (weakness-to-mastery path, lesson order, revision, daily-time adjustment) | ✅ `AnalyticsScreen` (U+W) |
 
 ## M07 Textbook library (§12) · M08 Question bank (§13) · M09 Board archive (§14) · M10 Institution archive (§15)
 
 | ID | Feature | Status |
 |---|---|---|
-| LIB-01..27 | Browse/filter books, reader, TOC, page nav, zoom (text size), bookmarks, continue reading, offline download, ask the book's avatar teacher, citation deep links | 🟡 ✅ U+W for these; page notes & highlights ⬜ |
+| LIB-01..27 | Filters (class, subject, edition, language, year), reader, TOC, zoom, bookmarks, history, page notes, highlights, AI explanation of a passage / page, related questions, notes and chapter resources, download by permission and plan, offline badge, version warning | ✅ U+W |
 | QB-01 | Question model: 15 types incl. CQ ক/খ/গ/ঘ, matching, fill-in, proof, case/passage | ✅ U |
 | QB-02 | Browse/filter/sort (subject, chapter, type, difficulty, source, year, board, marks, verified, relevance, search; recent/difficulty/frequency), pagination | ✅ U |
 | QB-03 | Answer reveal, explanation, steps, alt method, rubric, citations, self-mark right/wrong | ✅ |
 | QB-04 | Bookmark, practice sets CRUD, report, copy, print view, history, reattempt wrong, topic coverage, related | ✅ U/W |
 | QB-05 | Practice session: quick / daily (weak topics) / mixed / wrong / bookmarks / set; instant check; updates mastery + XP | ✅ U/W |
-| QB-06 | Image/diagram assets inside questions | ⬜ (diagram questions are text-described) |
-| BOARD-01..25 | Board/year/subject explorer (9 boards × 10 years, HSC 2020 omitted), paper viewer → question detail with solutions, practise a paper, chapter frequency, "board-style sample" labels | ✅ `BoardArchiveScreen` (U+W); timed paper mode ⬜ |
-| INST-01..18 | Demo school/college directory, search, school/college filter, papers with categories, practise a paper | ✅ `InstitutionArchiveScreen` (U); visibility & duplicate report ⬜ |
+| QB-06 | Image/diagram assets inside questions | 🟡 diagram questions are text-described (no image assets in the seed) |
+| BOARD-01..27 | SSC/HSC, board, year, subject, edition, exam type; solved view + MCQ answer sheet; timed exam; saved papers; bookmarks; AI explanation; copy; pattern; compare years; frequency, trends, repeated concepts, clusters; authenticity metadata | ✅ `BoardArchiveScreen` (U+W) |
+| INST-01..19 | Directory grouped per institution, district/type/year/subject/category filters, scan viewer, visibility (locked private papers), teacher-uploaded and duplicate labels, related practice, reports | ✅ `InstitutionArchiveScreen` (U+W) |
 
 ## M11 Exams (§16) · M12 Handwriting evaluator (§17)
 
@@ -106,14 +108,14 @@ generic with retry).
 | EXAM-03 | Taking: immersive focus mode, timer + autosave, palette, mark for review, prev/next, keyboard shortcuts, written editor, handwritten photo upload, submit confirm, time-up auto-submit, recovery | ✅ U/W |
 | EXAM-04 | Results: score, grade/GPA, counts, time, accuracy, difficulty/topic analysis, question review, weak areas → lessons/practice, teacher feedback, retake, printable, history + trend chart | ✅ U/W |
 | EXAM-05 | Submit propagates to practice history, mastery, study log/XP and a result notification | ✅ U |
-| HW-01..22 | Upload pages, reorder, simulated OCR, correction, rubric score, AI vs teacher vs official marks | ⬜ |
+| HW-01..22 | Same as HWE above (handwriting evaluator) | ✅ |
 
 ## M13 Planner (§18) · M14 Adaptive learning (§19) · M15 Flashcards (§20) · M16 Notes (§21)
 
 | ID | Feature | Status |
 |---|---|---|
-| PLAN-01..29 | Daily/weekly/monthly plans, calendar, timeline, tasks, reschedule, generation, insights | ⬜ |
-| ADAPT-01..23 | Mastery by topic/subject (model ✅), trends, heatmap, weak/strong, roadmap, recommendations | 🟡 (model + exam weak areas) |
+| PLAN-01..28 | Day / week board (drag) / month / list / insights, generation, manual editing, reminders, missed → reschedule, completion modal, exam countdown, target GPA, subject priority | ✅ U+W |
+| ADAPT-01..23 | See ADP above | ✅ |
 | FC-01 | Decks: manual, from chapter (AI), notes, conversation, wrong answers; rename/delete | ✅ U |
 | FC-02 | Cards: add/edit/delete, bookmark, search, filter (due/new/bookmarked/learned) | ✅ |
 | FC-03 | Study mode with flip animation (reduced-motion aware), again/hard/good/easy with interval preview, known/unknown, quick review (no scheduling), daily queue across decks, stats | ✅ U/W |
@@ -126,18 +128,18 @@ generic with retry).
 
 | ID | Feature | Status |
 |---|---|---|
-| ENG-01..18 | Writing check (grammar corrections with reasons), vocabulary cards with pronunciation, grammar quiz with score, speaking practice (speech_to_text → correction → TTS read-back) | ✅ `EnglishCoachScreen` (W); reading/listening comprehension sets ⬜ |
-| LAB-01..21 | Motion (v = u + at, chart), Ohm's law circuit (I, P, bulb brightness), periodic table 1–20 (mass, period, shells), quadratic graph plotter with roots | ✅ `LabsScreen` (W); biology diagrams & more experiments ⬜ |
-| AUD-01..17 | Lesson library per topic, play/pause via device TTS, speed, transcript, listening progress, continue listening, favourites | ✅ `AudioRevisionScreen` (W); chapter markers & downloads ⬜ |
-| GAME-01..17 | Streak, XP/levels, badges, weekly missions, demo leaderboard (hidden by the competitive toggle) | ✅ `AchievementsScreen` (W); friend challenges ⬜ |
-| OFF-01..15 | Downloaded books (remove), always-offline notes/flashcards, storage usage, last sync + sync now (fails offline), content version, offline simulation toggle, offline banners | ✅ `OfflineScreen` (W); conflict resolution UI ⬜ |
+| ENG-01..18 | Progress + plan, writing (5 types, prompts, word targets, structure), vocabulary + flashcards, grammar with explanations, sentence correction, reading, listening, speaking + simulated pronunciation, mock speaking exam | ✅ `EnglishCoachScreen` (U+W) |
+| LAB-01..23 | 21 labs across physics, chemistry, biology and maths, planned-lab states, diagram text alternatives | ✅ `LabsScreen` (U+W) |
+| AUD-01..17 | Library, by chapter, podcasts + playlist, seek, chapter markers, summary, transcript, speed, voice, favourites, downloads, history, generated lessons | ✅ `AudioRevisionScreen` (U+W) |
+| GAME-01..18 | Streak, points, XP/levels, badges with celebration + reward notification, daily challenges, weekly missions, monthly milestones, goal days, chapter rewards, consistency, motivation, friend challenges, leaderboard (both hidden by the toggle), history | ✅ `AchievementsScreen` (U+W) |
+| OFF-01..17 | Books and audio downloads with sizes, offline quizzes, badges, storage, sync with retry, conflict resolution, AI-unavailable state (PWA caching n/a: native storage) | ✅ `OfflineScreen` (U+W) |
 
 ## M22 Parent (§27) · M23 Teacher/reviewer (§28) · M24 Institution (§29)
 
 | ID | Feature | Status |
 |---|---|---|
-| PAR-01..20 | Live child overview (week stats), link a child (phone + demo OTP), subject progress, exam results, weekly report, avatar usage (counts only); every view honours the student's sharing choices; no consent step | ✅ `parent_screens.dart` (W) |
-| TEA-01..21 | Live dashboard, classes & student mastery, answer-script evaluation (AI estimate → final marks + feedback), assignments, publish quizzes to students, AI question generator (drafts → review), materials, class analytics, avatar test/report fixes | ✅ `teacher_screens.dart` (U+W); full content review workflow stays on the web |
+| PAR-01..21 | Onboarding, multiple children + switcher, link by student code + OTP, per-link sharing (AI chats student-only), dashboard, progress, results, calendar, teacher feedback (acknowledge / reply), goals, weekly/monthly reports, privacy, subscription, notification preferences | ✅ `parent_screens.dart`, `guardian_controller.dart` (U+W) |
+| TEA-01..23 | Dashboard, subjects, classes, students + detail + feedback, content review queue with the full status flow, comments, suggested corrections, teacher/reviewer permissions, question authoring with versions, rubrics, evaluation stages with rubric marking and official marks, assignments + per-student submissions, quizzes, AI generator, materials, history, reviewer analytics | ✅ `teacher_screens.dart`, `teacher_workflow_screens.dart`, `review_data.dart` (U+W) |
 | INS-01..25 | Institution portal | 🚫 removed (product decision 2026-11-24); role dropped from the app |
 
 ## M29 Per-book live 2D avatar teacher (product requirement, 2026-11-24)
@@ -165,9 +167,10 @@ voice and scope is an admin task, which stays on the web.
 | ID | Feature | Status | Test |
 |---|---|---|---|
 | NOTIF-01 | Inbox, read/unread, mark all, filter, delete, deep link | ✅ | — |
-| NOTIF-02 | Detail view, preferences, push/email permission UI, in-app simulation | ⬜ | |
+| NOTIF-02 | Role inboxes, detail, archive, unread filter, preferences (push permission, per-type push/email/inbox, quiet hours, digest), in-app simulation and urgent banner | ✅ | U+W |
 | SET-01 | Theme (light/dark/system), language, text size, high contrast, reduced motion, Bangla numerals | ✅ | — |
 | SET-02 | Demo tools: simulate offline / server errors; storage usage; reset demo data | ✅ | — |
+| SET-04 | Preferences (learning style, difficulty, tutor mode/language, voice), security (password, two-step, sessions), connected guardian, institution, help rating + bug report | ✅ | U+W |
 | SET-03 | Profile (academic info, goals), subscription (plans, monthly/yearly, coupons, simulated bKash/Nagad/card checkout with a declining test card, cancel/resume, invoices), privacy (guardian sharing, leaderboard, chat history, retention, data export, 30-day deletion), help (FAQ search, support tickets) | ✅ | U+W |
 | SRCH-01 | Global search across subjects, chapters, topics, questions, books, avatar teachers, notes, flashcards and conversations; recent (persisted), popular, kind filters with counts, grouping, empty state → ask tutor | ✅ | W |
 
@@ -175,9 +178,9 @@ voice and scope is an admin task, which stays on the web.
 
 | ID | Feature | Status |
 |---|---|---|
-| X-01 | Bangla/English UI via `Tr` dictionaries | 🟡 older screens (login, dashboards) still hard-code Bangla |
+| X-01 | Bangla/English UI via `Tr` dictionaries | 🟡 dashboards now bilingual; portal menu labels and role names are still Bangla-only |
 | X-02 | Accessibility: semantics on cards, progress, banners; text scaling; reduced motion | 🟡 |
-| X-03 | Mock data consistency (exam → analytics, completion → progress, bookmarks, notes) | 🟡 completion/practice/exam → progress ✅, exam → notification ✅ |
+| X-03 | Mock data consistency across portals | ✅ e.g. teacher review → student notification + guardian feedback; student review request → teacher queue; student privacy → guardian views |
 | X-04 | Platform-neutral contracts (`contracts/*.schema.json`) | ⬜ |
 | X-05 | Docs set from spec §57 (mobile subset) | 🟡 this file + PROGRESS.md |
 
