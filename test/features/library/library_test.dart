@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:shikkhaai_mobile/core/l10n/tr.dart';
 import 'package:shikkhaai_mobile/core/storage/local_store.dart';
 import 'package:shikkhaai_mobile/features/book_avatar/data/book_catalog.dart';
 import 'package:shikkhaai_mobile/features/library/library_controller.dart';
 import 'package:shikkhaai_mobile/features/library/library_screens.dart';
+import 'package:shikkhaai_mobile/features/library/reader_tools.dart';
 import 'package:shikkhaai_mobile/shared/widgets/error_view.dart';
 
 import '../../helpers/test_app.dart';
@@ -47,5 +49,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('library.book.book-ssc-phy')), findsOneWidget);
     expect(find.byType(ErrorView), findsNothing);
+  });
+
+  test('page notes, highlights and history persist', () async {
+    final c = testContainer();
+    final lib = c.read(libraryProvider.notifier);
+    await lib.openedPage('book-ssc-phy', 5);
+    await lib.openedPage('book-ssc-phy', 6);
+    await lib.openedPage('book-ssc-phy', 5);
+    await lib.setNote('book-ssc-phy', 5, 'মনে রাখো');
+    await lib.addHighlight('book-ssc-phy', 5, 'একটি বাক্য');
+    await lib.addHighlight('book-ssc-phy', 5, 'একটি বাক্য');
+    final r = c.read(libraryProvider)['book-ssc-phy']!;
+    expect(r.history.first.$1, 5);
+    expect(r.history.where((h) => h.$1 == 5).length, 1);
+    expect(r.notes[5], 'মনে রাখো');
+    expect(r.highlights.length, 1);
+    await lib.setNote('book-ssc-phy', 5, '');
+    expect(c.read(libraryProvider)['book-ssc-phy']!.notes.containsKey(5), isFalse);
+  });
+
+  test('sentences and highlight markup', () {
+    expect(pageSentences('প্রথম বাক্যটি বেশ লম্বা। দ্বিতীয় বাক্যটিও লম্বা।').length, 2);
+    final h = withHighlights('abc long sentence here.', [Highlight(1, 'long sentence', DateTime(2026))]);
+    expect(h, contains('==long sentence=='));
+  });
+
+  testWidgets('reader saves a page note', (tester) async {
+    await tester.pumpWidget(testApp(const BookReaderScreen(bookId: 'book-ssc-phy', page: 22), lang: AppLanguage.en));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('reader.note')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reader.noteInput')), 'Remember units');
+    await tester.tap(find.byKey(const Key('reader.noteSave')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('reader.noteCard')), findsOneWidget);
+  });
+
+  testWidgets('older edition shows a version warning and blocks download', (tester) async {
+    final old = sampleBooks.firstWhere((b) => bookEdition(b) != 'nctb-2025');
+    await tester.pumpWidget(testApp(BookScreen(bookId: old.id), lang: AppLanguage.en));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('book.versionWarning')), findsOneWidget);
+    expect(find.text('Read online only'), findsOneWidget);
   });
 }
