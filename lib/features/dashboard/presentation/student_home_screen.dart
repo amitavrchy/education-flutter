@@ -552,7 +552,7 @@ class _RecommendedWidget extends ConsumerWidget {
     final chapters = [
       for (final s in _mySubjects(ref))
         for (final c in s.chapters)
-          if (p.chapterCompletion(c) < 1) (s, c, p.chapterMastery(c) - (weakSubjects.contains(s.id) ? 0.3 : 0) - c.relevance.index * 0.05),
+          if (p.chapterCompletion(c) < 1) (s, c, p.chapterMastery(c) - (weakSubjects.contains(s.id) ? 0.3 : 0) + c.relevance.index * 0.05),
     ]..sort((a, b) => a.$3.compareTo(b.$3));
     return _Box(
       title: HomeStrings.recommended,
