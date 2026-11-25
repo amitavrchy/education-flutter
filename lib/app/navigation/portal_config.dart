@@ -195,9 +195,15 @@ final PortalConfig parentPortal = PortalConfig(
     _moreTab,
   ],
   menuItems: const [
-    PortalMenuItem(slug: 'reports', label: 'রিপোর্ট', icon: Icons.description_outlined, route: AppRoutes.parentReports),
-    PortalMenuItem(slug: 'results', label: 'ফলাফল', icon: Icons.emoji_events_outlined, route: AppRoutes.parentResults),
-    PortalMenuItem(slug: 'avatar-activity', label: 'অ্যাভাটার শিক্ষকের ব্যবহার', icon: Icons.co_present_outlined, route: AppRoutes.avatarActivity),
+    PortalMenuItem(slug: 'calendar', label: 'স্টাডি ক্যালেন্ডার', icon: Icons.calendar_month_outlined, route: AppRoutes.parentCalendar, group: 'সন্তানের পড়াশোনা'),
+    PortalMenuItem(slug: 'results', label: 'ফলাফল', icon: Icons.emoji_events_outlined, route: AppRoutes.parentResults, group: 'সন্তানের পড়াশোনা'),
+    PortalMenuItem(slug: 'goals', label: 'শেখার লক্ষ্য', icon: Icons.flag_outlined, route: AppRoutes.parentGoals, group: 'সন্তানের পড়াশোনা'),
+    PortalMenuItem(slug: 'feedback', label: 'শিক্ষকের মন্তব্য', icon: Icons.rate_review_outlined, route: AppRoutes.parentFeedback, group: 'সন্তানের পড়াশোনা'),
+    PortalMenuItem(slug: 'reports', label: 'রিপোর্ট', icon: Icons.description_outlined, route: AppRoutes.parentReports, group: 'সন্তানের পড়াশোনা'),
+    PortalMenuItem(slug: 'avatar-activity', label: 'অ্যাভাটার শিক্ষকের ব্যবহার', icon: Icons.co_present_outlined, route: AppRoutes.avatarActivity, group: 'সন্তানের পড়াশোনা'),
+    PortalMenuItem(slug: 'privacy', label: 'গোপনীয়তা', icon: Icons.shield_outlined, route: AppRoutes.parentPrivacy, group: 'অ্যাকাউন্ট'),
+    PortalMenuItem(slug: 'subscription', label: 'সাবস্ক্রিপশন', icon: Icons.workspace_premium_outlined, route: AppRoutes.subscription, group: 'অ্যাকাউন্ট'),
+    PortalMenuItem(slug: 'support', label: 'সাহায্য ও মতামত', icon: Icons.support_agent, route: AppRoutes.support, group: 'অ্যাকাউন্ট'),
   ],
 );
 

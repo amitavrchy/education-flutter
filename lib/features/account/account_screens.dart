@@ -13,6 +13,7 @@ import '../../shared/widgets/badges.dart';
 import '../../shared/widgets/feedback.dart';
 import '../../shared/widgets/section_header.dart';
 import '../curriculum/domain/curriculum_models.dart';
+import '../parent/guardian_controller.dart' show demoLinkCode;
 import '../profile/application/student_profile_controller.dart';
 import 'account_controller.dart';
 
@@ -400,8 +401,23 @@ class PrivacyScreen extends ConsumerWidget {
         children: [
           InfoBanner(message: context.tr(AccStrings.chatsPrivate), icon: Icons.lock_outline),
           SectionHeader(title: context.tr(AccStrings.sharing)),
-          for (final (key, label) in [('progress', AccStrings.shareProgress), ('scores', AccStrings.shareScores), ('conversations', AccStrings.shareChats)])
-            SwitchListTile(key: Key('privacy.$key'), contentPadding: EdgeInsets.zero, title: Text(context.tr(label)), value: acc.privacy[key] ?? false, onChanged: (v) => ctrl.setPrivacy(key, v)),
+          for (final (key, label, fallback) in [
+            ('progress', AccStrings.shareProgress, true),
+            ('scores', AccStrings.shareScores, true),
+            ('calendar', const Tr('অভিভাবকের সাথে স্টাডি ক্যালেন্ডার শেয়ার', 'Share my study calendar with guardians'), true),
+            ('feedback', const Tr('অভিভাবকের সাথে শিক্ষকের মন্তব্য শেয়ার', 'Share teacher feedback with guardians'), true),
+            ('conversations', AccStrings.shareChats, false),
+          ])
+            SwitchListTile(key: Key('privacy.$key'), contentPadding: EdgeInsets.zero, title: Text(context.tr(label)), value: acc.privacy[key] ?? fallback, onChanged: (v) => ctrl.setPrivacy(key, v)),
+          Card(
+            margin: const EdgeInsets.only(top: AppSpacing.sm),
+            child: ListTile(
+              leading: const Icon(Icons.link),
+              title: Text(context.tr(const Tr('অভিভাবক যুক্ত করার কোড', 'Code to link a guardian'))),
+              subtitle: Text(context.tr(const Tr('অভিভাবক এই কোড দিয়ে তোমাকে যুক্ত করতে পারবেন। কী দেখবেন তা তুমিই ঠিক করো।', 'Your guardian links you with this code. You decide what they see.'))),
+              trailing: SelectableText(demoLinkCode, key: const Key('privacy.linkCode'), style: Theme.of(context).textTheme.titleMedium),
+            ),
+          ),
           const Divider(),
           SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(context.tr(AccStrings.leaderboard)), value: acc.privacy['leaderboard'] ?? true, onChanged: (v) => ctrl.setPrivacy('leaderboard', v)),
           SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(context.tr(AccStrings.history)), value: acc.privacy['history'] ?? true, onChanged: (v) => ctrl.setPrivacy('history', v)),

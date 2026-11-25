@@ -57,15 +57,22 @@ void main() {
     expect(find.text('Your child has not shared this'), findsOneWidget);
   });
 
-  testWidgets('parent links a child with the demo code', (tester) async {
+  testWidgets('parent links a child with the student code and OTP', (tester) async {
     await tester.pumpWidget(testApp(const ParentChildrenScreen(), lang: AppLanguage.en));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('link.phone')), '01712345678');
+    await tester.tap(find.byKey(const Key('link.open')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('link.code')), 'WRONG');
     await tester.tap(find.byKey(const Key('link.go')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('link.code')), '123456');
+    expect(find.byKey(const Key('link.otp')), findsNothing);
+    await tester.enterText(find.byKey(const Key('link.code')), 'shk-2741');
     await tester.tap(find.byKey(const Key('link.go')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('(ডেমো)'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('link.otp')), '123456');
+    await tester.tap(find.byKey(const Key('link.go')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('childCard.gl-3')), findsOneWidget);
+    expect(find.text('তাহসিন রহমান'), findsWidgets);
   });
 }

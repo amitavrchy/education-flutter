@@ -99,4 +99,8 @@ abstract final class AppRoutes {
   static const String teacherAnalytics = '/teacher-analytics';
   static const String parentReports = '/parent-reports';
   static const String parentResults = '/parent-results';
+  static const String parentCalendar = '/parent-calendar';
+  static const String parentFeedback = '/parent-feedback';
+  static const String parentGoals = '/parent-goals';
+  static const String parentPrivacy = '/parent-privacy';
 }

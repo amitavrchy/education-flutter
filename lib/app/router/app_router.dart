@@ -196,6 +196,10 @@ List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.teacherAnalytics, builder: (context, state) => const TeacherAnalyticsScreen()),
   GoRoute(path: AppRoutes.parentReports, builder: (context, state) => const ParentReportsScreen()),
   GoRoute(path: AppRoutes.parentResults, builder: (context, state) => const ParentResultsScreen()),
+  GoRoute(path: AppRoutes.parentCalendar, builder: (context, state) => const ParentCalendarScreen()),
+  GoRoute(path: AppRoutes.parentFeedback, builder: (context, state) => const ParentFeedbackScreen()),
+  GoRoute(path: AppRoutes.parentGoals, builder: (context, state) => const ParentGoalsScreen()),
+  GoRoute(path: AppRoutes.parentPrivacy, builder: (context, state) => const ParentPrivacyScreen()),
   GoRoute(
     path: AppRoutes.library,
     builder: (context, state) => const LibraryScreen(),
