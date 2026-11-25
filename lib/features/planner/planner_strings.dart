@@ -32,6 +32,7 @@ abstract final class PlanStrings {
   static const missed = Tr('বাদ পড়েছে', 'Missed');
   static const done = Tr('সম্পন্ন', 'Done');
   static const scheduled = Tr('নির্ধারিত', 'Scheduled');
+  static const nothing = Tr('এই তালিকায় কোনো কাজ নেই', 'No tasks in this list');
   static const missedBanner = Tr('{n}টি কাজ বাদ পড়েছে', '{n} missed tasks');
   static const rescheduleMissed = Tr('সামনের দিনে সরাও', 'Move to upcoming days');
   static const movedMissed = Tr('{n}টি কাজ সামনে সরানো হয়েছে', 'Moved {n} tasks forward');

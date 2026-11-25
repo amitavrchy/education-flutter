@@ -13,8 +13,10 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/feedback.dart';
 import '../../../shared/widgets/progress.dart';
 import '../../../shared/widgets/section_header.dart';
+import '../../../mock/seed/curriculum_seed.dart';
 import '../../curriculum/data/curriculum_repository.dart';
 import '../../curriculum/domain/curriculum_models.dart';
+import '../../profile/application/student_profile_controller.dart';
 import '../../progress/application/learning_progress_controller.dart';
 import '../../progress/domain/learning_progress.dart';
 import '../application/planner_controller.dart';
@@ -41,7 +43,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final now = DateTime.now();
     final missed = s.tasks.where((t) => t.status == TaskStatus.missed).length;
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: Text(context.tr(PlanStrings.planner)),
@@ -59,10 +61,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             ),
             IconButton(tooltip: context.tr(PlanStrings.settings), icon: const Icon(Icons.tune), onPressed: () => _settings(context, ref)),
           ],
-          bottom: TabBar(tabAlignment: TabAlignment.fill, tabs: [
+          bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [
             Tab(text: context.tr(PlanStrings.today)),
             Tab(text: context.tr(PlanStrings.week)),
             Tab(text: context.tr(PlanStrings.month)),
+            Tab(text: context.tr(const Tr('তালিকা', 'List'))),
             Tab(text: context.tr(PlanStrings.insights)),
           ]),
         ),
@@ -97,6 +100,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                   _DayView(day: _day, onDay: (d) => setState(() => _day = d)),
                   const _WeekBoard(),
                   _MonthView(selected: _day, onDay: (d) => setState(() => _day = d)),
+                  const _TaskList(),
                   const _Insights(),
                 ],
               ),
@@ -827,5 +831,64 @@ Future<void> showTaskEditor(BuildContext context, WidgetRef ref, {StudyTask? tas
       reminder: reminder,
       subjectId: () => subjectId,
     ));
+  }
+}
+
+/// Task list view (PLAN-11..13, PLAN-25) with status filter and the subject priority the
+/// generator uses (PLAN-05/06).
+class _TaskList extends ConsumerStatefulWidget {
+  const _TaskList();
+
+  @override
+  ConsumerState<_TaskList> createState() => _TaskListState();
+}
+
+class _TaskListState extends ConsumerState<_TaskList> {
+  TaskStatus _status = TaskStatus.scheduled;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(plannerProvider);
+    final p = ref.watch(learningProgressProvider);
+    final level = ref.watch(studentProfileProvider.select((x) => x.level));
+    final tasks = [for (final t in s.tasks) if (t.status == _status) t]..sort((a, b) => _status == TaskStatus.scheduled ? a.start.compareTo(b.start) : b.start.compareTo(a.start));
+    final subjects = [for (final x in seedSubjects) if (x.level == level) x]..sort((a, b) => p.subjectMastery(a).compareTo(p.subjectMastery(b)));
+    return ListView(
+      key: const Key('plan.list'),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        SegmentedButton<TaskStatus>(
+          key: const Key('plan.listFilter'),
+          segments: [
+            for (final st in TaskStatus.values)
+              ButtonSegment(
+                value: st,
+                label: Text('${context.tr(switch (st) {
+                  TaskStatus.scheduled => PlanStrings.scheduled,
+                  TaskStatus.done => PlanStrings.done,
+                  TaskStatus.missed => PlanStrings.missed,
+                })} (${context.n(s.tasks.where((t) => t.status == st).length)})'),
+              ),
+          ],
+          selected: {_status},
+          onSelectionChanged: (v) => setState(() => _status = v.first),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        if (tasks.isEmpty) Text(context.tr(PlanStrings.nothing), style: Theme.of(context).textTheme.bodySmall),
+        for (final t in tasks.take(40)) ...[
+          Text(shortDate(t.day, context.lang), style: Theme.of(context).textTheme.labelSmall),
+          TaskTile(task: t),
+        ],
+        SectionHeader(title: context.tr(const Tr('বিষয়ের অগ্রাধিকার (দুর্বল আগে)', 'Subject priority (weakest first)'))),
+        for (final (i, x) in subjects.indexed)
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(radius: 12, child: Text(context.n(i + 1), style: const TextStyle(fontSize: 11))),
+            title: Text(context.tr(x.name)),
+            trailing: Text(context.pct(p.subjectMastery(x) * 100)),
+          ),
+      ],
+    );
   }
 }

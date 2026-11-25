@@ -118,4 +118,14 @@ void main() {
     expect(container.read(plannerProvider).tasks.firstWhere((t) => t.id == first.id).status, TaskStatus.done);
     expect(container.read(learningProgressProvider).activities.first.kind, ActivityKind.lesson);
   });
+
+  testWidgets('list tab filters tasks by status and shows subject priority', (tester) async {
+    await tester.pumpWidget(testApp(const PlannerScreen(), lang: AppLanguage.en));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('List'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('plan.listFilter')), findsOneWidget);
+    await tester.dragUntilVisible(find.text('Subject priority (weakest first)'), find.byKey(const Key('plan.list')), const Offset(0, -400));
+    expect(find.text('Subject priority (weakest first)'), findsOneWidget);
+  });
 }
