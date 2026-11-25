@@ -22,6 +22,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/feedback.dart';
 import '../../shared/widgets/rich_content.dart';
 import '../../shared/widgets/section_header.dart';
+import '../settings/learning_prefs.dart';
 import '../teacher/teacher_data.dart';
 import 'ai_tools_data.dart';
 import '../account/account_controller.dart';
@@ -184,6 +185,11 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
   void initState() {
     super.initState();
     _voice = ref.read(avatarVoiceProvider);
+    final prefs = ref.read(learningPrefsProvider);
+    _male = prefs.voiceMale;
+    _rate = prefs.voiceRate;
+    _handsFree = prefs.handsFree;
+    if (prefs.tutorMode != TeachingMode.englishCoach) _mode = prefs.tutorMode;
   }
 
   @override

@@ -9,6 +9,7 @@ import '../../profile/application/student_profile_controller.dart';
 import '../data/ai_tutor_repository.dart';
 import '../data/mock_tutor_engine.dart';
 import '../domain/tutor_models.dart';
+import '../../settings/learning_prefs.dart';
 
 /// All tutor conversations (newest activity first) and the streaming state of answers.
 class TutorController extends Notifier<List<Conversation>> {
@@ -53,10 +54,11 @@ class TutorController extends Notifier<List<Conversation>> {
     if (persist) await _collection.upsert(c);
   }
 
-  /// Default context from the student's profile.
+  /// Default context from the student's profile and tutor preferences.
   TutorContext defaultContext() {
     final p = ref.read(studentProfileProvider);
-    return TutorContext(level: p.level, classYear: p.classYear, curriculumVersionId: p.curriculumVersionId);
+    final prefs = ref.read(learningPrefsProvider);
+    return TutorContext(level: p.level, classYear: p.classYear, curriculumVersionId: p.curriculumVersionId, mode: prefs.tutorMode, language: prefs.tutorLanguage);
   }
 
   Future<Conversation> create({TutorContext? context, String? title}) async {

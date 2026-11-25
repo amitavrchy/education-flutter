@@ -143,7 +143,11 @@ StatefulShellRoute _portalRoute(PortalConfig config) {
 
 /// Full-screen routes pushed above the tab shell (focused flows and secondary modules).
 List<RouteBase> _moduleRoutes() => [
-  GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
+  GoRoute(
+    path: AppRoutes.notifications,
+    builder: (context, state) => const NotificationsScreen(),
+    routes: [GoRoute(path: 'preferences', builder: (context, state) => const NotificationPrefsScreen())],
+  ),
   GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsScreen()),
   GoRoute(path: AppRoutes.search, builder: (context, state) => const SearchScreen()),
   GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),

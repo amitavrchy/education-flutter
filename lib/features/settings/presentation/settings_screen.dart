@@ -15,6 +15,9 @@ import '../../../shared/widgets/feedback.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
+import '../../parent/guardian_controller.dart';
+import '../../profile/application/student_profile_controller.dart';
+import '../learning_prefs.dart';
 import '../settings_strings.dart';
 
 /// Device settings: appearance, language, accessibility, demo tools, storage and account.
@@ -38,13 +41,15 @@ class SettingsScreen extends ConsumerWidget {
           if (user != null)
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                leading: const ProfileAvatar(),
                 title: Text(user.name),
                 subtitle: Text('${user.role.labelBn} · ${user.email ?? user.phone ?? ''}'),
                 trailing: user.role == UserRole.student ? const Icon(Icons.chevron_right) : null,
                 onTap: user.role == UserRole.student ? () => context.push(AppRoutes.profile) : null,
               ),
             ),
+          PreferenceLinks(student: user?.role == UserRole.student),
+          if (user?.role == UserRole.student) const _StudentAccountCard(),
           SectionHeader(title: context.tr(SettingsStrings.appearance)),
           SegmentedButton<ThemeMode>(
             segments: [
@@ -208,5 +213,59 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(localStoreProvider).clearAll(keep: {AppSettingsController.collection, 'profile'});
     ref.read(dataEpochProvider.notifier).bump();
     if (context.mounted) context.showSnack(SettingsStrings.resetDone);
+  }
+}
+
+/// Academic profile, goals, connected guardian, institution and help (SET-02, 09, 10, 15, 16, 19–21).
+class _StudentAccountCard extends ConsumerWidget {
+  const _StudentAccountCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = ref.watch(studentProfileProvider);
+    final guardians = [for (final l in ref.watch(guardianProvider).links) if (l.self && l.active) l];
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            key: const Key('settings.goals'),
+            leading: const Icon(Icons.flag_outlined),
+            title: Text(context.tr(const Tr('লক্ষ্য ও পরীক্ষা', 'Goals & exam target'))),
+            subtitle: Text('GPA ${context.n(p.targetGpa.toStringAsFixed(2))} · ${context.n(p.dailyMinutes)} min/day · ${p.level.code} ${context.n(p.examYear)}'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.profile),
+          ),
+          ListTile(
+            key: const Key('settings.institution'),
+            leading: const Icon(Icons.account_balance_outlined),
+            title: Text(context.tr(const Tr('প্রতিষ্ঠান', 'Institution'))),
+            subtitle: Text(p.institution.isEmpty ? '—' : p.institution),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.profile),
+          ),
+          ListTile(
+            key: const Key('settings.guardian'),
+            leading: const Icon(Icons.family_restroom_outlined),
+            title: Text(context.tr(const Tr('যুক্ত অভিভাবক', 'Connected guardian'))),
+            subtitle: Text(guardians.isEmpty ? context.tr(const Tr('কেউ যুক্ত নেই — গোপনীয়তা থেকে কোড শেয়ার করো', 'None — share your code from Privacy')) : guardians.map((g) => g.relation).join(', ')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.privacy),
+          ),
+          ListTile(
+            leading: const Icon(Icons.download_for_offline_outlined),
+            title: Text(context.tr(const Tr('অফলাইন ডাউনলোড', 'Offline downloads'))),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.offline),
+          ),
+          ListTile(
+            key: const Key('settings.help'),
+            leading: const Icon(Icons.support_agent),
+            title: Text(context.tr(const Tr('সাহায্য, মতামত ও সমস্যা রিপোর্ট', 'Help, feedback & report a problem'))),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.support),
+          ),
+        ],
+      ),
+    );
   }
 }

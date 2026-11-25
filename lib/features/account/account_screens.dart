@@ -15,6 +15,7 @@ import '../../shared/widgets/section_header.dart';
 import '../curriculum/domain/curriculum_models.dart';
 import '../parent/guardian_controller.dart' show demoLinkCode;
 import '../profile/application/student_profile_controller.dart';
+import '../settings/learning_prefs.dart' show ProfileAvatar;
 import 'account_controller.dart';
 
 abstract final class AccStrings {
@@ -113,6 +114,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const Center(child: ProfileAvatar(radius: 40, editable: true)),
           TextField(key: const Key('profile.name'), controller: _name, decoration: InputDecoration(labelText: context.tr(AccStrings.name))),
           const SizedBox(height: AppSpacing.md),
           SegmentedButton<EducationLevel>(
@@ -509,6 +511,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
           SectionHeader(title: context.tr(AccStrings.faq)),
           TextField(decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: context.tr(AccStrings.searchFaq)), onChanged: (v) => setState(() => _q = v)),
           for (final (qq, a) in faq) ExpansionTile(tilePadding: EdgeInsets.zero, title: Text(context.tr(qq)), children: [Padding(padding: const EdgeInsets.only(bottom: AppSpacing.md), child: Text(context.tr(a)))]),
+          SectionHeader(title: context.tr(const Tr('অ্যাপ কেমন লাগছে?', 'How do you like the app?'))),
+          const _RatingRow(),
           SectionHeader(title: context.tr(AccStrings.contact)),
           DropdownButtonFormField<String>(
             isExpanded: true,
@@ -521,6 +525,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                 ('billing', Tr('পেমেন্ট', 'Billing')),
                 ('content', Tr('কনটেন্ট ভুল', 'Content error')),
                 ('ai', Tr('AI / অ্যাভাটার', 'AI / avatar')),
+                ('bug', Tr('সমস্যা রিপোর্ট (বাগ)', 'Report a problem (bug)')),
+                ('feedback', Tr('মতামত / পরামর্শ', 'Feedback / suggestion')),
               ])
                 DropdownMenuItem(value: k, child: Text(context.tr(v))),
             ],
@@ -563,4 +569,32 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
       ),
     );
   }
+}
+
+/// Quick feedback rating (SET-20), saved as a feedback ticket.
+class _RatingRow extends ConsumerStatefulWidget {
+  const _RatingRow();
+
+  @override
+  ConsumerState<_RatingRow> createState() => _RatingRowState();
+}
+
+class _RatingRowState extends ConsumerState<_RatingRow> {
+  int _stars = 0;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (var i = 1; i <= 5; i++)
+        IconButton(
+          key: Key('rate.$i'),
+          icon: Icon(i <= _stars ? Icons.star : Icons.star_border, color: Colors.amber),
+          onPressed: () async {
+            setState(() => _stars = i);
+            await ref.read(accountProvider.notifier).submitTicket('feedback', '★' * i);
+            if (context.mounted) context.showSnack(const Tr('ধন্যবাদ! মতামত পাঠানো হয়েছে', 'Thanks! Feedback sent'));
+          },
+        ),
+    ],
+  );
 }

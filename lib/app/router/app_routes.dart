@@ -14,6 +14,7 @@ abstract final class AppRoutes {
   /// Screens a signed-out visitor may open.
   static const Set<String> publicRoutes = {login, welcome, register, verifyOtp, forgotPassword, resetPassword};
   static const String notifications = '/notifications';
+  static const String notificationPrefs = '/notifications/preferences';
   static const String settings = '/settings';
   static const String search = '/search';
   static const String profile = '/profile';
