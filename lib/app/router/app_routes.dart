@@ -97,6 +97,12 @@ abstract final class AppRoutes {
   static const String questionGenerator = '/question-generator';
   static const String teacherMaterials = '/teacher-materials';
   static const String teacherAnalytics = '/teacher-analytics';
+  static const String teacherReview = '/teacher-review';
+  static const String teacherHistory = '/teacher-history';
+  static const String teacherQuestions = '/teacher-questions';
+  static const String teacherRubrics = '/teacher-rubrics';
+  static const String teacherSubjects = '/teacher-subjects';
+  static const String teacherStudents = '/teacher-students';
   static const String parentReports = '/parent-reports';
   static const String parentResults = '/parent-results';
   static const String parentCalendar = '/parent-calendar';

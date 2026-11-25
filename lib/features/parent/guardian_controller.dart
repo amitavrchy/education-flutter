@@ -534,6 +534,11 @@ final teacherNotesProvider = Provider.family<List<TeacherNote>, String>((ref, li
   final link = g.links.where((l) => l.id == linkId).firstOrNull;
   final notes = [for (final n in g.notes) if (n.linkId == linkId) n];
   if (link?.self ?? false) {
+    for (final sn in ref.watch(teacherProvider).notes) {
+      if (sn.student == selfChildName && !notes.any((n) => n.id == 'tn-${sn.id}')) {
+        notes.add(TeacherNote(id: 'tn-${sn.id}', linkId: linkId, teacher: 'নাসরিন সুলতানা', subject: const Tr('পদার্থবিজ্ঞান', 'Physics'), message: sn.text, at: sn.at));
+      }
+    }
     for (final s in ref.watch(teacherProvider).submissions) {
       if (s.student == selfChildName && s.reviewed && !notes.any((n) => n.id == 'sub-${s.id}')) {
         notes.add(TeacherNote(

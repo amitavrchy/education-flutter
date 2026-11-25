@@ -23,6 +23,7 @@ import '../../features/search/presentation/search_screen.dart';
 import '../../features/study_tools/audio_and_offline.dart';
 import '../../features/study_tools/english_and_labs.dart';
 import '../../features/teacher/teacher_screens.dart';
+import '../../features/teacher/teacher_workflow_screens.dart';
 import '../../features/curriculum/presentation/chapter_detail_screen.dart';
 import '../../features/curriculum/presentation/subject_detail_screen.dart';
 import '../../features/curriculum/presentation/topic_screen.dart';
@@ -194,6 +195,12 @@ List<RouteBase> _moduleRoutes() => [
   GoRoute(path: AppRoutes.questionGenerator, builder: (context, state) => const QuestionGeneratorScreen()),
   GoRoute(path: AppRoutes.teacherMaterials, builder: (context, state) => const TeacherMaterialsScreen()),
   GoRoute(path: AppRoutes.teacherAnalytics, builder: (context, state) => const TeacherAnalyticsScreen()),
+  GoRoute(path: AppRoutes.teacherReview, builder: (context, state) => const TeacherReviewScreen()),
+  GoRoute(path: AppRoutes.teacherHistory, builder: (context, state) => const TeacherHistoryScreen()),
+  GoRoute(path: AppRoutes.teacherQuestions, builder: (context, state) => const TeacherQuestionsScreen()),
+  GoRoute(path: AppRoutes.teacherRubrics, builder: (context, state) => const TeacherRubricsScreen()),
+  GoRoute(path: AppRoutes.teacherSubjects, builder: (context, state) => const TeacherSubjectsScreen()),
+  GoRoute(path: AppRoutes.teacherStudents, builder: (context, state) => const TeacherStudentsScreen()),
   GoRoute(path: AppRoutes.parentReports, builder: (context, state) => const ParentReportsScreen()),
   GoRoute(path: AppRoutes.parentResults, builder: (context, state) => const ParentResultsScreen()),
   GoRoute(path: AppRoutes.parentCalendar, builder: (context, state) => const ParentCalendarScreen()),

@@ -5,11 +5,13 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/router/app_routes.dart';
 import '../../core/l10n/tr.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/time_format.dart';
 import '../../mock/seed/curriculum_seed.dart';
 import '../../shared/widgets/app_page_scaffold.dart';
 import '../../shared/widgets/badges.dart';
+import '../../shared/widgets/cards.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/feedback.dart';
 import '../../shared/widgets/progress.dart';
@@ -23,7 +25,9 @@ import '../exams/application/exam_controller.dart';
 import '../exams/domain/exam.dart';
 import '../question_bank/data/question_repository.dart';
 import '../question_bank/domain/question.dart';
+import 'review_data.dart';
 import 'teacher_data.dart';
+import 'teacher_workflow_screens.dart';
 
 abstract final class TStr {
   static const home = Tr('ড্যাশবোর্ড', 'Dashboard');
@@ -67,6 +71,23 @@ abstract final class TStr {
   static const analytics = Tr('অ্যানালিটিক্স', 'Analytics');
   static const classAverage = Tr('ক্লাসভিত্তিক গড় দক্ষতা', 'Average mastery by class');
   static const distribution = Tr('শিক্ষার্থী বণ্টন', 'Student distribution');
+  static const evalSub = Tr('AI আনুমানিক নম্বর যাচাই করে শিক্ষক নম্বর ও চূড়ান্ত নম্বর দিন — তিনটি আলাদা থাকে।', 'Check the AI estimate, then give teacher marks and final marks — all three stay distinct.');
+  static const all = Tr('সব', 'All');
+  static const pages = Tr('পৃষ্ঠা', 'pages');
+  static const scriptPages = Tr('উত্তরপত্র: {n} পৃষ্ঠা (ডেমো ছবি)', 'Answer script: {n} pages (demo images)');
+  static const teacherMarks = Tr('শিক্ষকের নম্বর', 'Teacher marks');
+  static const useRubric = Tr('রুব্রিক', 'Rubric');
+  static const publishOfficial = Tr('চূড়ান্ত অফিসিয়াল নম্বর হিসেবে প্রকাশ', 'Publish as final official marks');
+  static const officialNote = Tr('প্রকাশের পর আর বদলানো যাবে না', 'Cannot be changed after publishing');
+  static const finalize = Tr('চূড়ান্ত করুন', 'Finalize');
+  static const finalized = Tr('চূড়ান্ত নম্বর প্রকাশিত', 'Final marks published');
+  static const gradedN = Tr('{n} জনকে নম্বর দেওয়া হয়েছে', '{n} graded');
+  static const reviewQueue = Tr('কনটেন্ট পর্যালোচনা বাকি', 'Content to review');
+  static const workflow = Tr('কনটেন্ট ও মূল্যায়ন', 'Content & evaluation');
+  static const reviewerStats = Tr('পর্যালোচক বিশ্লেষণ', 'Reviewer analytics');
+  static const decisions = Tr('সিদ্ধান্ত', 'Decisions');
+  static const approvalRate = Tr('অনুমোদনের হার', 'Approval rate');
+  static const avgTurnaround = Tr('গড় সময় (ঘণ্টা)', 'Avg. turnaround (h)');
   static const buckets = Tr('<৫০% · ৫০–৭০% · >৭০%', '<50% · 50–70% · >70%');
 }
 
@@ -78,6 +99,7 @@ class TeacherHomeScreen extends ConsumerWidget {
     final t = ref.watch(teacherProvider);
     final reports = ref.watch(avatarControllerProvider).reports.where((r) => r.status == ReportStatus.open).length;
     final students = teacherClasses.fold<int>(0, (n, c) => n + c.students.length);
+    final queue = ref.watch(reviewProvider).queue.length;
     return AppPageScaffold(
       title: context.tr(TStr.home),
       body: Column(
@@ -95,6 +117,16 @@ class TeacherHomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Card(
+            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: ListTile(
+              key: const Key('home.review'),
+              leading: const Icon(Icons.manage_search),
+              title: Text(context.tr(TStr.reviewQueue)),
+              trailing: Pill(context.n(queue), tone: queue > 0 ? Tone.info : Tone.neutral),
+              onTap: () => context.push(AppRoutes.teacherReview),
+            ),
+          ),
+          Card(
             margin: EdgeInsets.zero,
             child: ListTile(
               leading: const Icon(Icons.co_present_outlined),
@@ -102,6 +134,37 @@ class TeacherHomeScreen extends ConsumerWidget {
               trailing: Pill(context.n(reports), tone: reports > 0 ? Tone.warning : Tone.neutral),
               onTap: () => context.push(AppRoutes.teacherAvatars),
             ),
+          ),
+          SectionHeader(title: context.tr(TStr.workflow)),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: AppSpacing.sm,
+            crossAxisSpacing: AppSpacing.sm,
+            childAspectRatio: 1.1,
+            children: [
+              for (final (icon, label, route) in [
+                (Icons.manage_search, const Tr('পর্যালোচনা', 'Review'), AppRoutes.teacherReview),
+                (Icons.edit_note, const Tr('প্রশ্ন', 'Questions'), AppRoutes.teacherQuestions),
+                (Icons.rule, const Tr('রুব্রিক', 'Rubrics'), AppRoutes.teacherRubrics),
+                (Icons.assignment_outlined, TStr.assignments, AppRoutes.teacherAssignments),
+                (Icons.groups_outlined, TStr.students, AppRoutes.teacherStudents),
+                (Icons.history, const Tr('ইতিহাস', 'History'), AppRoutes.teacherHistory),
+              ])
+                TapCard(
+                  onTap: () => context.push(route),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(context.tr(label), textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelMedium),
+                    ],
+                  ),
+                ),
+            ],
           ),
           SectionHeader(title: context.tr(TStr.classes)),
           for (final c in teacherClasses) _ClassCard(c: c),
@@ -166,74 +229,236 @@ class ClassDetailScreen extends StatelessWidget {
   }
 }
 
-class TeacherEvaluationScreen extends ConsumerWidget {
+class TeacherEvaluationScreen extends ConsumerStatefulWidget {
   const TeacherEvaluationScreen({super.key});
 
-  Future<void> _review(BuildContext context, WidgetRef ref, Submission s) async {
-    var marks = s.aiMarks;
-    final note = TextEditingController();
-    final ok = await showModalBottomSheet<bool>(
+  @override
+  ConsumerState<TeacherEvaluationScreen> createState() => _TeacherEvaluationScreenState();
+}
+
+class _TeacherEvaluationScreenState extends ConsumerState<TeacherEvaluationScreen> {
+  EvalStage? _stage;
+
+  Future<void> _review(Submission s) async {
+    final rubric = ref.read(reviewProvider).rubrics.where((r) => r.use == RubricUse.creative || r.use == RubricUse.handwriting).firstOrNull;
+    final result = await showModalBottomSheet<_EvalResult>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('${s.student} · ${s.title}', style: Theme.of(context).textTheme.titleMedium),
-              Text(context.tr(TStr.ai.fill({'m': s.aiMarks, 't': s.total}))),
-              const SizedBox(height: AppSpacing.md),
-              Text('${context.tr(TStr.finalMark)}: ${context.n(marks)}'),
-              Slider(key: const Key('eval.marks'), value: marks, max: s.total.toDouble(), divisions: s.total * 2, onChanged: (v) => setState(() => marks = v)),
-              TextField(key: const Key('eval.note'), controller: note, maxLines: 3, decoration: InputDecoration(labelText: context.tr(TStr.feedback))),
-              const SizedBox(height: AppSpacing.md),
-              FilledButton(key: const Key('eval.save'), onPressed: () => Navigator.pop(context, true), child: Text(context.tr(TStr.save))),
-            ],
-          ),
-        ),
-      ),
+      builder: (_) => _EvalSheet(s: s, rubric: rubric),
     );
-    if (ok == true) {
-      await ref.read(teacherProvider.notifier).review(s.id, marks, note.text.trim());
-      if (context.mounted) context.showSnack(TStr.reviewed);
+    if (result == null) return;
+    try {
+      await ref.read(teacherProvider.notifier).review(s.id, result.marks, result.note, official: result.official, criterionMarks: result.criteria);
+      if (mounted) context.showSnack(result.official ? TStr.finalized : TStr.reviewed);
+    } on ApiException catch (e) {
+      if (mounted) context.showErrorSnack(e);
     }
-    note.dispose();
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final t = ref.watch(teacherProvider);
-    final done = [for (final s in t.submissions) if (s.reviewed) s];
+    final list = [for (final s in t.submissions) if (_stage == null || s.stage == _stage) s]..sort((a, b) => a.stage.index.compareTo(b.stage.index));
     return AppPageScaffold(
       title: context.tr(TStr.evaluation),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionHeader(title: '${context.tr(TStr.pending)} (${context.n(t.pending.length)})'),
-          if (t.pending.isEmpty) EmptyState(title: context.tr(TStr.pending), compact: true, icon: Icons.done_all),
-          for (final s in t.pending)
+          Text(context.tr(TStr.evalSub), style: Theme.of(context).textTheme.bodySmall),
+          ChoiceChipBar<EvalStage?>(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            options: [null, ...EvalStage.values],
+            selected: _stage,
+            labelOf: (x) => x == null ? '${context.tr(TStr.all)} (${context.n(t.submissions.length)})' : '${context.tr(x.label)} (${context.n(t.submissions.where((s) => s.stage == x).length)})',
+            onSelected: (x) => setState(() => _stage = x),
+          ),
+          if (list.isEmpty) EmptyState(title: context.tr(TStr.pending), compact: true, icon: Icons.done_all),
+          for (final s in list)
             Card(
               margin: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: ListTile(
                 key: Key('sub.${s.id}'),
-                leading: const Icon(Icons.description_outlined),
+                leading: Icon(s.official ? Icons.verified : (s.reviewed ? Icons.check_circle_outline : Icons.description_outlined), color: s.reviewed ? Colors.green : null),
                 title: Text(s.student),
-                subtitle: Text('${s.title} · ${context.tr(TStr.ai.fill({'m': s.aiMarks, 't': s.total}))}'),
-                trailing: const Icon(Icons.rate_review_outlined),
-                onTap: () => _review(context, ref, s),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${s.title} · ${context.n(s.pages)} ${context.tr(TStr.pages)}'),
+                    const SizedBox(height: 2),
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      children: [
+                        Pill(context.tr(s.stage.label), tone: switch (s.stage) {
+                          EvalStage.official => Tone.success,
+                          EvalStage.teacherReviewed => Tone.info,
+                          EvalStage.reviewRequested => Tone.warning,
+                          EvalStage.aiEstimated => Tone.neutral,
+                        }),
+                        Pill(context.tr(TStr.ai.fill({'m': s.aiMarks, 't': s.total}))),
+                        if (s.reviewed) Pill('${context.tr(TStr.finalMark)}: ${context.n(s.finalMarks!)}/${context.n(s.total)}', tone: Tone.primary),
+                      ],
+                    ),
+                  ],
+                ),
+                isThreeLine: true,
+                trailing: s.official ? const Icon(Icons.lock_outline) : const Icon(Icons.rate_review_outlined),
+                onTap: s.official ? null : () => _review(s),
               ),
             ),
-          if (done.isNotEmpty) SectionHeader(title: context.tr(TStr.done)),
-          for (final s in done)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.check_circle, color: Colors.green),
-              title: Text(s.student),
-              subtitle: Text('${context.n(s.finalMarks!)}/${context.n(s.total)}${(s.feedback ?? '').isEmpty ? '' : ' · ${s.feedback}'}'),
+        ],
+      ),
+    );
+  }
+}
+
+class _EvalResult {
+  const _EvalResult(this.marks, this.note, this.official, this.criteria);
+
+  final double marks;
+  final String note;
+  final bool official;
+  final List<double> criteria;
+}
+
+/// AI estimate beside the teacher's rubric marks; optionally published as official.
+class _EvalSheet extends StatefulWidget {
+  const _EvalSheet({required this.s, this.rubric});
+
+  final Submission s;
+  final Rubric? rubric;
+
+  @override
+  State<_EvalSheet> createState() => _EvalSheetState();
+}
+
+class _EvalSheetState extends State<_EvalSheet> {
+  late final _note = TextEditingController(text: widget.s.feedback ?? '');
+  late double _marks = widget.s.finalMarks ?? widget.s.aiMarks;
+  late bool _useRubric = widget.rubric != null;
+  late final List<double> _criteria = widget.rubric == null
+      ? []
+      : [
+          for (final (i, c) in widget.rubric!.criteria.indexed)
+            i < widget.s.criterionMarks.length ? widget.s.criterionMarks[i] : (c.marks * widget.s.aiMarks / widget.s.total * 2).round() / 2,
+        ];
+  bool _official = false;
+
+  double get _scaled {
+    if (!_useRubric || widget.rubric == null) return _marks;
+    final sum = _criteria.fold<double>(0, (a, b) => a + b);
+    return ((sum / widget.rubric!.total) * widget.s.total * 2).round() / 2;
+  }
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.s;
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('${s.student} · ${s.title}', style: text.titleMedium),
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Expanded(child: _MarkBox(label: context.tr(EvalStage.aiEstimated.label), value: '${context.n(s.aiMarks)}/${context.n(s.total)}')),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: _MarkBox(label: context.tr(TStr.teacherMarks), value: '${context.n(_scaled)}/${context.n(s.total)}', highlight: true)),
+              ],
             ),
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              height: 90,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.image_outlined),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(context.tr(TStr.scriptPages.fill({'n': s.pages}))),
+                ],
+              ),
+            ),
+            if (widget.rubric != null)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('${context.tr(TStr.useRubric)}: ${widget.rubric!.name}'),
+                value: _useRubric,
+                onChanged: (v) => setState(() => _useRubric = v),
+              ),
+            if (_useRubric && widget.rubric != null)
+              for (final (i, c) in widget.rubric!.criteria.indexed)
+                Row(
+                  children: [
+                    Expanded(child: Text('${c.criterion} (${context.n(c.marks)})', style: text.bodySmall)),
+                    SizedBox(
+                      width: 150,
+                      child: Slider(
+                        key: Key('eval.c$i'),
+                        value: _criteria[i].clamp(0, c.marks),
+                        max: c.marks,
+                        divisions: (c.marks * 2).round(),
+                        label: context.n(_criteria[i]),
+                        onChanged: (v) => setState(() => _criteria[i] = v),
+                      ),
+                    ),
+                    Text(context.n(_criteria[i])),
+                  ],
+                )
+            else ...[
+              Text('${context.tr(TStr.finalMark)}: ${context.n(_marks)}'),
+              Slider(key: const Key('eval.marks'), value: _marks, max: s.total.toDouble(), divisions: s.total * 2, onChanged: (v) => setState(() => _marks = v)),
+            ],
+            TextField(key: const Key('eval.note'), controller: _note, maxLines: 3, decoration: InputDecoration(labelText: context.tr(TStr.feedback))),
+            CheckboxListTile(
+              key: const Key('eval.official'),
+              contentPadding: EdgeInsets.zero,
+              value: _official,
+              onChanged: (v) => setState(() => _official = v ?? false),
+              title: Text(context.tr(TStr.publishOfficial)),
+              subtitle: Text(context.tr(TStr.officialNote)),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FilledButton(
+              key: const Key('eval.save'),
+              onPressed: () => Navigator.pop(context, _EvalResult(_scaled, _note.text.trim(), _official, _useRubric ? [..._criteria] : const [])),
+              child: Text(context.tr(_official ? TStr.finalize : TStr.save)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MarkBox extends StatelessWidget {
+  const _MarkBox({required this.label, required this.value, this.highlight = false});
+
+  final String label;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(color: highlight ? cs.primaryContainer : cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        children: [
+          Text(label, style: Theme.of(context).textTheme.labelSmall, textAlign: TextAlign.center),
+          Text(value, style: Theme.of(context).textTheme.titleLarge),
         ],
       ),
     );
@@ -299,12 +524,16 @@ class TeacherAssignmentsScreen extends ConsumerWidget {
             Card(
               margin: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: ListTile(
+                key: Key('assignment.${a.id}'),
                 title: Text(a.title),
                 subtitle: Text([
                   teacherClasses.firstWhere((c) => c.id == a.classId).name,
                   context.tr(TStr.due.fill({'d': shortDate(a.dueAt, context.lang)})),
                   context.tr(TStr.submitted.fill({'n': a.submitted})),
+                  if (a.grades.isNotEmpty) context.tr(TStr.gradedN.fill({'n': a.grades.length})),
                 ].join(' · ')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TeacherSubmissionsScreen(assignmentId: a.id))),
               ),
             ),
         ],
@@ -490,11 +719,23 @@ class TeacherMaterialsScreen extends ConsumerWidget {
   }
 }
 
-class TeacherAnalyticsScreen extends StatelessWidget {
+class TeacherAnalyticsScreen extends ConsumerWidget {
   const TeacherAnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(reviewProvider).items;
+    // Reviewer decisions: in-review → approved / changes requested.
+    final decisions = [
+      for (final i in items)
+        for (final (k, e) in i.history.indexed)
+          if (e.from == ContentStatus.inReview && (e.to == ContentStatus.approved || e.to == ContentStatus.changesRequested)) (i, k, e),
+    ];
+    final approved = decisions.where((d) => d.$3.to == ContentStatus.approved).length;
+    final hours = [
+      for (final (i, k, e) in decisions)
+        if (k > 0) e.at.difference(i.history[k - 1].at).inMinutes / 60,
+    ];
     final all = [for (final c in teacherClasses) for (final s in c.students) c.masteryOf(s)];
     final low = all.where((m) => m < 50).length, mid = all.where((m) => m >= 50 && m <= 70).length, high = all.where((m) => m > 70).length;
     return AppPageScaffold(
@@ -526,6 +767,15 @@ class TeacherAnalyticsScreen extends StatelessWidget {
             children: [
               for (final (n, color) in [(low, Colors.red), (mid, Colors.orange), (high, Colors.green)])
                 Expanded(flex: n == 0 ? 1 : n, child: Container(height: 24, color: color.withValues(alpha: 0.7), alignment: Alignment.center, child: Text(context.n(n), style: const TextStyle(color: Colors.white)))),
+            ],
+          ),
+          SectionHeader(title: context.tr(TStr.reviewerStats)),
+          StatGrid(
+            cards: [
+              StatCard(label: context.tr(TStr.decisions), value: context.n(decisions.length), icon: Icons.gavel_outlined),
+              StatCard(label: context.tr(TStr.approvalRate), value: decisions.isEmpty ? '—' : context.pct(100 * approved / decisions.length), icon: Icons.verified_outlined),
+              StatCard(label: context.tr(TStr.avgTurnaround), value: hours.isEmpty ? '—' : context.n((hours.reduce((a, b) => a + b) / hours.length).round()), icon: Icons.timer_outlined),
+              StatCard(label: context.tr(TStr.reviewQueue), value: context.n(ref.watch(reviewProvider).queue.length), icon: Icons.inbox_outlined, onTap: () => context.push(AppRoutes.teacherReview)),
             ],
           ),
         ],
