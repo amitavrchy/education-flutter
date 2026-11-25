@@ -25,8 +25,8 @@ void main() {
   testWidgets('student home renders live sections', (tester) async {
     await tester.pumpWidget(testApp(const StudentHomeScreen(), lang: AppLanguage.en));
     await tester.pumpAndSettle();
-    expect(find.text('This week'), findsOneWidget);
-    expect(find.text("Today's plan"), findsOneWidget);
+    expect(find.text("Today's summary"), findsOneWidget);
+    expect(find.text('Weekly study time'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
