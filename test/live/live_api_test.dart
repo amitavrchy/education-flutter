@@ -20,6 +20,7 @@ import 'package:shikkhaai_mobile/features/profile/domain/student_profile.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/parent/remote_guardian.dart';
 import 'package:shikkhaai_mobile/features/insights/insights_engine.dart';
+import 'package:shikkhaai_mobile/features/library/remote_reading.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
 import 'package:shikkhaai_mobile/features/study_tools/english_coach.dart';
 import 'package:shikkhaai_mobile/features/teacher/remote_review.dart';
@@ -210,5 +211,15 @@ void main() {
     final g = ServerGamification.fromJson((await api.get('/progress/u-student-1/gamification', parse: (d) => (d! as Map).cast<String, dynamic>())).data);
     expect(g.xp, greaterThan(0));
     expect(g.badges, isNotEmpty);
+  }, skip: !live);
+
+  test("student's book reading state maps onto the library", () async {
+    final records = await OwnerSync(client(await student()), collection: 'reading', studentId: 'u-student-1').pull();
+    expect(records, isNotEmpty);
+    for (final j in records) {
+      final r = ReadingMapper.fromApi(j, null);
+      expect(r.bookId, startsWith('book-'));
+      expect(ReadingMapper.serverBookId(r.bookId), j['bookId']);
+    }
   }, skip: !live);
 }

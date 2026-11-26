@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/l10n/tr.dart';
 import '../../core/mock/json_collection.dart';
 import '../../core/storage/local_store.dart';
+import '../../core/network/network_providers.dart';
+import '../../core/network/owner_sync.dart';
+import '../progress/data/remote_progress.dart';
+import 'remote_reading.dart';
 
 abstract final class LibraryStrings {
   static const title = Tr('পাঠ্যবই লাইব্রেরি', 'Textbook library');
@@ -148,21 +152,65 @@ const freeDownloadLimit = 3;
 
 class LibraryController extends Notifier<Map<String, BookReading>> {
   late JsonCollection<BookReading> _col;
+  OwnerSync? _sync;
+  bool _applyingServer = false;
+  Map<String, List<int>> _serverPages = {};
+  Future<void>? _refreshing;
 
   @override
   Map<String, BookReading> build() {
+    final remote = ref.watch(remoteProgressProvider);
+    _sync = remote == null ? null : OwnerSync(ref.read(apiClientProvider), collection: 'reading', studentId: remote.studentId);
+    ref.onDispose(() => _sync?.dispose());
+    if (_sync != null) {
+      listenSelf((prev, next) {
+        if (prev == null || _applyingServer || identical(prev, next)) return;
+        _sync?.schedule(() => [
+          for (final r in state.values)
+            _sync!.merge(ReadingMapper.serverBookId(r.bookId), ReadingMapper.fields(r, serverPages: _serverPages[r.bookId] ?? const []), defaults: ReadingMapper.defaults),
+        ]);
+      });
+      Future.microtask(refresh);
+    }
     _col = JsonCollection(
       store: watchStore(ref),
       name: 'library_reading',
       fromJson: BookReading.fromJson,
       toJson: (r) => r.toJson(),
       idOf: (r) => r.bookId,
-      seed: () => [
+      seed: () => _sync != null ? const [] : [
         BookReading(bookId: 'book-ssc-phy', lastPage: 22, bookmarks: const [22, 46], downloaded: true, updatedAt: DateTime.now().subtract(const Duration(hours: 5))),
         BookReading(bookId: 'book-ssc-chem', lastPage: 9, updatedAt: DateTime.now().subtract(const Duration(days: 2))),
       ],
     );
     return {for (final r in _col.all()) r.bookId: r};
+  }
+
+  /// API mode: the server's reading records replace the local ones (single-flight).
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    if (_sync == null || !ref.mounted) return;
+    try {
+      final records = await _sync!.pull();
+      if (!ref.mounted) return;
+      _serverPages = {
+        for (final j in records) ReadingMapper.appBookId(j['bookId'] as String? ?? j['id'] as String): [for (final p in j['pagesRead'] as List? ?? const []) (p as num).round()],
+      };
+      final server = {for (final j in records) ReadingMapper.appBookId(j['bookId'] as String? ?? j['id'] as String): j};
+      final merged = {
+        // Books only downloaded on this device stay listed.
+        for (final r in state.values) if (r.downloaded && !server.containsKey(r.bookId)) r.bookId: r,
+        for (final e in server.entries) e.key: ReadingMapper.fromApi(e.value, state[e.key]),
+      };
+      await ref.read(localStoreProvider).clearCollection('library_reading');
+      await _col.upsertAll(merged.values.toList());
+      _applyingServer = true;
+      state = merged;
+      _applyingServer = false;
+    } catch (_) {
+      // Offline: keep the cached reading state.
+    }
   }
 
   BookReading of(String bookId) => state[bookId] ?? BookReading(bookId: bookId);

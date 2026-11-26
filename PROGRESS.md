@@ -123,13 +123,25 @@ running in demo mode.
   a missing chapter (`ssc-ict-c6`); they are dropped at sync until the backend data is fixed.
 - Progress: mastery, chapter progress, activity and attempts load from the server; answers, topic
   completion and study minutes post to `/progress/:studentId/*` (the server computes XP and streaks).
-- Question bookmarks, flashcard decks and cards, notes (Tiptap HTML ↔ Markdown) and planner tasks sync
-  through `OwnerSync` (pull, map, merge over the server record, debounced PUT), so web-only fields
-  survive a round trip.
+- Question bookmarks, flashcard decks and cards, notes (Tiptap HTML ↔ Markdown), planner tasks and
+  book reading state sync through `OwnerSync` (pull, map, merge over the server record, debounced
+  PUT), so web-only fields survive a round trip.
+- Exams: offered exams and attempts from `/exams` and `/exam-attempts`; start, autosave, submit and
+  discard use the exam endpoints; the server scores and records progress.
+- AI tutor: conversations, messages and folders from the records API; questions answered by
+  `/tutor/:id/.../messages`; regenerate, report, feedback, bookmarks, pin/archive/rename/folder.
+- Student profile and guardian sharing switches (`/student-profiles`), the guardian link code
+  (`/guardian/link-code`), answer scripts sent for teacher review (`/evaluations`), server XP,
+  points, streak and badges, and the English progress document.
+- Guardian portal: links, linking with the OTP challenge, unlinking, sharing switches, child
+  summaries (only what each link may see), teacher feedback (acknowledge/reply) and goals.
+- Teacher portal: classes from class groups and institution members, assignments and grading,
+  answer-script review, shared resources, student feedback; content review queue and rubrics.
 
-Still on device only in API mode: exams (server exam attempts), English, tutor conversations,
-guardian (parent) views, teacher data, gamification documents and the student profile.
-218 tests; live suite 9/9.
+Stays on the device by design: offline downloads, audio lessons (generated on the phone; the web
+has a different lesson catalogue), board/institution paper archive (demo papers), AI tool history,
+the book avatar, friend challenges (the server's model differs) and app preferences.
+231 tests; live suite 16/16 (`LIVE_API=1 flutter test test/live`, backend in demo mode).
 
 ## Continue on another PC
 1. `git clone https://github.com/amitavrchy/education-flutter.git && cd education-flutter`
@@ -138,6 +150,6 @@ guardian (parent) views, teacher data, gamification documents and the student pr
    docs/product/FEATURE_MATRIX.md; continue implementing the remaining incomplete features."*
 
 ## Next (in order)
-1. Finish the API wiring listed under Session 6 (exams, English, tutor, guardian, teacher, profile).
+1. Device QA in API mode (`--dart-define=USE_MOCK_API=false`) against a deployed backend.
 2. Translate portal menu labels and role names (X-01); add question image assets (QB-06).
 3. Device QA of voice (Bangla TTS/STT availability varies by phone) and an accessibility pass.
