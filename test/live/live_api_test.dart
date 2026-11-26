@@ -9,6 +9,8 @@ import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
 import 'package:shikkhaai_mobile/features/ai_tutor/data/remote_tutor.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
+import 'package:shikkhaai_mobile/features/book_avatar/data/remote_avatar.dart';
+import 'package:shikkhaai_mobile/features/book_avatar/domain/avatar_models.dart';
 import 'package:shikkhaai_mobile/features/curriculum/data/curriculum_catalog.dart';
 import 'package:shikkhaai_mobile/features/exams/data/remote_exams.dart';
 import 'package:shikkhaai_mobile/features/flashcards/data/remote_flashcards.dart';
@@ -35,11 +37,18 @@ void main() {
 
   // One student session for the data checks (login is rate-limited to 10/min).
   String? studentToken;
-  Future<String> student() async => studentToken ??= (await ApiAuthRepository(client()).login(identifier: 'student@shikkha.ai', password: 'demo-password-123')).accessToken;
+  Future<String> student() async =>
+      studentToken ??= (await ApiAuthRepository(client()).login(identifier: 'student@shikkha.ai', password: 'demo-password-123')).accessToken;
 
   test('demo accounts sign in with their role, refresh rotates, switch-role works', () async {
     final repo = ApiAuthRepository(client());
-    for (final (id, role) in [('student@shikkha.ai', UserRole.student), ('teacher@shikkha.ai', UserRole.teacher), ('parent@shikkha.ai', UserRole.parent), ('reviewer@shikkha.ai', UserRole.teacher), ('admin@shikkha.ai', UserRole.superAdmin)]) {
+    for (final (id, role) in [
+      ('student@shikkha.ai', UserRole.student),
+      ('teacher@shikkha.ai', UserRole.teacher),
+      ('parent@shikkha.ai', UserRole.parent),
+      ('reviewer@shikkha.ai', UserRole.teacher),
+      ('admin@shikkha.ai', UserRole.superAdmin),
+    ]) {
       final s = await repo.login(identifier: id, password: 'demo-password-123');
       expect(s.user.role, role, reason: id);
     }
@@ -54,7 +63,14 @@ void main() {
     final phone = '0171${DateTime.now().millisecondsSinceEpoch % 10000000}'.padRight(11, '0').substring(0, 11);
     final ch = await repo.startRegistration(name: 'Live Test', identifier: phone, password: 'abcd1234', role: UserRole.student);
     expect(ch, isNotNull);
-    final s = await repo.completeRegistration(challengeId: ch, code: '123456', name: 'Live Test', identifier: phone, password: 'abcd1234', role: UserRole.student);
+    final s = await repo.completeRegistration(
+      challengeId: ch,
+      code: '123456',
+      name: 'Live Test',
+      identifier: phone,
+      password: 'abcd1234',
+      role: UserRole.student,
+    );
     expect(s.user.role, UserRole.student);
   }, skip: !live);
 
@@ -71,21 +87,40 @@ void main() {
     expect(await billing.checkout(plan: PlanCode.pro, yearly: false, method: 'Card', account: '4000000000000002'), 'failed');
   }, skip: !live);
 
-  test('full catalog sync: every server question points at a mapped chapter and topic', () async {
-    final api = client(await student());
-    Future<List<Map<String, dynamic>>> all(String p) async => (await api.get(p, query: {'all': true}, parse: (d) => [for (final x in d! as List) (x as Map).cast<String, dynamic>()])).data;
-    final subjects = subjectsFromApi(subjects: await all('/subjects'), papers: await all('/papers'), chapters: await all('/chapters'), topics: await all('/topics'), outcomes: await all('/outcomes'));
-    final chapters = {for (final x in subjects) for (final c in x.chapters) c.id};
-    final topics = {for (final x in subjects) for (final c in x.chapters) for (final t in c.topics) t.id};
-    final raw = await all('/questions');
-    final questions = [for (final q in questionsWithKnownChapter(raw, subjects)) questionFromApi(q)];
-    // ignore: avoid_print
-    print('questions: ${raw.length} on the server, ${raw.length - questions.length} skipped (unknown chapter)');
-    expect(subjects.length, greaterThan(20));
-    expect(questions.length, greaterThan(1000));
-    expect(questions.where((q) => !chapters.contains(q.chapterId)), isEmpty);
-    expect(questions.where((q) => !topics.contains(q.topicId)).length, lessThan(questions.length ~/ 20));
-  }, skip: !live, timeout: const Timeout(Duration(minutes: 2)));
+  test(
+    'full catalog sync: every server question points at a mapped chapter and topic',
+    () async {
+      final api = client(await student());
+      Future<List<Map<String, dynamic>>> all(String p) async =>
+          (await api.get(p, query: {'all': true}, parse: (d) => [for (final x in d! as List) (x as Map).cast<String, dynamic>()])).data;
+      final subjects = subjectsFromApi(
+        subjects: await all('/subjects'),
+        papers: await all('/papers'),
+        chapters: await all('/chapters'),
+        topics: await all('/topics'),
+        outcomes: await all('/outcomes'),
+      );
+      final chapters = {
+        for (final x in subjects)
+          for (final c in x.chapters) c.id,
+      };
+      final topics = {
+        for (final x in subjects)
+          for (final c in x.chapters)
+            for (final t in c.topics) t.id,
+      };
+      final raw = await all('/questions');
+      final questions = [for (final q in questionsWithKnownChapter(raw, subjects)) questionFromApi(q)];
+      // ignore: avoid_print
+      print('questions: ${raw.length} on the server, ${raw.length - questions.length} skipped (unknown chapter)');
+      expect(subjects.length, greaterThan(20));
+      expect(questions.length, greaterThan(1000));
+      expect(questions.where((q) => !chapters.contains(q.chapterId)), isEmpty);
+      expect(questions.where((q) => !topics.contains(q.topicId)).length, lessThan(questions.length ~/ 20));
+    },
+    skip: !live,
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 
   test('student progress loads from mastery, chapter progress, activity and attempts', () async {
     final token = await student();
@@ -136,10 +171,16 @@ void main() {
     final remote = RemoteExams(client(await student()), 'u-student-1');
     final exams = await remote.exams();
     final byId = {for (final e in exams) e['id'] as String: e};
-    final offered = [for (final e in exams) if (RemoteExams.isOffered(e)) RemoteExams.templateFrom(e)];
+    final offered = [
+      for (final e in exams)
+        if (RemoteExams.isOffered(e)) RemoteExams.templateFrom(e),
+    ];
     expect(offered, isNotEmpty);
     final attempts = await remote.attempts();
-    final resumable = {for (final a in attempts) if (a['status'] == 'in_progress') a['id']};
+    final resumable = {
+      for (final a in attempts)
+        if (a['status'] == 'in_progress') a['id'],
+    };
     for (final a in attempts) {
       final m = RemoteExams.attemptFrom(a, exams: byId);
       if (m.status.name != 'inProgress') expect(m.result, isNotNull);
@@ -221,5 +262,22 @@ void main() {
       expect(r.bookId, startsWith('book-'));
       expect(ReadingMapper.serverBookId(r.bookId), j['bookId']);
     }
+  }, skip: !live);
+
+  test('book avatar: session, book-grounded answer, feedback and history on the server', () async {
+    final remote = RemoteAvatar(client(await student()), 'u-student-1');
+    final (session, greeting) = await remote.startSession('book-ssc-physics');
+    expect(session.bookId, 'book-ssc-physics');
+    expect(greeting.grounded, Grounding.greeting);
+    final (question, reply) = await remote.ask(session.id, 'ত্বরণ কাকে বলে?');
+    expect(question.role, AvatarRole.student);
+    expect(reply.grounded, Grounding.book);
+    expect(reply.citations, isNotEmpty);
+    expect((await remote.feedback(reply.id, 'up')).feedback, 'up');
+    final (sessions, messages) = await remote.history();
+    expect(sessions.any((s) => s.id == session.id), isTrue);
+    expect(messages.where((m) => m.sessionId == session.id).length, 3);
+    expect((await remote.avatars()).any((a) => a.bookId == 'book-ssc-physics'), isTrue);
+    expect(await remote.usage('u-student-1'), isNotEmpty);
   }, skip: !live);
 }

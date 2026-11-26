@@ -14,6 +14,7 @@ import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/avatar_controller.dart';
+import '../data/remote_avatar.dart';
 import '../avatar_strings.dart';
 import '../data/book_catalog.dart';
 import '../domain/avatar_models.dart';
@@ -37,7 +38,10 @@ class _TeacherAvatarsScreenState extends ConsumerState<TeacherAvatarsScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(avatarControllerProvider);
     final q = _query.trim().toLowerCase();
-    final books = [for (final b in sampleBooks) if (q.isEmpty || b.title.matches(q) || (state.avatarForBook(b.id)?.name.matches(q) ?? false)) b];
+    final books = [
+      for (final b in sampleBooks)
+        if (q.isEmpty || b.title.matches(q) || (state.avatarForBook(b.id)?.name.matches(q) ?? false)) b,
+    ];
     final open = state.reports.where((r) => r.status == ReportStatus.open).length;
     return DefaultTabController(
       length: 2,
@@ -142,13 +146,18 @@ class _AvatarDetailScreenState extends ConsumerState<AvatarDetailScreen> {
     final text = Theme.of(context).textTheme;
     final scope = a.scopeChapterIds.isEmpty
         ? context.tr(AvatarStrings.wholeBook)
-        : [for (final id in a.scopeChapterIds) if (book.chapter(id) case final c?) context.tr(c.title)].join(', ');
+        : [
+            for (final id in a.scopeChapterIds)
+              if (book.chapter(id) case final c?) context.tr(c.title),
+          ].join(', ');
     return AppPageScaffold(
       title: context.tr(a.name),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: TeacherAvatar(appearance: a.appearance, size: 160, semanticLabel: context.tr(a.name))),
+          Center(
+            child: TeacherAvatar(appearance: a.appearance, size: 160, semanticLabel: context.tr(a.name)),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Text('${context.tr(a.title)} · ${context.tr(book.title)}', textAlign: TextAlign.center, style: text.bodyMedium),
           const SizedBox(height: AppSpacing.md),
@@ -157,7 +166,11 @@ class _AvatarDetailScreenState extends ConsumerState<AvatarDetailScreen> {
               StatCard(label: context.tr(AvatarStrings.sessions), value: context.n(a.stats.sessions), icon: Icons.co_present_outlined),
               StatCard(label: context.tr(AvatarStrings.questions), value: context.n(a.stats.questions), icon: Icons.forum_outlined),
               StatCard(label: context.tr(AvatarStrings.outOfScope), value: context.n(a.stats.outOfScope), icon: Icons.block_outlined),
-              StatCard(label: context.tr(AvatarStrings.satisfaction), value: a.stats.satisfaction == null ? '—' : context.pct(a.stats.satisfaction!), icon: Icons.thumb_up_outlined),
+              StatCard(
+                label: context.tr(AvatarStrings.satisfaction),
+                value: a.stats.satisfaction == null ? '—' : context.pct(a.stats.satisfaction!),
+                icon: Icons.thumb_up_outlined,
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -168,7 +181,11 @@ class _AvatarDetailScreenState extends ConsumerState<AvatarDetailScreen> {
                 ListTile(dense: true, title: Text(context.tr(AvatarStrings.persona)), trailing: Text(context.tr(a.persona.style.label))),
                 ListTile(dense: true, title: Text(context.tr(AvatarStrings.answerLength)), trailing: Text(context.tr(a.persona.answerLength.label))),
                 ListTile(dense: true, title: Text(context.tr(AvatarStrings.scope)), subtitle: Text(scope)),
-                ListTile(dense: true, title: Text(context.tr(AvatarStrings.strictScope)), trailing: Icon(a.strictBookScope ? Icons.check_circle : Icons.cancel_outlined)),
+                ListTile(
+                  dense: true,
+                  title: Text(context.tr(AvatarStrings.strictScope)),
+                  trailing: Icon(a.strictBookScope ? Icons.check_circle : Icons.cancel_outlined),
+                ),
               ],
             ),
           ),
@@ -176,7 +193,10 @@ class _AvatarDetailScreenState extends ConsumerState<AvatarDetailScreen> {
           Text(context.tr(AvatarStrings.testNote), style: text.bodySmall),
           const SizedBox(height: AppSpacing.sm),
           for (final (q, ans) in _chat) ...[
-            Align(alignment: Alignment.centerRight, child: Chip(label: Text(q))),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Chip(label: Text(q)),
+            ),
             Card(
               margin: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Padding(
@@ -297,7 +317,8 @@ class _AvatarReportsListState extends ConsumerState<AvatarReportsList> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => ref.read(avatarControllerProvider.notifier).resolveReport(r.id, ReportStatus.dismissed, _notes[r.id]?.text.trim() ?? '', me),
+                          onPressed: () =>
+                              ref.read(avatarControllerProvider.notifier).resolveReport(r.id, ReportStatus.dismissed, _notes[r.id]?.text.trim() ?? '', me),
                           child: Text(context.tr(AvatarStrings.dismiss)),
                         ),
                         FilledButton(
@@ -339,7 +360,17 @@ class ParentAvatarActivityScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(avatarControllerProvider);
-    final usage = ref.read(avatarControllerProvider.notifier).usageFor(demoStudentId);
+    final local = ref.read(avatarControllerProvider.notifier).usageFor(demoStudentId);
+    // API mode: the linked children's counts from the server.
+    final rows = ref.watch(guardianAvatarUsageProvider).value;
+    final usage = rows == null
+        ? local
+        : AvatarUsage(
+            sessions: rows.fold(0, (n, r) => n + r.$2),
+            questions: rows.fold(0, (n, r) => n + r.$3),
+            minutes: rows.fold(0, (n, r) => n + r.$4),
+            byBook: rows,
+          );
     final text = Theme.of(context).textTheme;
     return AppPageScaffold(
       title: context.tr(AvatarStrings.parentTitle),

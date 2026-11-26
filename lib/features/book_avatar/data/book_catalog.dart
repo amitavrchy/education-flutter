@@ -59,7 +59,10 @@ class Book {
 }
 
 Book _buildBook(Subject subject) {
-  final scenarios = [for (final s in tutorScenarios) if (s.subjectId == subject.id) s];
+  final scenarios = [
+    for (final s in tutorScenarios)
+      if (s.subjectId == subject.id) s,
+  ];
   // Detailed passages keep their printed page numbers; generated pages fill the rest.
   final reserved = {for (final s in scenarios) s.page};
   String passage(TutorScenario s, AppLanguage l) {
@@ -89,16 +92,18 @@ Book _buildBook(Subject subject) {
     pages.add(BookPage(page: next(), chapterId: chapter.id, chapterTitle: chapter.title, heading: chapter.title, body: chapter.description));
     for (final topic in chapter.topics) {
       final outcomes = topic.outcomes;
-      pages.add(BookPage(
-        page: next(),
-        chapterId: chapter.id,
-        chapterTitle: chapter.title,
-        heading: topic.title,
-        body: Tr(
-          '${topic.title.bn}: ${chapter.description.bn} এই অংশ পড়ে তুমি — ${outcomes.map((o) => o.text.bn).join('; ')}।',
-          '${topic.title.en}: ${chapter.description.en} After this section you can — ${outcomes.map((o) => o.text.en).join('; ')}.',
+      pages.add(
+        BookPage(
+          page: next(),
+          chapterId: chapter.id,
+          chapterTitle: chapter.title,
+          heading: topic.title,
+          body: Tr(
+            '${topic.title.bn}: ${chapter.description.bn} এই অংশ পড়ে তুমি — ${outcomes.map((o) => o.text.bn).join('; ')}।',
+            '${topic.title.en}: ${chapter.description.en} After this section you can — ${outcomes.map((o) => o.text.en).join('; ')}.',
+          ),
         ),
-      ));
+      );
       next();
     }
   }

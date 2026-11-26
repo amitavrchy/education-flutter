@@ -44,8 +44,7 @@ enum AvatarRole { student, avatar }
 
 enum ReportStatus { open, resolved, dismissed }
 
-T _enum<T extends Enum>(List<T> values, Object? name, T fallback) =>
-    values.where((v) => v.name == name).firstOrNull ?? fallback;
+T _enum<T extends Enum>(List<T> values, Object? name, T fallback) => values.where((v) => v.name == name).firstOrNull ?? fallback;
 
 class AvatarAppearance {
   const AvatarAppearance({
@@ -104,11 +103,8 @@ class AvatarAppearance {
 class AvatarVoiceSettings {
   const AvatarVoiceSettings({this.language = 'bn', this.rate = 1, this.pitch = 1});
 
-  factory AvatarVoiceSettings.fromJson(Map<String, dynamic> j) => AvatarVoiceSettings(
-    language: j['language'] as String? ?? 'bn',
-    rate: (j['rate'] as num?)?.toDouble() ?? 1,
-    pitch: (j['pitch'] as num?)?.toDouble() ?? 1,
-  );
+  factory AvatarVoiceSettings.fromJson(Map<String, dynamic> j) =>
+      AvatarVoiceSettings(language: j['language'] as String? ?? 'bn', rate: (j['rate'] as num?)?.toDouble() ?? 1, pitch: (j['pitch'] as num?)?.toDouble() ?? 1);
 
   /// 'bn' | 'en'
   final String language;
@@ -245,12 +241,8 @@ class BookAvatar {
 class AvatarCitation {
   const AvatarCitation({required this.page, required this.chapterTitle, this.heading, required this.excerpt});
 
-  factory AvatarCitation.fromJson(Map<String, dynamic> j) => AvatarCitation(
-    page: j['page'] as int,
-    chapterTitle: j['chapterTitle'] as String,
-    heading: j['heading'] as String?,
-    excerpt: j['excerpt'] as String,
-  );
+  factory AvatarCitation.fromJson(Map<String, dynamic> j) =>
+      AvatarCitation(page: j['page'] as int, chapterTitle: j['chapterTitle'] as String, heading: j['heading'] as String?, excerpt: j['excerpt'] as String);
 
   final int page;
   final String chapterTitle;

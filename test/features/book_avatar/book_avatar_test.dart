@@ -43,7 +43,10 @@ void main() {
     });
 
     test('respects the chapter scope', () {
-      final scoped = BookAvatar.fromJson({...avatar.toJson(), 'scopeChapterIds': [physics.chapters.first.id]});
+      final scoped = BookAvatar.fromJson({
+        ...avatar.toJson(),
+        'scopeChapterIds': [physics.chapters.first.id],
+      });
       expect(engine.answer(book: physics, avatar: scoped, query: 'ত্বরণ কাকে বলে?').grounded, Grounding.outOfScope);
     });
 
@@ -113,10 +116,9 @@ void main() {
   });
 
   testWidgets('student starts a class, asks by text and sees the book page citation', (tester) async {
-    await tester.pumpWidget(testApp(
-      const AvatarClassroomScreen(bookId: 'book-ssc-phy'),
-      overrides: [..._noAuth, avatarVoiceProvider.overrideWithValue(SilentAvatarVoice())],
-    ));
+    await tester.pumpWidget(
+      testApp(const AvatarClassroomScreen(bookId: 'book-ssc-phy'), overrides: [..._noAuth, avatarVoiceProvider.overrideWithValue(SilentAvatarVoice())]),
+    );
     await tester.pump();
     expect(find.byType(TeacherAvatar), findsOneWidget);
 

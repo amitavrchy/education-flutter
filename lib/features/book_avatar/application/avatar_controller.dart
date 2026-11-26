@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/tr.dart';
@@ -7,6 +9,7 @@ import '../../../core/storage/local_store.dart';
 import '../../auth/application/auth_controller.dart';
 import '../data/book_avatar_engine.dart';
 import '../data/book_catalog.dart';
+import '../data/remote_avatar.dart';
 import '../domain/avatar_models.dart';
 
 /// Demo student every seed belongs to (the mock login id for students).
@@ -18,8 +21,20 @@ const _skin = [0xFFF2C9A0, 0xFFE0AC7E, 0xFFC68B5E, 0xFFA86F4A, 0xFF8D5A3B];
 const _hair = [0xFF1F1A17, 0xFF2E2420, 0xFF4A3426, 0xFF6B4A35, 0xFF8A8A8A];
 const _outfit = [0xFF0F766E, 0xFF1D4ED8, 0xFF7C3AED, 0xFFB45309, 0xFFBE123C, 0xFF334155, 0xFF15803D];
 const _bg = [0xFFE6F4F1, 0xFFE8EEFB, 0xFFF1ECFB, 0xFFFBF1E4, 0xFFFCE9EE, 0xFFEEF2F6];
-const _female = [('নাসরিন আপা', 'Nasrin Apa'), ('ফারহানা ম্যাডাম', 'Farhana Madam'), ('তাহমিনা আপা', 'Tahmina Apa'), ('রুমানা ম্যাডাম', 'Rumana Madam'), ('সাবরিনা আপা', 'Sabrina Apa')];
-const _male = [('রফিক স্যার', 'Rafiq Sir'), ('মাহফুজ স্যার', 'Mahfuz Sir'), ('কামাল স্যার', 'Kamal Sir'), ('আরিফ স্যার', 'Arif Sir'), ('শফিক স্যার', 'Shafiq Sir')];
+const _female = [
+  ('নাসরিন আপা', 'Nasrin Apa'),
+  ('ফারহানা ম্যাডাম', 'Farhana Madam'),
+  ('তাহমিনা আপা', 'Tahmina Apa'),
+  ('রুমানা ম্যাডাম', 'Rumana Madam'),
+  ('সাবরিনা আপা', 'Sabrina Apa'),
+];
+const _male = [
+  ('রফিক স্যার', 'Rafiq Sir'),
+  ('মাহফুজ স্যার', 'Mahfuz Sir'),
+  ('কামাল স্যার', 'Kamal Sir'),
+  ('আরিফ স্যার', 'Arif Sir'),
+  ('শফিক স্যার', 'Shafiq Sir'),
+];
 
 /// FNV-1a + murmur3 fmix32: stable across runs and platforms, well-mixed low bits.
 int mixHash(String s) {
@@ -43,7 +58,9 @@ AvatarAppearance defaultAppearance(String seed) {
   return AvatarAppearance(
     gender: female ? AvatarGender.female : AvatarGender.male,
     skinTone: pick(_skin, 1),
-    hairStyle: female ? pick(const [HairStyle.long, HairStyle.bun, HairStyle.hijab, HairStyle.long], 3) : pick(const [HairStyle.short, HairStyle.sidePart, HairStyle.short, HairStyle.bald], 3),
+    hairStyle: female
+        ? pick(const [HairStyle.long, HairStyle.bun, HairStyle.hijab, HairStyle.long], 3)
+        : pick(const [HairStyle.short, HairStyle.sidePart, HairStyle.short, HairStyle.bald], 3),
     hairColor: pick(_hair, 5),
     outfit: female ? pick(const [Outfit.saree, Outfit.salwar, Outfit.blazer], 7) : pick(const [Outfit.shirt, Outfit.panjabi, Outfit.blazer], 7),
     outfitColor: pick(_outfit, 9),
@@ -54,7 +71,8 @@ AvatarAppearance defaultAppearance(String seed) {
   );
 }
 
-BookAvatar defaultAvatarFor(Book book) {
+/// [server]: the backend's default avatar (no demo counters).
+BookAvatar defaultAvatarFor(Book book, {bool server = false}) {
   final look = defaultAppearance('${book.subject.id}${book.id}');
   final names = look.gender == AvatarGender.female ? _female : _male;
   final (bn, en) = names[mixHash('name:${book.id}') % names.length];
@@ -70,13 +88,15 @@ BookAvatar defaultAvatarFor(Book book) {
       'আসসালামু আলাইকুম! আমি $bn। "${book.title.bn}" বইয়ের যেকোনো অধ্যায় থেকে প্রশ্ন করো — লিখে বা কথা বলে। আমি বইয়ের পৃষ্ঠা দেখিয়ে বুঝিয়ে দেব।',
       'Hello! I\'m $en. Ask me anything from "${book.title.en}" — by typing or speaking. I\'ll explain with the book\'s page numbers.',
     ),
-    stats: AvatarStats(
-      sessions: 40 + mixHash('s${book.id}') % 300,
-      questions: 200 + mixHash('q${book.id}') % 1300,
-      outOfScope: 5 + mixHash('o${book.id}') % 40,
-      helpful: 60 + mixHash('h${book.id}') % 700,
-      notHelpful: 2 + mixHash('n${book.id}') % 60,
-    ),
+    stats: server
+        ? const AvatarStats()
+        : AvatarStats(
+            sessions: 40 + mixHash('s${book.id}') % 300,
+            questions: 200 + mixHash('q${book.id}') % 1300,
+            outOfScope: 5 + mixHash('o${book.id}') % 40,
+            helpful: 60 + mixHash('h${book.id}') % 700,
+            notHelpful: 2 + mixHash('n${book.id}') % 60,
+          ),
   );
 }
 
@@ -92,17 +112,22 @@ class AvatarState {
 
   BookAvatar? avatarForBook(String bookId) => avatars.where((a) => a.bookId == bookId).firstOrNull;
 
-  /// Books a student can talk to: every book whose avatar is active.
+  /// Books a student can talk to: every book whose avatar is active (a book without one yet
+  /// gets the default avatar, as the server creates it on the first session).
   List<(Book, BookAvatar)> get available => [
     for (final b in sampleBooks)
-      if (avatarForBook(b.id) case final a? when a.status == AvatarStatus.active) (b, a),
+      if (avatarForBook(b.id) ?? defaultAvatarFor(b, server: true) case final a when a.status == AvatarStatus.active) (b, a),
   ];
 
-  List<AvatarSession> sessionsOf(String studentId) =>
-      [for (final s in sessions) if (s.studentId == studentId) s]..sort((a, b) => b.lastAt.compareTo(a.lastAt));
+  List<AvatarSession> sessionsOf(String studentId) => [
+    for (final s in sessions)
+      if (s.studentId == studentId) s,
+  ]..sort((a, b) => b.lastAt.compareTo(a.lastAt));
 
-  List<AvatarMessage> messagesOf(String sessionId) =>
-      [for (final m in messages) if (m.sessionId == sessionId) m]..sort((a, b) => a.at.compareTo(b.at));
+  List<AvatarMessage> messagesOf(String sessionId) => [
+    for (final m in messages)
+      if (m.sessionId == sessionId) m,
+  ]..sort((a, b) => a.at.compareTo(b.at));
 
   AvatarSession? session(String id) => sessions.where((s) => s.id == id).firstOrNull;
 }
@@ -125,6 +150,11 @@ class AvatarController extends Notifier<AvatarState> {
   late JsonCollection<AvatarMessage> _messages;
   late JsonCollection<AvatarReport> _reports;
   final _engine = const BookAvatarEngine();
+  RemoteAvatar? _remote;
+  Future<void>? _refreshing;
+
+  /// API mode keeps the server's data in memory (no device copy).
+  var _r = const AvatarState(avatars: [], sessions: [], messages: [], reports: []);
 
   MockSimulator get _sim => ref.read(mockSimulatorProvider);
 
@@ -132,11 +162,45 @@ class AvatarController extends Notifier<AvatarState> {
 
   @override
   AvatarState build() {
+    _remote = ref.watch(remoteAvatarProvider);
+    if (_remote != null) {
+      _r = const AvatarState(avatars: [], sessions: [], messages: [], reports: []);
+      Future.microtask(refresh);
+      return _r;
+    }
     final store = watchStore(ref);
-    _avatars = JsonCollection(store: store, name: 'book_avatars', fromJson: BookAvatar.fromJson, toJson: (a) => a.toJson(), idOf: (a) => a.id, seed: () => [for (final b in sampleBooks) defaultAvatarFor(b)]);
-    _sessions = JsonCollection(store: store, name: 'avatar_sessions', fromJson: AvatarSession.fromJson, toJson: (s) => s.toJson(), idOf: (s) => s.id, seed: _seedSessions);
-    _messages = JsonCollection(store: store, name: 'avatar_messages', fromJson: AvatarMessage.fromJson, toJson: (m) => m.toJson(), idOf: (m) => m.id, seed: () => const []);
-    _reports = JsonCollection(store: store, name: 'avatar_reports', fromJson: AvatarReport.fromJson, toJson: (r) => r.toJson(), idOf: (r) => r.id, seed: _seedReports);
+    _avatars = JsonCollection(
+      store: store,
+      name: 'book_avatars',
+      fromJson: BookAvatar.fromJson,
+      toJson: (a) => a.toJson(),
+      idOf: (a) => a.id,
+      seed: () => [for (final b in sampleBooks) defaultAvatarFor(b)],
+    );
+    _sessions = JsonCollection(
+      store: store,
+      name: 'avatar_sessions',
+      fromJson: AvatarSession.fromJson,
+      toJson: (s) => s.toJson(),
+      idOf: (s) => s.id,
+      seed: _seedSessions,
+    );
+    _messages = JsonCollection(
+      store: store,
+      name: 'avatar_messages',
+      fromJson: AvatarMessage.fromJson,
+      toJson: (m) => m.toJson(),
+      idOf: (m) => m.id,
+      seed: () => const [],
+    );
+    _reports = JsonCollection(
+      store: store,
+      name: 'avatar_reports',
+      fromJson: AvatarReport.fromJson,
+      toJson: (r) => r.toJson(),
+      idOf: (r) => r.id,
+      seed: _seedReports,
+    );
     return AvatarState(avatars: _avatars.all(), sessions: _sessions.all(), messages: _messages.all(), reports: _reports.all());
   }
 
@@ -164,11 +228,65 @@ class AvatarController extends Notifier<AvatarState> {
   static List<AvatarReport> _seedReports() {
     final now = DateTime.now();
     return [
-      AvatarReport(id: 'ar-1', bookId: 'book-ssc-phy', avatarId: 'av-book-ssc-phy', studentId: 'u-gen-3', question: 'ত্বরণের একক কী?', answer: 'বেগ ও ত্বরণ — …', reason: 'উত্তরে এককটা আরও পরিষ্কার করে বলা দরকার', createdAt: now.subtract(const Duration(days: 1))),
-      AvatarReport(id: 'ar-2', bookId: 'book-ssc-chem', avatarId: 'av-book-ssc-chem', studentId: 'u-gen-7', question: 'মোল কাকে বলে?', answer: 'মোল ধারণা — …', reason: 'উদাহরণ ভুল মনে হচ্ছে', createdAt: now.subtract(const Duration(days: 2))),
-      AvatarReport(id: 'ar-3', bookId: 'book-ssc-gmath', avatarId: 'av-book-ssc-gmath', studentId: 'u-gen-9', question: 'বর্গের সূত্র', answer: '…', reason: 'বইয়ের পৃষ্ঠা নম্বর মেলেনি', createdAt: now.subtract(const Duration(days: 3)), status: ReportStatus.resolved, resolution: 'পৃষ্ঠা নম্বর ঠিক করা হয়েছে', resolvedBy: 'নাসরিন সুলতানা'),
+      AvatarReport(
+        id: 'ar-1',
+        bookId: 'book-ssc-phy',
+        avatarId: 'av-book-ssc-phy',
+        studentId: 'u-gen-3',
+        question: 'ত্বরণের একক কী?',
+        answer: 'বেগ ও ত্বরণ — …',
+        reason: 'উত্তরে এককটা আরও পরিষ্কার করে বলা দরকার',
+        createdAt: now.subtract(const Duration(days: 1)),
+      ),
+      AvatarReport(
+        id: 'ar-2',
+        bookId: 'book-ssc-chem',
+        avatarId: 'av-book-ssc-chem',
+        studentId: 'u-gen-7',
+        question: 'মোল কাকে বলে?',
+        answer: 'মোল ধারণা — …',
+        reason: 'উদাহরণ ভুল মনে হচ্ছে',
+        createdAt: now.subtract(const Duration(days: 2)),
+      ),
+      AvatarReport(
+        id: 'ar-3',
+        bookId: 'book-ssc-gmath',
+        avatarId: 'av-book-ssc-gmath',
+        studentId: 'u-gen-9',
+        question: 'বর্গের সূত্র',
+        answer: '…',
+        reason: 'বইয়ের পৃষ্ঠা নম্বর মেলেনি',
+        createdAt: now.subtract(const Duration(days: 3)),
+        status: ReportStatus.resolved,
+        resolution: 'পৃষ্ঠা নম্বর ঠিক করা হয়েছে',
+        resolvedBy: 'নাসরিন সুলতানা',
+      ),
     ];
   }
+
+  /// API mode: avatars, the student's history and (for staff) reports from the server (single-flight).
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    final remote = _remote;
+    if (remote == null || !ref.mounted) return;
+    Future<T> orEmpty<T>(Future<T> f, T empty) => f.then((v) => v, onError: (_) => empty);
+    final (avatars, history, reports) = await (
+      orEmpty(remote.avatars(), _r.avatars),
+      orEmpty(remote.history(), (_r.sessions, _r.messages)),
+      orEmpty(remote.reports(), _r.reports),
+    ).wait;
+    if (!ref.mounted) return;
+    _setRemote(AvatarState(avatars: avatars, sessions: history.$1, messages: history.$2, reports: reports));
+  }
+
+  void _setRemote(AvatarState next) => state = _r = next;
+
+  List<T> _upsertById<T>(List<T> list, T item, String Function(T) id) => [
+    for (final x in list)
+      if (id(x) != id(item)) x,
+    item,
+  ];
 
   void _emit() => state = AvatarState(avatars: _avatars.all(), sessions: _sessions.all(), messages: _messages.all(), reports: _reports.all());
 
@@ -179,10 +297,27 @@ class AvatarController extends Notifier<AvatarState> {
   }
 
   /// Avatar of a book (created on first access, like an upload would).
-  BookAvatar avatarFor(Book book) => state.avatarForBook(book.id) ?? defaultAvatarFor(book);
+  BookAvatar avatarFor(Book book) => state.avatarForBook(book.id) ?? defaultAvatarFor(book, server: _remote != null);
 
   /// Starts a class: stores the avatar's greeting as the first message.
   Future<AvatarSession> startSession(String bookId) async {
+    if (_remote case final remote?) {
+      final (session, greeting) = await remote.startSession(bookId);
+      _setRemote(
+        AvatarState(
+          avatars: _r.avatars,
+          sessions: _upsertById(_r.sessions, session, (s) => s.id),
+          messages: _upsertById(_r.messages, greeting, (m) => m.id),
+          reports: _r.reports,
+        ),
+      );
+      unawaited(
+        remote.avatars().then((a) {
+          if (ref.mounted) _setRemote(AvatarState(avatars: a, sessions: _r.sessions, messages: _r.messages, reports: _r.reports));
+        }, onError: (_) {}),
+      );
+      return session;
+    }
     final book = bookById(bookId)!;
     final avatar = avatarFor(book);
     final now = DateTime.now();
@@ -197,7 +332,17 @@ class AvatarController extends Notifier<AvatarState> {
     );
     await _sessions.upsert(session);
     final greeting = avatar.voice.language == 'en' ? avatar.greeting.en : avatar.greeting.bn;
-    await _messages.upsert(AvatarMessage(id: 'am-${now.microsecondsSinceEpoch}', sessionId: session.id, role: AvatarRole.avatar, text: greeting, spoken: greeting, at: now, grounded: Grounding.greeting));
+    await _messages.upsert(
+      AvatarMessage(
+        id: 'am-${now.microsecondsSinceEpoch}',
+        sessionId: session.id,
+        role: AvatarRole.avatar,
+        text: greeting,
+        spoken: greeting,
+        at: now,
+        grounded: Grounding.greeting,
+      ),
+    );
     await _updateAvatar(avatar.copyWith(stats: avatar.stats.copyWith(sessions: avatar.stats.sessions + 1)));
     return session;
   }
@@ -206,11 +351,14 @@ class AvatarController extends Notifier<AvatarState> {
   Future<AvatarMessage> ask(String sessionId, String text, {bool voice = false}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) throw ArgumentError('EMPTY_QUESTION');
+    if (_remote case final remote?) return _askRemote(remote, sessionId, trimmed, voice);
     final session = state.session(sessionId)!;
     final book = bookById(session.bookId)!;
     final avatar = avatarFor(book);
     final now = DateTime.now();
-    await _messages.upsert(AvatarMessage(id: 'am-${now.microsecondsSinceEpoch}', sessionId: sessionId, role: AvatarRole.student, text: trimmed, at: now, voiceInput: voice));
+    await _messages.upsert(
+      AvatarMessage(id: 'am-${now.microsecondsSinceEpoch}', sessionId: sessionId, role: AvatarRole.student, text: trimmed, at: now, voiceInput: voice),
+    );
     _emit();
     final a = await _sim.run(() => _engine.answer(book: book, avatar: avatar, query: trimmed), latencyFactor: 2);
     final at = DateTime.now();
@@ -227,58 +375,142 @@ class AvatarController extends Notifier<AvatarState> {
     );
     await _messages.upsert(reply);
     final first = session.messageCount == 0;
-    await _sessions.upsert(session.copyWith(
-      lastAt: at,
-      messageCount: session.messageCount + 2,
-      voiceTurns: session.voiceTurns + (voice ? 1 : 0),
-      minutes: at.difference(session.startedAt).inMinutes.clamp(1, 600),
-      title: first ? (trimmed.length > 48 ? '${trimmed.substring(0, 48)}…' : trimmed) : null,
-    ));
-    await _updateAvatar(avatar.copyWith(
-      stats: avatar.stats.copyWith(questions: avatar.stats.questions + 1, outOfScope: avatar.stats.outOfScope + (a.grounded == Grounding.outOfScope ? 1 : 0)),
-    ));
+    await _sessions.upsert(
+      session.copyWith(
+        lastAt: at,
+        messageCount: session.messageCount + 2,
+        voiceTurns: session.voiceTurns + (voice ? 1 : 0),
+        minutes: at.difference(session.startedAt).inMinutes.clamp(1, 600),
+        title: first ? (trimmed.length > 48 ? '${trimmed.substring(0, 48)}…' : trimmed) : null,
+      ),
+    );
+    await _updateAvatar(
+      avatar.copyWith(
+        stats: avatar.stats.copyWith(questions: avatar.stats.questions + 1, outOfScope: avatar.stats.outOfScope + (a.grounded == Grounding.outOfScope ? 1 : 0)),
+      ),
+    );
     return reply;
   }
 
+  /// The server answers from the book and stores both messages; the question shows right away.
+  Future<AvatarMessage> _askRemote(RemoteAvatar remote, String sessionId, String text, bool voice) async {
+    final pending = AvatarMessage(
+      id: 'am-local-${DateTime.now().microsecondsSinceEpoch}',
+      sessionId: sessionId,
+      role: AvatarRole.student,
+      text: text,
+      at: DateTime.now(),
+      voiceInput: voice,
+    );
+    _setRemote(AvatarState(avatars: _r.avatars, sessions: _r.sessions, messages: [..._r.messages, pending], reports: _r.reports));
+    try {
+      final (question, reply) = await remote.ask(sessionId, text, voice: voice);
+      final session = _r.session(sessionId);
+      _setRemote(
+        AvatarState(
+          avatars: _r.avatars,
+          sessions: session == null
+              ? _r.sessions
+              : _upsertById(
+                  _r.sessions,
+                  session.copyWith(
+                    lastAt: reply.at,
+                    messageCount: session.messageCount + 2,
+                    voiceTurns: session.voiceTurns + (voice ? 1 : 0),
+                    title: session.messageCount == 0 ? (text.length > 40 ? text.substring(0, 40) : text) : null,
+                  ),
+                  (s) => s.id,
+                ),
+          messages: [
+            for (final m in _r.messages)
+              if (m.id != pending.id) m,
+            question,
+            reply,
+          ],
+          reports: _r.reports,
+        ),
+      );
+      return reply;
+    } catch (_) {
+      _setRemote(
+        AvatarState(
+          avatars: _r.avatars,
+          sessions: _r.sessions,
+          messages: [
+            for (final m in _r.messages)
+              if (m.id != pending.id) m,
+          ],
+          reports: _r.reports,
+        ),
+      );
+      rethrow;
+    }
+  }
+
   /// Teacher/admin test chat — nothing is stored.
-  Future<AvatarAnswer> preview(BookAvatar avatar, String query) => _sim.run(() => _engine.answer(book: bookById(avatar.bookId)!, avatar: avatar, query: query));
+  Future<AvatarAnswer> preview(BookAvatar avatar, String query) =>
+      _remote?.preview(avatar, query) ?? _sim.run(() => _engine.answer(book: bookById(avatar.bookId)!, avatar: avatar, query: query));
 
   Future<void> feedback(String messageId, String value) async {
     final m = state.messages.where((x) => x.id == messageId).firstOrNull;
     if (m == null || m.feedback == value) return;
+    if (_remote case final remote?) {
+      final next = await remote.feedback(messageId, value);
+      _setRemote(AvatarState(avatars: _r.avatars, sessions: _r.sessions, messages: _upsertById(_r.messages, next, (x) => x.id), reports: _r.reports));
+      return;
+    }
     await _messages.upsert(m.withFeedback(value));
     final s = state.session(m.sessionId);
     final avatar = s == null ? null : state.avatars.where((a) => a.id == s.avatarId).firstOrNull;
     if (avatar != null) {
-      await _avatars.upsert(avatar.copyWith(
-        stats: avatar.stats.copyWith(helpful: avatar.stats.helpful + (value == 'up' ? 1 : 0), notHelpful: avatar.stats.notHelpful + (value == 'down' ? 1 : 0)),
-      ));
+      await _avatars.upsert(
+        avatar.copyWith(
+          stats: avatar.stats.copyWith(
+            helpful: avatar.stats.helpful + (value == 'up' ? 1 : 0),
+            notHelpful: avatar.stats.notHelpful + (value == 'down' ? 1 : 0),
+          ),
+        ),
+      );
     }
     _emit();
   }
 
   Future<void> report(String messageId, String reason) async {
+    if (_remote case final remote?) {
+      final r = await remote.report(messageId, reason.trim());
+      _setRemote(AvatarState(avatars: _r.avatars, sessions: _r.sessions, messages: _r.messages, reports: _upsertById(_r.reports, r, (x) => x.id)));
+      return;
+    }
     final m = state.messages.firstWhere((x) => x.id == messageId);
     final s = state.session(m.sessionId)!;
     final thread = state.messagesOf(s.id);
     final i = thread.indexWhere((x) => x.id == messageId);
     final question = thread.take(i).lastWhere((x) => x.role == AvatarRole.student, orElse: () => m).text;
     final now = DateTime.now();
-    await _reports.upsert(AvatarReport(
-      id: 'ar-${now.microsecondsSinceEpoch}',
-      bookId: s.bookId,
-      avatarId: s.avatarId,
-      studentId: s.studentId,
-      question: question,
-      answer: m.text,
-      reason: reason.trim(),
-      createdAt: now,
-    ));
+    await _reports.upsert(
+      AvatarReport(
+        id: 'ar-${now.microsecondsSinceEpoch}',
+        bookId: s.bookId,
+        avatarId: s.avatarId,
+        studentId: s.studentId,
+        question: question,
+        answer: m.text,
+        reason: reason.trim(),
+        createdAt: now,
+      ),
+    );
     _emit();
   }
 
   Future<void> resolveReport(String id, ReportStatus to, String note, String by) async {
     final r = state.reports.firstWhere((x) => x.id == id);
+    if (_remote case final remote?) {
+      await remote.resolveReport(id, to, note, by);
+      _setRemote(
+        AvatarState(avatars: _r.avatars, sessions: _r.sessions, messages: _r.messages, reports: _upsertById(_r.reports, r.resolve(to, note, by), (x) => x.id)),
+      );
+      return;
+    }
     await _reports.upsert(r.resolve(to, note, by));
     _emit();
   }

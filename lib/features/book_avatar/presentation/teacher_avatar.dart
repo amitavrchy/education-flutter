@@ -132,7 +132,12 @@ class _AvatarPainter extends CustomPainter {
     canvas.clipRRect(card);
     canvas.drawRect(
       const Rect.fromLTWH(0, 0, 240, 280),
-      Paint()..shader = RadialGradient(center: const Alignment(0, -0.24), radius: 0.9, colors: [shade(bg, 0.35), bg]).createShader(const Rect.fromLTWH(0, 0, 240, 280)),
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0, -0.24),
+          radius: 0.9,
+          colors: [shade(bg, 0.35), bg],
+        ).createShader(const Rect.fromLTWH(0, 0, 240, 280)),
     );
 
     if (mood == AvatarMood.listening) {
@@ -202,9 +207,15 @@ class _AvatarPainter extends CustomPainter {
       case HairStyle.short:
         canvas.drawPath(p('M71 112 C 66 66, 100 52, 122 54 C 150 54, 176 70, 170 112 C 164 92, 150 80, 122 80 C 98 80, 80 90, 71 112 Z'), fill(hair));
       case HairStyle.sidePart:
-        canvas.drawPath(p('M70 116 C 64 70, 96 50, 124 52 C 156 54, 178 74, 170 114 C 164 94, 154 84, 136 80 C 124 92, 98 92, 80 96 C 76 102, 72 108, 70 116 Z'), fill(hair));
+        canvas.drawPath(
+          p('M70 116 C 64 70, 96 50, 124 52 C 156 54, 178 74, 170 114 C 164 94, 154 84, 136 80 C 124 92, 98 92, 80 96 C 76 102, 72 108, 70 116 Z'),
+          fill(hair),
+        );
       case HairStyle.long || HairStyle.bun:
-        canvas.drawPath(p('M70 124 C 62 70, 96 52, 122 52 C 150 52, 180 70, 170 124 C 166 96, 152 82, 140 78 C 130 90, 104 88, 92 80 C 80 88, 72 104, 70 124 Z'), fill(hair));
+        canvas.drawPath(
+          p('M70 124 C 62 70, 96 52, 122 52 C 150 52, 180 70, 170 124 C 166 96, 152 82, 140 78 C 130 90, 104 88, 92 80 C 80 88, 72 104, 70 124 Z'),
+          fill(hair),
+        );
         if (a.hairStyle == HairStyle.bun) canvas.drawCircle(const Offset(120, 50), 18, fill(hair));
       case HairStyle.bald:
         canvas.drawPath(p('M72 120 C 70 106, 74 98, 78 94 L 80 120 Z M168 120 C 170 106, 166 98, 162 94 L 160 120 Z'), fill(hair));
@@ -245,7 +256,10 @@ class _AvatarPainter extends CustomPainter {
     canvas.drawCircle(const Offset(92, 136), 7, fill(const Color(0xFFF08A8A), 0.18));
     canvas.drawCircle(const Offset(148, 136), 7, fill(const Color(0xFFF08A8A), 0.18));
     if (a.beard) {
-      canvas.drawPath(p('M76 132 C 80 168, 100 178, 120 178 C 140 178, 160 168, 164 132 C 160 150, 146 160, 140 154 C 132 160, 108 160, 100 154 C 94 160, 80 150, 76 132 Z'), fill(hair, 0.85));
+      canvas.drawPath(
+        p('M76 132 C 80 168, 100 178, 120 178 C 140 178, 160 168, 164 132 C 160 150, 146 160, 140 154 C 132 160, 108 160, 100 154 C 94 160, 80 150, 76 132 Z'),
+        fill(hair, 0.85),
+      );
     }
 
     // Mouth (lip-sync).
@@ -254,8 +268,14 @@ class _AvatarPainter extends CustomPainter {
     } else {
       final ry = 2.5 + m * 9;
       canvas.drawOval(Rect.fromCenter(center: Offset(120, 152 + m * 2), width: 2 * (11 + m * 2), height: 2 * ry), fill(const Color(0xFF5B1F23)));
-      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(112, 150 - ry + 1.5, 16, math.min(4, 1 + m * 4)), const Radius.circular(1.5)), fill(Colors.white, 0.9));
-      canvas.drawOval(Rect.fromCenter(center: Offset(120, 154 + m * 6), width: 2 * (6 + m * 2), height: 2 * (1.5 + m * 2.5)), fill(const Color(0xFFE36F7A), 0.85));
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(112, 150 - ry + 1.5, 16, math.min(4, 1 + m * 4)), const Radius.circular(1.5)),
+        fill(Colors.white, 0.9),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(120, 154 + m * 6), width: 2 * (6 + m * 2), height: 2 * (1.5 + m * 2.5)),
+        fill(const Color(0xFFE36F7A), 0.85),
+      );
     }
     canvas.restore(); // head
     canvas.restore(); // breathing
