@@ -121,12 +121,46 @@ class PracticeController extends Notifier<PracticeState> {
     final added = next.add(questionId);
     if (!added) next.remove(questionId);
     state = PracticeState(bookmarks: next, attempts: state.attempts, sets: state.sets);
+    final remote = ref.read(remoteProgressProvider);
     if (added) {
-      await _store.put(_bookmarkCollection, questionId, {'questionId': questionId, 'at': DateTime.now().toIso8601String()});
+      var serverId = _store.get(_bookmarkCollection, questionId)?['serverId'] as String?;
+      if (remote != null) {
+        final stem = ref.read(questionRepositoryProvider).cached.where((q) => q.id == questionId).firstOrNull?.stem.bn ?? questionId;
+        try {
+          serverId = await remote.addBookmark(questionId, title: stem.length > 80 ? '${stem.substring(0, 80)}…' : stem);
+        } catch (_) {
+          // Offline: kept locally, pushed on the next sync.
+        }
+      }
+      await _store.put(_bookmarkCollection, questionId, {'questionId': questionId, 'at': DateTime.now().toIso8601String(), 'serverId': ?serverId});
     } else {
+      final serverId = _store.get(_bookmarkCollection, questionId)?['serverId'] as String?;
       await _store.delete(_bookmarkCollection, questionId);
+      if (remote != null && serverId != null) {
+        try {
+          await remote.removeBookmark(serverId);
+        } catch (_) {}
+      }
     }
     return added;
+  }
+
+  /// API mode: server question bookmarks replace the local set; local-only ones are pushed.
+  Future<void> syncBookmarks() async {
+    final remote = ref.read(remoteProgressProvider);
+    if (remote == null) return;
+    try {
+      final server = await remote.questionBookmarks();
+      for (final b in _store.all(_bookmarkCollection)) {
+        final qid = b['questionId'] as String;
+        if (b['serverId'] == null && !server.containsKey(qid)) server[qid] = await remote.addBookmark(qid, title: qid);
+      }
+      await _store.clearCollection(_bookmarkCollection);
+      await _store.putAll(_bookmarkCollection, {for (final e in server.entries) e.key: {'questionId': e.key, 'serverId': e.value, 'at': DateTime.now().toIso8601String()}});
+      if (ref.mounted) state = PracticeState(bookmarks: server.keys.toSet(), attempts: state.attempts, sets: state.sets);
+    } catch (_) {
+      // Offline: keep the local bookmarks.
+    }
   }
 
   Future<void> recordAttempt(Question q, {required bool correct, String context = 'practice'}) async {
@@ -147,6 +181,7 @@ class PracticeController extends Notifier<PracticeState> {
 
   /// API mode: the server's attempt history replaces the local one.
   Future<void> replaceAttempts(List<QuestionAttempt> attempts) async {
+    await syncBookmarks();
     await _store.clearCollection('question_attempts');
     await _attempts.upsertAll(attempts);
     state = PracticeState(bookmarks: state.bookmarks, attempts: [...attempts]..sort((a, b) => b.at.compareTo(a.at)), sets: state.sets);

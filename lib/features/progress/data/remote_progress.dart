@@ -100,6 +100,27 @@ class RemoteProgress {
     await _api.post('/progress/$studentId/activity', body: {'kind': k, 'minutes': minutes, 'label': label}, parse: (d) => d);
   }
 
+  /// Question bookmarks: questionId → server bookmark id.
+  Future<Map<String, String>> questionBookmarks() async => {
+    for (final b in await _all('bookmarks'))
+      if (b['kind'] == 'question' && b['refId'] != null) b['refId'] as String: b['id'] as String,
+  };
+
+  Future<String> addBookmark(String questionId, {required String title}) async {
+    final id = 'bm-${DateTime.now().microsecondsSinceEpoch}';
+    await _api.post('/bookmarks/$studentId', body: {
+      'id': id,
+      'kind': 'question',
+      'refId': questionId,
+      'title': title,
+      'href': '/student/questions?q=$questionId',
+      'createdAt': DateTime.now().toUtc().toIso8601String(),
+    }, parse: (d) => d);
+    return id;
+  }
+
+  Future<void> removeBookmark(String bookmarkId) => _api.sendNoContent('DELETE', '/bookmarks/$studentId/$bookmarkId');
+
   Future<void> topicDone(String chapterId, String topicId, int totalTopics) =>
       _api.post('/progress/$studentId/chapters/$chapterId', body: {
         'action': {'topicDone': topicId, 'totalTopics': totalTopics},

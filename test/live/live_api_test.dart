@@ -80,4 +80,13 @@ void main() {
     expect(data.activities, isNotEmpty);
     expect(data.attempts, isNotEmpty);
   }, skip: !live);
+
+  test('a question bookmark can be added and removed on the server', () async {
+    final remote = RemoteProgress(client(await student()), 'u-student-1');
+    final before = await remote.questionBookmarks();
+    final id = await remote.addBookmark('q-phy-001-live', title: 'live test');
+    expect((await remote.questionBookmarks())['q-phy-001-live'], id);
+    await remote.removeBookmark(id);
+    expect((await remote.questionBookmarks()).length, before.length);
+  }, skip: !live);
 }

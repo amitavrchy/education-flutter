@@ -27,6 +27,20 @@ class _FakeRemote extends RemoteProgress {
   @override
   Future<void> recordAttempt(String questionId, {required bool correct, required String context}) async => calls.add('attempt $questionId $correct $context');
 
+  final Map<String, String> bookmarks = {'q-server': 'bm-1'};
+
+  @override
+  Future<Map<String, String>> questionBookmarks() async => {...bookmarks};
+
+  @override
+  Future<String> addBookmark(String questionId, {required String title}) async {
+    calls.add('bookmark+ $questionId');
+    return bookmarks[questionId] = 'bm-${bookmarks.length + 1}';
+  }
+
+  @override
+  Future<void> removeBookmark(String bookmarkId) async => calls.add('bookmark- $bookmarkId');
+
   @override
   Future<void> logActivity(ActivityKind kind, {required int minutes, required String label}) async => calls.add('activity ${kind.name} $minutes');
 }
@@ -65,5 +79,16 @@ void main() {
     await c.read(practiceProvider.notifier).recordAttempt(q, correct: true);
     await c.read(learningProgressProvider.notifier).logActivity(ActivityKind.lesson, minutes: 15);
     expect(fake.calls, ['attempt ${q.id} true practice', 'activity lesson 15']);
+  });
+
+  test('API mode: bookmarks come from the server and toggles reach it', () async {
+    final fake = _FakeRemote();
+    final c = testContainer(overrides: [remoteProgressProvider.overrideWithValue(fake)]);
+    await c.read(practiceProvider.notifier).syncBookmarks();
+    expect(c.read(practiceProvider).bookmarks, {'q-server'});
+    await c.read(practiceProvider.notifier).toggleBookmark('q-new');
+    await c.read(practiceProvider.notifier).toggleBookmark('q-server');
+    expect(fake.calls, ['bookmark+ q-new', 'bookmark- bm-1']);
+    expect(c.read(practiceProvider).bookmarks, {'q-new'});
   });
 }
