@@ -11,6 +11,9 @@ class FakeServer implements HttpClientAdapter {
 
   final Map<String, List<Map<String, dynamic>>> data;
   final List<String> calls = [];
+
+  /// Canned replies keyed by `'METHOD /path'`; they win over [data].
+  final Map<String, Object?> responses = {};
   final Map<String, Object?> lastBody = {};
 
   late final ApiClient client = ApiClient(Dio()..httpClientAdapter = this);
@@ -20,6 +23,12 @@ class FakeServer implements HttpClientAdapter {
     calls.add('${o.method} ${o.path}');
     lastBody[o.path] = o.data;
     Object? out;
+    final key = '${o.method} ${o.path}';
+    if (responses.containsKey(key)) {
+      return ResponseBody.fromString(jsonEncode({'success': true, 'data': responses[key]}), 200, headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      });
+    }
     switch (o.method) {
       case 'GET':
         out = data[o.path] ?? <Object>[];

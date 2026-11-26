@@ -6,14 +6,23 @@ import '../domain/question.dart';
 ///
 /// Backend text is single-language (Bangla, or English for English subjects), so every field
 /// becomes `Tr.same`. Board ids drop the `brd-` prefix to match the app's board list.
+QuestionType questionTypeFromApi(Object? type) => switch (type) {
+  'true_false' => QuestionType.trueFalse,
+  'fill_blank' => QuestionType.fillBlank,
+  'case_based' => QuestionType.caseBased,
+  final String t => QuestionType.values.where((v) => v.name == t).firstOrNull ?? QuestionType.short,
+  _ => QuestionType.short,
+};
+
+String questionTypeToApi(QuestionType t) => switch (t) {
+  QuestionType.trueFalse => 'true_false',
+  QuestionType.fillBlank => 'fill_blank',
+  QuestionType.caseBased => 'case_based',
+  _ => t.name,
+};
+
 Question questionFromApi(Map<String, dynamic> j) {
-  final type = switch (j['type']) {
-    'true_false' => QuestionType.trueFalse,
-    'fill_blank' => QuestionType.fillBlank,
-    'case_based' => QuestionType.caseBased,
-    final String t => QuestionType.values.where((v) => v.name == t).firstOrNull ?? QuestionType.short,
-    _ => QuestionType.short,
-  };
+  final type = questionTypeFromApi(j['type']);
   Tr t(Object? v) => Tr.same(v?.toString() ?? '');
   final rawOptions = [for (final o in j['options'] as List? ?? const []) (o as Map).cast<String, dynamic>()];
   var options = [for (final o in rawOptions) t(o['text'])];

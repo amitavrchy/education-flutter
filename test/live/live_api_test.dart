@@ -9,6 +9,7 @@ import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
 import 'package:shikkhaai_mobile/features/curriculum/data/curriculum_catalog.dart';
+import 'package:shikkhaai_mobile/features/exams/data/remote_exams.dart';
 import 'package:shikkhaai_mobile/features/flashcards/data/remote_flashcards.dart';
 import 'package:shikkhaai_mobile/features/notes/data/remote_notes.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
@@ -119,6 +120,30 @@ void main() {
       final back = TaskMapper.fields(t);
       expect(back['date'], (j['date'] as String).substring(0, 10));
       expect(back['durationMinutes'], j['durationMinutes']);
+    }
+  }, skip: !live);
+
+  test('exams and attempts map; a model test starts with known questions and is discarded', () async {
+    final remote = RemoteExams(client(await student()), 'u-student-1');
+    final exams = await remote.exams();
+    final byId = {for (final e in exams) e['id'] as String: e};
+    final offered = [for (final e in exams) if (RemoteExams.isOffered(e)) RemoteExams.templateFrom(e)];
+    expect(offered, isNotEmpty);
+    final attempts = await remote.attempts();
+    final resumable = {for (final a in attempts) if (a['status'] == 'in_progress') a['id']};
+    for (final a in attempts) {
+      final m = RemoteExams.attemptFrom(a, exams: byId);
+      if (m.status.name != 'inProgress') expect(m.result, isNotNull);
+    }
+    final model = offered.firstWhere((t) => byId[t.id]!['kind'] == 'model_test' && t.scheduledAt == null);
+    final id = await remote.startExam(model.id);
+    try {
+      final qs = await remote.questions(id);
+      expect(qs, isNotEmpty);
+      expect(qs.every((q) => q.subjectId.isNotEmpty), isTrue);
+    } finally {
+      // Starting resumes an open attempt; only discard one this test created.
+      if (!resumable.contains(id)) await remote.discard(id);
     }
   }, skip: !live);
 }
