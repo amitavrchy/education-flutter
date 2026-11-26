@@ -13,7 +13,7 @@ import '../../shared/widgets/badges.dart';
 import '../../shared/widgets/feedback.dart';
 import '../../shared/widgets/section_header.dart';
 import '../curriculum/domain/curriculum_models.dart';
-import '../parent/guardian_controller.dart' show demoLinkCode;
+import '../parent/remote_guardian.dart' show studentLinkCodeProvider;
 import '../profile/application/student_profile_controller.dart';
 import '../settings/learning_prefs.dart' show ProfileAvatar;
 import 'account_controller.dart';
@@ -417,7 +417,7 @@ class PrivacyScreen extends ConsumerWidget {
               leading: const Icon(Icons.link),
               title: Text(context.tr(const Tr('অভিভাবক যুক্ত করার কোড', 'Code to link a guardian'))),
               subtitle: Text(context.tr(const Tr('অভিভাবক এই কোড দিয়ে তোমাকে যুক্ত করতে পারবেন। কী দেখবেন তা তুমিই ঠিক করো।', 'Your guardian links you with this code. You decide what they see.'))),
-              trailing: SelectableText(demoLinkCode, key: const Key('privacy.linkCode'), style: Theme.of(context).textTheme.titleMedium),
+              trailing: SelectableText(ref.watch(studentLinkCodeProvider).value ?? '…', key: const Key('privacy.linkCode'), style: Theme.of(context).textTheme.titleMedium),
             ),
           ),
           const Divider(),

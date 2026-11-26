@@ -213,3 +213,13 @@ final remoteGuardianProvider = Provider<RemoteGuardian?>((ref) {
   if (auth is! Authenticated || auth.user.role != UserRole.parent) return null;
   return RemoteGuardian(ref.watch(apiClientProvider), auth.user.id);
 });
+
+/// The code a student shares with a guardian: issued by the server in API mode
+/// (`POST /guardian/link-code`, valid for a limited time), the demo code otherwise.
+final studentLinkCodeProvider = FutureProvider<String>((ref) async {
+  if (Env.useMockApi) return demoLinkCode;
+  final auth = ref.watch(authControllerProvider);
+  if (auth is! Authenticated || auth.user.role != UserRole.student) return demoLinkCode;
+  final res = await ref.watch(apiClientProvider).post('/guardian/link-code', parse: (d) => (d! as Map)['code'] as String);
+  return res.data;
+});

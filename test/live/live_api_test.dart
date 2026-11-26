@@ -18,6 +18,7 @@ import 'package:shikkhaai_mobile/features/planner/data/remote_tasks.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/parent/remote_guardian.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
+import 'package:shikkhaai_mobile/features/teacher/remote_teacher.dart';
 
 /// Talks to a running education-backend (demo mode). Skipped unless LIVE_API=1:
 ///   LIVE_API=1 flutter test test/live
@@ -173,5 +174,15 @@ void main() {
     final feedback = await remote.feedback();
     expect(feedback, isNotEmpty);
     expect(await remote.goals(), isNotEmpty);
+  }, skip: !live);
+
+  test('teacher portal: classes, assignments, answer scripts and feedback map from the server', () async {
+    final s = await ApiAuthRepository(client()).login(identifier: 'teacher@shikkha.ai', password: 'demo-password-123');
+    final snap = await RemoteTeacher(client(s.accessToken), teacherId: s.user.id, teacherName: s.user.name).load();
+    expect(snap.classes, isNotEmpty);
+    expect(snap.classes.every((c) => c.students.isNotEmpty), isTrue);
+    expect(snap.state.assignments, isNotEmpty);
+    expect(snap.studentIds, isNotEmpty);
+    expect(snap.state.submissions.every((x) => snap.evaluationOwners.containsKey(x.id)), isTrue);
   }, skip: !live);
 }
