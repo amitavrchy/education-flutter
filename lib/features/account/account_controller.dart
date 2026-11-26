@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/config/env.dart';
 import '../../core/l10n/tr.dart';
 import '../../core/mock/mock_simulator.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/network/network_providers.dart';
 import '../../core/storage/local_store.dart';
+import 'remote_billing.dart';
 
 enum PlanCode { free, pro, family }
 
@@ -170,7 +173,22 @@ class AccountController extends Notifier<AccountState> {
   AccountState build() {
     _store = watchStore(ref);
     final doc = _store.get(_col, _id);
+    if (_billing != null) Future.microtask(refreshBilling);
     return doc == null ? const AccountState() : AccountState.fromJson(doc);
+  }
+
+  RemoteBilling? get _billing => ref.read(remoteBillingProvider);
+
+  /// API mode: pulls the subscription and payments from the server.
+  Future<void> refreshBilling() async {
+    final billing = _billing;
+    if (billing == null || !ref.mounted) return;
+    try {
+      final me = await billing.me();
+      if (ref.mounted) await _save(RemoteBilling.apply(state, me));
+    } catch (_) {
+      // Offline or signed out: keep the cached plan.
+    }
   }
 
   Future<void> _save(AccountState s) async {
@@ -188,7 +206,16 @@ class AccountController extends Notifier<AccountState> {
   }
 
   /// Simulated checkout. Card 4000 0000 0000 0002 always declines (test card).
-  Future<Invoice> checkout({required PlanCode plan, required bool yearly, required String method, required String account, Coupon? coupon}) => _sim.run(() async {
+  Future<Invoice> checkout({required PlanCode plan, required bool yearly, required String method, required String account, Coupon? coupon}) async {
+    final billing = _billing;
+    if (billing == null) return _mockCheckout(plan: plan, yearly: yearly, method: method, account: account, coupon: coupon);
+    final status = await billing.checkout(plan: plan, yearly: yearly, method: method, account: account, coupon: coupon?.code);
+    if (status == 'failed') throw const ApiException(statusCode: 402, code: 'PAYMENT_DECLINED', message: 'পেমেন্ট প্রত্যাখ্যাত হয়েছে।');
+    await refreshBilling();
+    return state.invoices.firstOrNull ?? Invoice('pending', plan, yearly, 0, method, DateTime.now());
+  }
+
+  Future<Invoice> _mockCheckout({required PlanCode plan, required bool yearly, required String method, required String account, Coupon? coupon}) => _sim.run(() async {
     if (account.replaceAll(' ', '') == '4000000000000002') {
       throw const ApiException(statusCode: 402, code: 'PAYMENT_DECLINED', message: 'পেমেন্ট প্রত্যাখ্যাত হয়েছে (টেস্ট কার্ড)।');
     }
@@ -206,9 +233,15 @@ class AccountController extends Notifier<AccountState> {
     return inv;
   }, latencyFactor: 2);
 
-  Future<void> cancel() => _save(state.copyWith(cancelAtPeriodEnd: true));
+  Future<void> cancel() async {
+    await _billing?.cancel();
+    await _save(state.copyWith(cancelAtPeriodEnd: true));
+  }
 
-  Future<void> resume() => _save(state.copyWith(cancelAtPeriodEnd: false));
+  Future<void> resume() async {
+    await _billing?.resume();
+    await _save(state.copyWith(cancelAtPeriodEnd: false));
+  }
 
   Future<void> setPrivacy(String key, bool value) => _save(state.copyWith(privacy: {...state.privacy, key: value}));
 
@@ -226,5 +259,8 @@ class AccountController extends Notifier<AccountState> {
     return t;
   });
 }
+
+/// Server billing in API mode; null with the mock.
+final remoteBillingProvider = Provider<RemoteBilling?>((ref) => Env.useMockApi ? null : RemoteBilling(ref.watch(apiClientProvider)));
 
 final accountProvider = NotifierProvider<AccountController, AccountState>(AccountController.new);

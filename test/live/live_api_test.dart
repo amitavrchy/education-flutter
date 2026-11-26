@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shikkhaai_mobile/core/network/api_client.dart';
+import 'package:shikkhaai_mobile/features/account/account_controller.dart';
+import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
@@ -40,5 +42,13 @@ void main() {
     final items = await RemoteNotifications(client(s.accessToken)).all();
     expect(items, isNotEmpty);
     expect(items.every((n) => RemoteNotifications.isServerId(n.id)), isTrue);
+  }, skip: !live);
+
+  test('billing: /billing/me parses and the declining test card fails', () async {
+    final s = await ApiAuthRepository(client()).login(identifier: 'student@shikkha.ai', password: 'demo-password-123');
+    final billing = RemoteBilling(client(s.accessToken));
+    final state = RemoteBilling.apply(const AccountState(), await billing.me());
+    expect(state.invoices, isNotEmpty);
+    expect(await billing.checkout(plan: PlanCode.pro, yearly: false, method: 'Card', account: '4000000000000002'), 'failed');
   }, skip: !live);
 }
