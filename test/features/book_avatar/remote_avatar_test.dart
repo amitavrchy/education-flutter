@@ -86,8 +86,8 @@ void main() {
       'role': role,
       'text': text,
       'at': '2026-11-26T05:01:00.000Z',
-      'citations': [],
-      'followUps': [],
+      'citations': <Object>[],
+      'followUps': <String>[],
     };
     server.responses['POST /avatar/u-student-1/sessions'] = {'session': session, 'greeting': msg('am-g', 'avatar', 'আসসালামু আলাইকুম!')};
     server.responses['POST /avatar/u-student-1/sessions/as-1/messages'] = {
