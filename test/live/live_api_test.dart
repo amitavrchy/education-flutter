@@ -6,6 +6,7 @@ import 'package:shikkhaai_mobile/core/network/api_client.dart';
 import 'package:shikkhaai_mobile/core/network/owner_sync.dart';
 import 'package:shikkhaai_mobile/features/account/account_controller.dart';
 import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
+import 'package:shikkhaai_mobile/features/ai_tutor/data/remote_tutor.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
 import 'package:shikkhaai_mobile/features/curriculum/data/curriculum_catalog.dart';
@@ -145,5 +146,15 @@ void main() {
       // Starting resumes an open attempt; only discard one this test created.
       if (!resumable.contains(id)) await remote.discard(id);
     }
+  }, skip: !live);
+
+  test("student's tutor conversations, messages and folders map onto the app model", () async {
+    final data = await RemoteTutor(client(await student()), 'u-student-1').load();
+    expect(data.conversations, isNotEmpty);
+    expect(data.folders, isNotEmpty);
+    final messages = [for (final c in data.conversations) ...c.messages];
+    expect(messages.where((m) => m.isUser), isNotEmpty);
+    expect(messages.where((m) => !m.isUser && m.sources.isNotEmpty), isNotEmpty);
+    expect(data.conversations.any((c) => c.folder != null), isTrue);
   }, skip: !live);
 }
