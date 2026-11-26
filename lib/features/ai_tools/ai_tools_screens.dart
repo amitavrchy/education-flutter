@@ -24,6 +24,7 @@ import '../../shared/widgets/rich_content.dart';
 import '../../shared/widgets/section_header.dart';
 import '../settings/learning_prefs.dart';
 import '../teacher/teacher_data.dart';
+import 'remote_evaluation.dart';
 import 'ai_tools_data.dart';
 import '../account/account_controller.dart';
 import '../ai_tutor/data/ai_tutor_repository.dart';
@@ -1175,6 +1176,35 @@ class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
     final rec = _record;
     final r = _result;
     if (rec == null || r == null) return;
+    final remote = ref.read(remoteEvaluationProvider);
+    final title = context.tr(q.stem).replaceAll(RegExp(r'[*#$]'), '').split('\n').first;
+    if (remote != null) {
+      try {
+        await remote.send(RemoteEvaluation.recordFor(
+          id: 'ev-${rec.id}',
+          studentId: remote.studentId,
+          studentName: ref.read(studentProfileProvider).name,
+          question: q,
+          title: title,
+          pages: rec.pages,
+          aiMarks: r.marks,
+          maxMarks: r.total,
+          criteria: r.criteria,
+          missing: r.missing,
+          tips: r.tips,
+          ocrText: rec.extracted,
+        ));
+      } on ApiException catch (e) {
+        if (mounted) context.showErrorSnack(e);
+        return;
+      }
+      await ref.read(aiToolsProvider.notifier).linkSubmission(rec.id, 'ev-${rec.id}');
+      if (mounted) {
+        setState(() => _record = rec.withSubmission('ev-${rec.id}'));
+        context.showSnack(AiToolStrings.reviewRequested);
+      }
+      return;
+    }
     final sub = Submission(
       id: 'sub-${rec.id}',
       student: selfChildName,

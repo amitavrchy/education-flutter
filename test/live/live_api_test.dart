@@ -15,6 +15,8 @@ import 'package:shikkhaai_mobile/features/flashcards/data/remote_flashcards.dart
 import 'package:shikkhaai_mobile/features/notes/data/remote_notes.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
 import 'package:shikkhaai_mobile/features/planner/data/remote_tasks.dart';
+import 'package:shikkhaai_mobile/features/profile/data/remote_profile.dart';
+import 'package:shikkhaai_mobile/features/profile/domain/student_profile.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/parent/remote_guardian.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
@@ -188,5 +190,14 @@ void main() {
     final review = RemoteReview(client(s.accessToken));
     expect(await review.items(), isNotEmpty);
     expect((await review.rubrics()).every((r) => r.criteria.isNotEmpty), isTrue);
+  }, skip: !live);
+
+  test("student's profile and privacy map from the server", () async {
+    final j = await RemoteProfile(client(await student()), 'u-student-1').load();
+    expect(j, isNotNull);
+    final p = RemoteProfile.fromApi(j!, const StudentProfile());
+    expect(p.name, isNotEmpty);
+    expect(p.onboarded, isTrue);
+    expect(RemoteProfile.privacyFrom(j).keys, containsAll(['progress', 'scores', 'conversations', 'leaderboard']));
   }, skip: !live);
 }

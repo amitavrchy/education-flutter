@@ -7,6 +7,7 @@ import '../../core/network/api_exception.dart';
 import '../../core/network/network_providers.dart';
 import '../../core/storage/local_store.dart';
 import 'remote_billing.dart';
+import '../profile/application/student_profile_controller.dart';
 
 enum PlanCode { free, pro, family }
 
@@ -243,7 +244,20 @@ class AccountController extends Notifier<AccountState> {
     await _save(state.copyWith(cancelAtPeriodEnd: false));
   }
 
-  Future<void> setPrivacy(String key, bool value) => _save(state.copyWith(privacy: {...state.privacy, key: value}));
+  Future<void> setPrivacy(String key, bool value) async {
+    await _save(state.copyWith(privacy: {...state.privacy, key: value}));
+    try {
+      await ref.read(studentProfileProvider.notifier).syncPrivacy(key, value);
+    } catch (_) {
+      // Kept on the device; the next refresh shows the server's choice.
+    }
+  }
+
+  /// API mode: the server profile's privacy choices (only the keys the server knows).
+  Future<void> applyServerPrivacy(Map<String, bool> server) async {
+    if (server.isEmpty) return;
+    await _save(state.copyWith(privacy: {...state.privacy, ...server}));
+  }
 
   Future<void> setRetention(int months) => _save(state.copyWith(retentionMonths: months));
 
