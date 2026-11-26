@@ -14,52 +14,19 @@ class BookAvatarEngine {
   static final _latin = RegExp(r'[a-zA-Z]');
   static final _greeting = RegExp(r'(^|\s)(হ্যালো|হাই|আসসালামু|সালাম|নমস্কার|hello|hi|hey|salam)(\s|[!?।,.]|$)', caseSensitive: false);
   static final _whoAreYou = RegExp(r'(তুমি কে|আপনি কে|তোমার নাম|আপনার নাম|who are you|your name)', caseSensitive: false);
-  static final _contents = RegExp(
-    r'(কী কী অধ্যায়|কোন কোন অধ্যায়|অধ্যায়গুলো|সূচিপত্র|সূচি|what chapters|which chapters|table of contents|contents)',
-    caseSensitive: false,
-  );
+  static final _contents = RegExp(r'(কী কী অধ্যায়|কোন কোন অধ্যায়|অধ্যায়গুলো|সূচিপত্র|সূচি|what chapters|which chapters|table of contents|contents)', caseSensitive: false);
   static const _stop = {
-    'কী',
-    'কি',
-    'কাকে',
-    'বলে',
-    'কর',
-    'করো',
-    'বলো',
-    'দাও',
-    'বুঝিয়ে',
-    'এর',
-    'ও',
-    'এবং',
-    'একটি',
-    'কেন',
-    'কীভাবে',
-    'হয়',
-    'আমাকে',
-    'what',
-    'is',
-    'the',
-    'a',
-    'an',
-    'of',
-    'and',
-    'to',
-    'in',
-    'how',
-    'why',
-    'explain',
-    'define',
-    'me',
-    'please',
-    'does',
-    'do',
-    'are',
+    'কী', 'কি', 'কাকে', 'বলে', 'কর', 'করো', 'বলো', 'দাও', 'বুঝিয়ে', 'এর', 'ও', 'এবং', 'একটি', 'কেন', 'কীভাবে', 'হয়', 'আমাকে',
+    'what', 'is', 'the', 'a', 'an', 'of', 'and', 'to', 'in', 'how', 'why', 'explain', 'define', 'me', 'please', 'does', 'do', 'are',
   };
 
   static bool isBangla(String s) => _bangla.hasMatch(s);
 
-  static List<String> tokens(String s) =>
-      s.toLowerCase().split(RegExp(r'[\s,.;:!?।()\[\]{}"/\\-]+')).where((t) => t.length >= 2 && !_stop.contains(t)).toList();
+  static List<String> tokens(String s) => s
+      .toLowerCase()
+      .split(RegExp(r'[\s,.;:!?।()\[\]{}"/\\-]+'))
+      .where((t) => t.length >= 2 && !_stop.contains(t))
+      .toList();
 
   /// Speakable text: strips Markdown, links and LaTeX.
   static String toSpoken(String md, String lang) {
@@ -167,7 +134,9 @@ class BookAvatarEngine {
       parts.add('📖 ${lang == 'bn' ? 'সূত্র' : 'Source'}: "$bookTitle", ${lang == 'bn' ? 'পৃষ্ঠা' : 'page'} ${n(s.page)}');
       return done(
         '$opener\n\n${parts.join('\n\n')}',
-        citations: [AvatarCitation(page: s.page, chapterTitle: chapter == null ? '' : t(chapter.title), heading: t(s.title), excerpt: t(s.excerpt))],
+        citations: [
+          AvatarCitation(page: s.page, chapterTitle: chapter == null ? '' : t(chapter.title), heading: t(s.title), excerpt: t(s.excerpt)),
+        ],
         followUps: [for (final f in s.followUps) t(f)],
       );
     }

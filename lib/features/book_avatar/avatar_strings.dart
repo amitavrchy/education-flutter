@@ -73,10 +73,7 @@ abstract final class AvatarStrings {
   static const reportsTab = Tr('রিপোর্ট', 'Reports');
   static const testChat = Tr('পরীক্ষা চ্যাট', 'Test chat');
   static const testHint = Tr('পরীক্ষামূলক প্রশ্ন…', 'Test question…');
-  static const testNote = Tr(
-    'এখানে প্রশ্ন করে দেখুন অ্যাভাটার কীভাবে উত্তর দেয় — কিছুই সংরক্ষিত হয় না।',
-    'Try questions to see how the avatar answers — nothing is saved.',
-  );
+  static const testNote = Tr('এখানে প্রশ্ন করে দেখুন অ্যাভাটার কীভাবে উত্তর দেয় — কিছুই সংরক্ষিত হয় না।', 'Try questions to see how the avatar answers — nothing is saved.');
   static const sessions = Tr('ক্লাস', 'Classes');
   static const questions = Tr('প্রশ্ন', 'Questions');
   static const outOfScope = Tr('বাইরের', 'Out of scope');

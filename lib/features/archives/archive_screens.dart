@@ -54,10 +54,7 @@ abstract final class ArchiveStrings {
   static const pattern = Tr('প্রশ্নের প্যাটার্ন', 'Exam pattern');
   static const compare = Tr('বছরভিত্তিক তুলনা', 'Compare across years');
   static const institution = Tr('স্কুল-কলেজের প্রশ্ন', 'School & college papers');
-  static const institutionHint = Tr(
-    'বিভিন্ন স্কুল-কলেজের পরীক্ষার প্রশ্ন (ডেমো প্রতিষ্ঠান ও নমুনা প্রশ্ন)।',
-    'Exam papers from schools and colleges (demo institutions and sample questions).',
-  );
+  static const institutionHint = Tr('বিভিন্ন স্কুল-কলেজের পরীক্ষার প্রশ্ন (ডেমো প্রতিষ্ঠান ও নমুনা প্রশ্ন)।', 'Exam papers from schools and colleges (demo institutions and sample questions).');
   static const searchInstitution = Tr('প্রতিষ্ঠান খুঁজুন', 'Search institutions');
   static const district = Tr('জেলা', 'District');
   static const school = Tr('স্কুল', 'School');
@@ -90,10 +87,7 @@ abstract final class ArchiveStrings {
   static const permission = Tr('অনুমতি', 'Permission');
   static const permissionValue = Tr('শিক্ষার জন্য প্রদর্শন ও অনুশীলন', 'Display and practice for learning');
   static const private = Tr('শুধু প্রতিষ্ঠানের শিক্ষার্থীদের জন্য', 'Only for students of this institution');
-  static const privateLocked = Tr(
-    'এই প্রশ্নপত্র প্রতিষ্ঠানটি ব্যক্তিগত রেখেছে। তোমার প্রোফাইলে এই প্রতিষ্ঠান থাকলে দেখতে পাবে।',
-    'The institution keeps this paper private. You can see it if this institution is on your profile.',
-  );
+  static const privateLocked = Tr('এই প্রশ্নপত্র প্রতিষ্ঠানটি ব্যক্তিগত রেখেছে। তোমার প্রোফাইলে এই প্রতিষ্ঠান থাকলে দেখতে পাবে।', 'The institution keeps this paper private. You can see it if this institution is on your profile.');
   static const public = Tr('সবার জন্য', 'Public');
   static const teacherUploaded = Tr('শিক্ষকের আপলোড', 'Teacher uploaded');
   static const duplicate = Tr('সম্ভাব্য ডুপ্লিকেট: {t}', 'Possible duplicate: {t}');
@@ -136,17 +130,13 @@ class _BoardArchiveScreenState extends ConsumerState<BoardArchiveScreen> {
   @override
   Widget build(BuildContext context) {
     final bank = _bank(ref);
-    final subjects = [
-      for (final s in seedSubjects)
-        if (s.level == _level) s,
-    ];
+    final subjects = [for (final s in seedSubjects) if (s.level == _level) s];
     // Older editions only have papers up to 2018; supplementary sittings cover fewer subjects.
     final editionOk = _edition == 'nctb-2025' ? _year >= 2019 : _year < 2019;
     final papers = [
       if (editionOk)
         for (final (i, s) in subjects.indexed)
-          if ((_subjectId == null || s.id == _subjectId) && (_type == BoardExamType.regular || i.isEven))
-            ?boardPaper(bank, subject: s, boardId: _board, year: _year),
+          if ((_subjectId == null || s.id == _subjectId) && (_type == BoardExamType.regular || i.isEven)) ?boardPaper(bank, subject: s, boardId: _board, year: _year),
     ];
     final saved = ref.watch(archiveProvider).saved;
     return DefaultTabController(
@@ -156,11 +146,7 @@ class _BoardArchiveScreenState extends ConsumerState<BoardArchiveScreen> {
         scrollable: false,
         bottom: TabBar(
           tabAlignment: TabAlignment.fill,
-          tabs: [
-            Tab(text: context.tr(ArchiveStrings.papers)),
-            Tab(text: context.tr(ArchiveStrings.insights)),
-            Tab(text: '${context.tr(ArchiveStrings.saved)} (${context.n(saved.length)})'),
-          ],
+          tabs: [Tab(text: context.tr(ArchiveStrings.papers)), Tab(text: context.tr(ArchiveStrings.insights)), Tab(text: '${context.tr(ArchiveStrings.saved)} (${context.n(saved.length)})')],
         ),
         body: TabBarView(
           children: [
@@ -221,13 +207,7 @@ class _BoardArchiveScreenState extends ConsumerState<BoardArchiveScreen> {
                         isExpanded: true,
                         initialValue: _edition,
                         decoration: InputDecoration(labelText: context.tr(ArchiveStrings.curriculum)),
-                        items: [
-                          for (final v in curriculumVersions)
-                            DropdownMenuItem(
-                              value: v.id,
-                              child: Text(context.tr(v.name), overflow: TextOverflow.ellipsis),
-                            ),
-                        ],
+                        items: [for (final v in curriculumVersions) DropdownMenuItem(value: v.id, child: Text(context.tr(v.name), overflow: TextOverflow.ellipsis))],
                         onChanged: (v) => setState(() => _edition = v ?? _edition),
                       ),
                     ),
@@ -276,10 +256,7 @@ class _BoardInsights extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bank = _bank(ref);
-    final subjects = [
-      for (final s in seedSubjects)
-        if (s.level == level && (subjectId == null || s.id == subjectId)) s,
-    ];
+    final subjects = [for (final s in seedSubjects) if (s.level == level && (subjectId == null || s.id == subjectId)) s];
     // Chapter frequency from question frequency tags.
     final freq = <String, (Chapter, int)>{};
     for (final q in bank) {
@@ -308,23 +285,13 @@ class _BoardInsights extends ConsumerWidget {
       }
     }
     final trendChapters = top.take(5).map((e) => e.$1).toList();
-    final repeated = [
-      for (final e in topicYears.entries)
-        if (e.value.length >= 3) e,
-    ]..sort((a, b) => b.value.length.compareTo(a.value.length));
+    final repeated = [for (final e in topicYears.entries) if (e.value.length >= 3) e]..sort((a, b) => b.value.length.compareTo(a.value.length));
     final clusters = <String, List<Question>>{};
     for (final q in bank) {
       if (subjects.any((s) => s.id == q.subjectId)) (clusters['${q.chapterId}|${q.type.name}'] ??= []).add(q);
     }
-    final bigClusters = [
-      for (final e in clusters.entries)
-        if (e.value.length >= 3) e,
-    ]..sort((a, b) => b.value.length.compareTo(a.value.length));
-    final topicTitle = {
-      for (final s in subjects)
-        for (final c in s.chapters)
-          for (final t in c.topics) t.id: t.title,
-    };
+    final bigClusters = [for (final e in clusters.entries) if (e.value.length >= 3) e]..sort((a, b) => b.value.length.compareTo(a.value.length));
+    final topicTitle = {for (final s in subjects) for (final c in s.chapters) for (final t in c.topics) t.id: t.title};
     return ListView(
       children: [
         SectionHeader(title: context.tr(ArchiveStrings.frequency)),
@@ -351,12 +318,10 @@ class _BoardInsights extends ConsumerWidget {
             ],
             rows: [
               for (final c in trendChapters)
-                DataRow(
-                  cells: [
-                    DataCell(SizedBox(width: 140, child: Text(context.tr(c.title), overflow: TextOverflow.ellipsis))),
-                    for (final y in years.reversed) DataCell(Text(context.n(perYear[c.id]?[y] ?? 0))),
-                  ],
-                ),
+                DataRow(cells: [
+                  DataCell(SizedBox(width: 140, child: Text(context.tr(c.title), overflow: TextOverflow.ellipsis))),
+                  for (final y in years.reversed) DataCell(Text(context.n(perYear[c.id]?[y] ?? 0))),
+                ]),
             ],
           ),
         ),
@@ -378,11 +343,7 @@ class _BoardInsights extends ConsumerWidget {
             subtitle: Text(context.tr(ArchiveStrings.questions.fill({'n': e.value.length}))),
             children: [
               for (final q in e.value.take(4))
-                ListTile(
-                  dense: true,
-                  title: Text(context.tr(q.stem), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  onTap: () => context.push(AppRoutes.question(q.id)),
-                ),
+                ListTile(dense: true, title: Text(context.tr(q.stem), maxLines: 2, overflow: TextOverflow.ellipsis), onTap: () => context.push(AppRoutes.question(q.id))),
             ],
           ),
       ],
@@ -404,13 +365,11 @@ class _PaperTile extends ConsumerWidget {
         key: Key('paper.${paper.id}'),
         leading: IconTile(icon: paper.subject.icon, color: paper.subject.color),
         title: Text(context.tr(paper.title)),
-        subtitle: Text(
-          [
-            if (paper.institution != null) context.tr(paper.institution!.name),
-            context.tr(ArchiveStrings.questions.fill({'n': paper.questionIds.length})),
-            if (paperIsPrivate(paper)) context.tr(ArchiveStrings.private),
-          ].join(' · '),
-        ),
+        subtitle: Text([
+          if (paper.institution != null) context.tr(paper.institution!.name),
+          context.tr(ArchiveStrings.questions.fill({'n': paper.questionIds.length})),
+          if (paperIsPrivate(paper)) context.tr(ArchiveStrings.private),
+        ].join(' · ')),
         trailing: Icon(saved ? Icons.bookmark : Icons.chevron_right),
         onTap: () => context.push(paper.isBoard ? AppRoutes.boardPaper(paper.id) : AppRoutes.institutionPaper(paper.id)),
       ),
@@ -460,14 +419,7 @@ class _InstitutionArchiveScreenState extends ConsumerState<InstitutionArchiveScr
       isExpanded: true,
       initialValue: value,
       decoration: InputDecoration(labelText: context.tr(label), isDense: true),
-      items: [
-        DropdownMenuItem<T?>(child: Text(context.tr(ArchiveStrings.all))),
-        for (final (v, l) in items)
-          DropdownMenuItem<T?>(
-            value: v,
-            child: Text(l, overflow: TextOverflow.ellipsis),
-          ),
-      ],
+      items: [DropdownMenuItem<T?>(child: Text(context.tr(ArchiveStrings.all))), for (final (v, l) in items) DropdownMenuItem<T?>(value: v, child: Text(l, overflow: TextOverflow.ellipsis))],
       onChanged: onChanged,
     );
     return AppPageScaffold(
@@ -477,11 +429,7 @@ class _InstitutionArchiveScreenState extends ConsumerState<InstitutionArchiveScr
         children: [
           Text(context.tr(ArchiveStrings.institutionHint), style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: AppSpacing.md),
-          TextField(
-            key: const Key('inst.search'),
-            decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: context.tr(ArchiveStrings.searchInstitution)),
-            onChanged: (v) => setState(() => _q = v),
-          ),
+          TextField(key: const Key('inst.search'), decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: context.tr(ArchiveStrings.searchInstitution)), onChanged: (v) => setState(() => _q = v)),
           const SizedBox(height: AppSpacing.sm),
           ChoiceChipBar<bool?>(
             options: const [null, false, true],
@@ -492,33 +440,17 @@ class _InstitutionArchiveScreenState extends ConsumerState<InstitutionArchiveScr
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              Expanded(
-                child: drop<String>(ArchiveStrings.district, _district, [
-                  for (final e in districts.entries) (e.key, context.tr(e.value)),
-                ], (v) => setState(() => _district = v)),
-              ),
+              Expanded(child: drop<String>(ArchiveStrings.district, _district, [for (final e in districts.entries) (e.key, context.tr(e.value))], (v) => setState(() => _district = v))),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: drop<int>(ArchiveStrings.year, _year, [
-                  for (final y in const [2025, 2024]) (y, context.n(y)),
-                ], (v) => setState(() => _year = v)),
-              ),
+              Expanded(child: drop<int>(ArchiveStrings.year, _year, [for (final y in const [2025, 2024]) (y, context.n(y))], (v) => setState(() => _year = v))),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              Expanded(
-                child: drop<String>(ArchiveStrings.subject, _subjectId, [
-                  for (final s in subjects.values) (s.id, '${context.tr(s.name)} (${s.level.code})'),
-                ], (v) => setState(() => _subjectId = v)),
-              ),
+              Expanded(child: drop<String>(ArchiveStrings.subject, _subjectId, [for (final s in subjects.values) (s.id, '${context.tr(s.name)} (${s.level.code})')], (v) => setState(() => _subjectId = v))),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: drop<PaperCategory>(ArchiveStrings.category, _category, [
-                  for (final c in PaperCategory.values) (c, context.tr(c.label)),
-                ], (v) => setState(() => _category = v)),
-              ),
+              Expanded(child: drop<PaperCategory>(ArchiveStrings.category, _category, [for (final c in PaperCategory.values) (c, context.tr(c.label))], (v) => setState(() => _category = v))),
             ],
           ),
           SectionHeader(title: context.tr(ArchiveStrings.directory)),
@@ -532,13 +464,7 @@ class _InstitutionArchiveScreenState extends ConsumerState<InstitutionArchiveScr
                 leading: Icon(e.key.college ? Icons.account_balance : Icons.school_outlined),
                 title: Text(context.tr(e.key.name)),
                 subtitle: Text('${context.tr(e.key.district)} · ${context.tr(ArchiveStrings.collection.fill({'n': e.value.length}))}'),
-                children: [
-                  for (final p in e.value)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      child: _PaperTile(paper: p),
-                    ),
-                ],
+                children: [for (final p in e.value) Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm), child: _PaperTile(paper: p))],
               ),
             ),
         ],
@@ -564,17 +490,15 @@ class _ArchivePaperScreenState extends ConsumerState<ArchivePaperScreen> {
   Future<void> _timed(ArchivePaper paper, List<Question> questions) async {
     final minutes = math.max(10, questions.fold<int>(0, (s, q) => s + q.marks) * 2);
     try {
-      final attempt = await ref
-          .read(examProvider.notifier)
-          .start(
-            template: ExamTemplate(
-              id: 'tmpl-${paper.id}',
-              type: paper.isBoard ? ExamType.boardPrevious : ExamType.custom,
-              title: paper.title,
-              config: ExamConfig(subjectId: paper.subject.id, questionCount: questions.length, timeLimitMinutes: minutes, randomize: false),
-              questionIds: paper.questionIds,
-            ),
-          );
+      final attempt = await ref.read(examProvider.notifier).start(
+        template: ExamTemplate(
+          id: 'tmpl-${paper.id}',
+          type: paper.isBoard ? ExamType.boardPrevious : ExamType.custom,
+          title: paper.title,
+          config: ExamConfig(subjectId: paper.subject.id, questionCount: questions.length, timeLimitMinutes: minutes, randomize: false),
+          questionIds: paper.questionIds,
+        ),
+      );
       if (mounted) await context.push(AppRoutes.examTake(attempt.id));
     } on ApiException catch (e) {
       if (mounted) context.showErrorSnack(e);
@@ -604,10 +528,7 @@ class _ArchivePaperScreenState extends ConsumerState<ArchivePaperScreen> {
     final profileInst = ref.watch(studentProfileProvider.select((p) => p.institution));
     final locked = paperIsPrivate(paper) && !(paper.institution?.name.matches(profileInst) ?? false || profileInst.isEmpty);
     final dup = paper.isBoard ? null : duplicateOf(paper, institutionPapers(bank));
-    final mcqs = [
-      for (final (i, q) in questions.indexed)
-        if (q.type == QuestionType.mcq && q.correctIndex != null) (i, q),
-    ];
+    final mcqs = [for (final (i, q) in questions.indexed) if (q.type == QuestionType.mcq && q.correctIndex != null) (i, q)];
     final byType = <QuestionType, (int, int)>{};
     for (final q in questions) {
       final e = byType[q.type] ?? (0, 0);
@@ -655,8 +576,7 @@ class _ArchivePaperScreenState extends ConsumerState<ArchivePaperScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(context.tr(paper.title), style: text.titleMedium),
-          if (paper.institution != null)
-            Text('${context.tr(paper.institution!.name)} · ${context.tr(paper.institution!.district)} · ${context.n(paper.year)}', style: text.bodySmall),
+          if (paper.institution != null) Text('${context.tr(paper.institution!.name)} · ${context.tr(paper.institution!.district)} · ${context.n(paper.year)}', style: text.bodySmall),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.xs,
@@ -664,11 +584,7 @@ class _ArchivePaperScreenState extends ConsumerState<ArchivePaperScreen> {
             children: [
               if (paper.isBoard) Pill(context.tr(ArchiveStrings.sample), tone: Tone.warning),
               if (paper.category != null) Pill(context.tr(paper.category!.label)),
-              if (!paper.isBoard)
-                Pill(
-                  context.tr(paperIsPrivate(paper) ? ArchiveStrings.private : ArchiveStrings.public),
-                  icon: paperIsPrivate(paper) ? Icons.lock_outline : Icons.public,
-                ),
+              if (!paper.isBoard) Pill(context.tr(paperIsPrivate(paper) ? ArchiveStrings.private : ArchiveStrings.public), icon: paperIsPrivate(paper) ? Icons.lock_outline : Icons.public),
               if (paperTeacherUploaded(paper)) Pill(context.tr(ArchiveStrings.teacherUploaded), tone: Tone.info, icon: Icons.upload_file),
               Pill(context.tr(ArchiveStrings.verified), tone: Tone.success, icon: Icons.verified_outlined),
               if (archive.reported.containsKey(paper.id)) Pill(context.tr(ArchiveStrings.reported), tone: Tone.neutral, icon: Icons.flag_outlined),
@@ -721,10 +637,7 @@ class _ArchivePaperScreenState extends ConsumerState<ArchivePaperScreen> {
                           width: double.maxFinite,
                           color: Colors.grey.shade200,
                           padding: const EdgeInsets.all(AppSpacing.md),
-                          child: Text(
-                            _plain(paper, questions.take(3).toList()),
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black87),
-                          ),
+                          child: Text(_plain(paper, questions.take(3).toList()), style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black87)),
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(ctx.tr(ArchiveStrings.scanNote), style: Theme.of(ctx).textTheme.bodySmall),
@@ -735,23 +648,14 @@ class _ArchivePaperScreenState extends ConsumerState<ArchivePaperScreen> {
                 icon: const Icon(Icons.document_scanner_outlined),
                 label: Text(context.tr(ArchiveStrings.viewScan)),
               ),
-            SwitchListTile(
-              key: const Key('paper.solved'),
-              contentPadding: EdgeInsets.zero,
-              title: Text(context.tr(ArchiveStrings.solved)),
-              value: _solved,
-              onChanged: (v) => setState(() => _solved = v),
-            ),
+            SwitchListTile(key: const Key('paper.solved'), contentPadding: EdgeInsets.zero, title: Text(context.tr(ArchiveStrings.solved)), value: _solved, onChanged: (v) => setState(() => _solved = v)),
             if (_solved && mcqs.isNotEmpty) ...[
               Text(context.tr(ArchiveStrings.answerSheet), style: text.labelLarge),
               const SizedBox(height: AppSpacing.xs),
               Wrap(
                 spacing: AppSpacing.xs,
                 runSpacing: AppSpacing.xs,
-                children: [
-                  for (final (i, q) in mcqs)
-                    Chip(label: Text('${context.n(i + 1)} → ${String.fromCharCode(0x0995 + q.correctIndex!)}'), visualDensity: VisualDensity.compact),
-                ],
+                children: [for (final (i, q) in mcqs) Chip(label: Text('${context.n(i + 1)} → ${String.fromCharCode(0x0995 + q.correctIndex!)}'), visualDensity: VisualDensity.compact)],
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
@@ -806,27 +710,18 @@ class _ArchivePaperScreenState extends ConsumerState<ArchivePaperScreen> {
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   columnSpacing: 16,
-                  columns: [
-                    DataColumn(label: Text(context.tr(ArchiveStrings.subject))),
-                    for (final y in compareYears) DataColumn(label: Text(context.n(y)), numeric: true),
-                  ],
+                  columns: [DataColumn(label: Text(context.tr(ArchiveStrings.subject))), for (final y in compareYears) DataColumn(label: Text(context.n(y)), numeric: true)],
                   rows: [
                     for (final c in chapters.values)
-                      DataRow(
-                        cells: [
-                          DataCell(SizedBox(width: 140, child: Text(context.tr(c.title), overflow: TextOverflow.ellipsis))),
-                          for (final y in compareYears)
-                            DataCell(
-                              Text(
-                                context.n(
-                                  (boardPaper(bank, subject: paper.subject, boardId: paper.boardId!, year: y)?.questionIds ?? const <String>[])
-                                      .where((id) => bank.where((q) => q.id == id).firstOrNull?.chapterId == c.id)
-                                      .length,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                      DataRow(cells: [
+                        DataCell(SizedBox(width: 140, child: Text(context.tr(c.title), overflow: TextOverflow.ellipsis))),
+                        for (final y in compareYears)
+                          DataCell(Text(context.n(
+                            (boardPaper(bank, subject: paper.subject, boardId: paper.boardId!, year: y)?.questionIds ?? const <String>[])
+                                .where((id) => bank.where((q) => q.id == id).firstOrNull?.chapterId == c.id)
+                                .length,
+                          ))),
+                      ]),
                   ],
                 ),
               ),

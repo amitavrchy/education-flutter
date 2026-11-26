@@ -210,7 +210,8 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
               padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xs),
               child: Text(context.tr(AvatarStrings.sampleVoiceQuestions), style: Theme.of(context).textTheme.titleSmall),
             ),
-            for (final s in samples) ListTile(leading: const Icon(Icons.record_voice_over_outlined), title: Text(s), onTap: () => Navigator.pop(context, s)),
+            for (final s in samples)
+              ListTile(leading: const Icon(Icons.record_voice_over_outlined), title: Text(s), onTap: () => Navigator.pop(context, s)),
           ],
         ),
       ),
@@ -267,10 +268,7 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
 
   Future<void> _history() async {
     final ctrl = ref.read(avatarControllerProvider.notifier);
-    final sessions = [
-      for (final s in ref.read(avatarControllerProvider).sessionsOf(ctrl.currentUserId))
-        if (s.bookId == widget.bookId) s,
-    ];
+    final sessions = [for (final s in ref.read(avatarControllerProvider).sessionsOf(ctrl.currentUserId)) if (s.bookId == widget.bookId) s];
     final picked = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -410,30 +408,17 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
                       Wrap(
                         spacing: AppSpacing.xs,
                         runSpacing: AppSpacing.xs,
-                        children: [
-                          Pill(context.tr(AvatarStrings.onlyThisBook), tone: Tone.success, icon: Icons.menu_book_outlined),
-                          const SimulatedBadge(),
-                        ],
+                        children: [Pill(context.tr(AvatarStrings.onlyThisBook), tone: Tone.success, icon: Icons.menu_book_outlined), const SimulatedBadge()],
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Semantics(liveRegion: true, child: Text(context.tr(status), style: text.titleSmall)),
                       const SizedBox(height: AppSpacing.xs),
                       if (_interim.isNotEmpty)
-                        Text(
-                          '“$_interim”',
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.bodySmall?.copyWith(fontStyle: FontStyle.italic),
-                        )
+                        Text('“$_interim”', maxLines: 3, overflow: TextOverflow.ellipsis, style: text.bodySmall?.copyWith(fontStyle: FontStyle.italic))
                       else if (_caption.isNotEmpty)
                         Text(_caption, key: const Key('avatar.caption'), maxLines: 4, overflow: TextOverflow.ellipsis, style: text.bodySmall)
                       else if (_sessionId == null)
-                        Text(
-                          context.tr(a.voice.language == 'en' ? Tr.same(a.greeting.en) : Tr.same(a.greeting.bn)),
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.bodySmall,
-                        ),
+                        Text(context.tr(a.voice.language == 'en' ? Tr.same(a.greeting.en) : Tr.same(a.greeting.bn)), maxLines: 4, overflow: TextOverflow.ellipsis, style: text.bodySmall),
                     ],
                   ),
                 ),
@@ -453,8 +438,7 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
                   onPressed: offline || _asking ? null : _listen,
                   icon: Icon(_listening ? Icons.mic_off : Icons.mic),
                 ),
-                if (_speaking)
-                  IconButton(tooltip: context.tr(AvatarStrings.stopSpeaking), onPressed: _stopSpeaking, icon: const Icon(Icons.stop_circle_outlined)),
+                if (_speaking) IconButton(tooltip: context.tr(AvatarStrings.stopSpeaking), onPressed: _stopSpeaking, icon: const Icon(Icons.stop_circle_outlined)),
                 IconButton(
                   key: const Key('avatar.mute'),
                   tooltip: context.tr(_muted ? AvatarStrings.unmute : AvatarStrings.mute),
@@ -465,28 +449,15 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
                   tooltip: context.tr(AvatarStrings.speed),
                   initialValue: _rate,
                   onSelected: (v) => setState(() => _rate = v),
-                  itemBuilder: (context) => [
-                    for (final r in const [0.75, 1.0, 1.25]) PopupMenuItem(value: r, child: Text('${context.n(r)}×')),
-                  ],
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    child: Text('${context.n(_rate)}×', style: text.labelLarge),
-                  ),
+                  itemBuilder: (context) => [for (final r in const [0.75, 1.0, 1.25]) PopupMenuItem(value: r, child: Text('${context.n(r)}×'))],
+                  child: Padding(padding: const EdgeInsets.all(AppSpacing.sm), child: Text('${context.n(_rate)}×', style: text.labelLarge)),
                 ),
                 const Spacer(),
                 Flexible(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Flexible(
-                        child: Text(
-                          context.tr(AvatarStrings.handsFree),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.labelSmall,
-                          textAlign: TextAlign.end,
-                        ),
-                      ),
+                      Flexible(child: Text(context.tr(AvatarStrings.handsFree), maxLines: 2, overflow: TextOverflow.ellipsis, style: text.labelSmall, textAlign: TextAlign.end)),
                       Switch(value: _handsFree, onChanged: (v) => setState(() => _handsFree = v)),
                     ],
                   ),
@@ -597,9 +568,7 @@ class _StudentBubble extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (message.voiceInput) ...[Icon(Icons.mic, size: 14, color: c.onPrimary), const SizedBox(width: AppSpacing.xs)],
-            Flexible(
-              child: Text(message.text, style: TextStyle(color: c.onPrimary)),
-            ),
+            Flexible(child: Text(message.text, style: TextStyle(color: c.onPrimary))),
           ],
         ),
       ),
@@ -659,12 +628,7 @@ class _AvatarBubble extends ConsumerWidget {
               if (m.grounded != Grounding.greeting)
                 Row(
                   children: [
-                    IconButton(
-                      tooltip: context.tr(AvatarStrings.replay),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onReplay,
-                      icon: const Icon(Icons.volume_up_outlined, size: 18),
-                    ),
+                    IconButton(tooltip: context.tr(AvatarStrings.replay), visualDensity: VisualDensity.compact, onPressed: onReplay, icon: const Icon(Icons.volume_up_outlined, size: 18)),
                     IconButton(
                       tooltip: context.tr(AvatarStrings.helpful),
                       visualDensity: VisualDensity.compact,
@@ -684,13 +648,7 @@ class _AvatarBubble extends ConsumerWidget {
                       icon: const Icon(Icons.thumb_down_outlined, size: 18),
                       selectedIcon: const Icon(Icons.thumb_down, size: 18),
                     ),
-                    IconButton(
-                      key: Key('avatar.report.${m.id}'),
-                      tooltip: context.tr(AvatarStrings.report),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onReport,
-                      icon: const Icon(Icons.flag_outlined, size: 18),
-                    ),
+                    IconButton(key: Key('avatar.report.${m.id}'), tooltip: context.tr(AvatarStrings.report), visualDensity: VisualDensity.compact, onPressed: onReport, icon: const Icon(Icons.flag_outlined, size: 18)),
                   ],
                 ),
             ],

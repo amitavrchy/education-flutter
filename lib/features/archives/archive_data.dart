@@ -76,19 +76,10 @@ const archiveYears = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015
 
 /// Deterministic pick of up to [n] questions of a subject for a paper.
 List<String> _pick(List<Question> bank, Subject s, String seed, {int n = 8, String? boardId, int? year}) {
-  final mine = [
-    for (final q in bank)
-      if (q.subjectId == s.id) q,
-  ];
+  final mine = [for (final q in bank) if (q.subjectId == s.id) q];
   // Real board-tagged samples of this board/year come first.
-  final tagged = [
-    for (final q in mine)
-      if (boardId != null && q.boardId == boardId && q.year == year) q.id,
-  ];
-  final rest = [
-    for (final q in mine)
-      if (!tagged.contains(q.id)) q,
-  ]..sort((a, b) => mixHash('$seed${a.id}').compareTo(mixHash('$seed${b.id}')));
+  final tagged = [for (final q in mine) if (boardId != null && q.boardId == boardId && q.year == year) q.id];
+  final rest = [for (final q in mine) if (!tagged.contains(q.id)) q]..sort((a, b) => mixHash('$seed${a.id}').compareTo(mixHash('$seed${b.id}')));
   return [...tagged, ...rest.map((q) => q.id)].take(n).toList();
 }
 
@@ -140,11 +131,7 @@ List<ArchivePaper> _serverInstitutionPapers(List<Question> bank) {
   return [
     for (final p in ArchiveCatalog.institutionPapers)
       if ((subjectById(p['subjectId'] as String? ?? ''), insts[p['institutionId']]) case (final s?, final inst?))
-        if ([
-              for (final q in p['questionIds'] as List? ?? const [])
-                if (known.contains(q)) q as String,
-            ]
-            case final ids when ids.isNotEmpty)
+        if ([for (final q in p['questionIds'] as List? ?? const []) if (known.contains(q)) q as String] case final ids when ids.isNotEmpty)
           ArchivePaper(
             id: p['id'] as String,
             title: Tr.same(p['title'] as String? ?? s.name.bn),
@@ -160,23 +147,21 @@ List<ArchivePaper> _serverInstitutionPapers(List<Question> bank) {
 }
 
 /// School/college papers of the demo directory (two per institution and subject level).
-List<ArchivePaper> institutionPapers(List<Question> bank) => ArchiveCatalog.loaded
-    ? _serverInstitutionPapers(bank)
-    : [
-        for (final inst in demoInstitutions)
-          for (final s in seedSubjects.where((s) => s.level == (inst.college ? EducationLevel.hsc : EducationLevel.ssc)).take(4))
-            for (final (i, cat) in [PaperCategory.values[mixHash('${inst.id}${s.id}') % 3], PaperCategory.values[3 + mixHash('${s.id}${inst.id}') % 3]].indexed)
-              if (_pick(bank, s, '${inst.id}-${s.id}-$i', n: 6) case final ids when ids.isNotEmpty)
-                ArchivePaper(
-                  id: 'ip-${inst.id}-${s.id}-$i',
-                  title: Tr('${s.name.bn} — ${cat.label.bn} পরীক্ষা', '${s.name.en} — ${cat.label.en} exam'),
-                  subject: s,
-                  year: 2025 - i,
-                  institution: inst,
-                  category: cat,
-                  questionIds: ids,
-                ),
-      ];
+List<ArchivePaper> institutionPapers(List<Question> bank) => ArchiveCatalog.loaded ? _serverInstitutionPapers(bank) : [
+  for (final inst in demoInstitutions)
+    for (final s in seedSubjects.where((s) => s.level == (inst.college ? EducationLevel.hsc : EducationLevel.ssc)).take(4))
+      for (final (i, cat) in [PaperCategory.values[mixHash('${inst.id}${s.id}') % 3], PaperCategory.values[3 + mixHash('${s.id}${inst.id}') % 3]].indexed)
+        if (_pick(bank, s, '${inst.id}-${s.id}-$i', n: 6) case final ids when ids.isNotEmpty)
+          ArchivePaper(
+            id: 'ip-${inst.id}-${s.id}-$i',
+            title: Tr('${s.name.bn} — ${cat.label.bn} পরীক্ষা', '${s.name.en} — ${cat.label.en} exam'),
+            subject: s,
+            year: 2025 - i,
+            institution: inst,
+            category: cat,
+            questionIds: ids,
+          ),
+];
 
 ArchivePaper? paperById(List<Question> bank, String id) {
   if (id.startsWith('bp-')) {
@@ -280,17 +265,7 @@ class ArchiveController extends Notifier<ArchiveState> {
         if (id != null) await remote.unsave(id);
       }
     }
-    await _save(
-      ArchiveState(
-        saved: on
-            ? [paperId, ...state.saved]
-            : [
-                for (final x in state.saved)
-                  if (x != paperId) x,
-              ],
-        reported: state.reported,
-      ),
-    );
+    await _save(ArchiveState(saved: on ? [paperId, ...state.saved] : [for (final x in state.saved) if (x != paperId) x], reported: state.reported));
     return on;
   }
 

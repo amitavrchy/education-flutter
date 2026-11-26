@@ -37,7 +37,8 @@ class _AvatarGalleryScreenState extends ConsumerState<AvatarGalleryScreen> {
     final q = _query.trim().toLowerCase();
     final list = [
       for (final (book, avatar) in state.available)
-        if ((_level == null || book.level == _level) && (q.isEmpty || book.title.matches(q) || avatar.name.matches(q) || book.subject.name.matches(q)))
+        if ((_level == null || book.level == _level) &&
+            (q.isEmpty || book.title.matches(q) || avatar.name.matches(q) || book.subject.name.matches(q)))
           (book, avatar),
     ];
     return AppPageScaffold(
@@ -47,10 +48,7 @@ class _AvatarGalleryScreenState extends ConsumerState<AvatarGalleryScreen> {
         children: [
           Text(context.tr(AvatarStrings.galleryHeadline), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: AppSpacing.xs),
-          Text(
-            context.tr(AvatarStrings.galleryHint),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
+          Text(context.tr(AvatarStrings.galleryHint), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           if (recent.isNotEmpty) ...[
             SectionHeader(title: context.tr(AvatarStrings.recentClasses)),
             SizedBox(
@@ -109,12 +107,7 @@ class _AvatarGalleryScreenState extends ConsumerState<AvatarGalleryScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: list.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    mainAxisSpacing: AppSpacing.md,
-                    crossAxisSpacing: AppSpacing.md,
-                    childAspectRatio: 0.62,
-                  ),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, mainAxisSpacing: AppSpacing.md, crossAxisSpacing: AppSpacing.md, childAspectRatio: 0.62),
                   itemBuilder: (context, i) => _AvatarCard(book: list[i].$1),
                 );
               },
@@ -156,9 +149,7 @@ class _AvatarCard extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Expanded(
-                        child: Text(context.tr(avatar.name), maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-                      ),
+                      Expanded(child: Text(context.tr(avatar.name), maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall)),
                       Pill(book.level.code),
                     ],
                   ),
