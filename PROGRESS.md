@@ -110,17 +110,26 @@ formal accessibility audit (X-02), JSON-schema contracts (X-04), real API wiring
 ### Session 6 (2026-11-26) — backend API wiring started
 Branch `feat/api-integration`. Run with `--dart-define=USE_MOCK_API=false` (and `API_BASE_URL`,
 10.0.2.2 on the Android emulator). Live checks: `LIVE_API=1 flutter test test/live` with the backend
-running in demo mode. 199 tests.
+running in demo mode.
 
 - Auth on the real `/auth/*`: login, two-step signup (server OTP challenge), refresh-token rotation
   in `AuthInterceptor`, switch-role, backend role names (reviewers → teacher portal).
 - Notifications: server inbox merged with device-raised ones; read/archive/delete/read-all on the server.
 - Billing: plan, renewal, invoices from `/billing/me`; checkout/cancel/resume on `/billing/*`.
 
-Blocker for the rest: the app's curriculum ids (`ssc-phy`, `ssc-phy-p1-c1`) differ from the backend's
-(`ssc-physics`, `ssc-physics-c1`; 3 of 23 subjects match). Progress, exams, questions, notes, flashcards
-and the planner all reference these ids, so they can't sync until the app reads the backend's
-curriculum and question bank (or a mapping is agreed).
+- Curriculum: in API mode the app pulls the backend's subjects, papers, chapters, topics, outcomes and
+  question bank (`CatalogSync`, cached on device), so every id matches the server. The bundled
+  curriculum is only used in mock mode and offline before the first sync. 61 server questions point at
+  a missing chapter (`ssc-ict-c6`); they are dropped at sync until the backend data is fixed.
+- Progress: mastery, chapter progress, activity and attempts load from the server; answers, topic
+  completion and study minutes post to `/progress/:studentId/*` (the server computes XP and streaks).
+- Question bookmarks, flashcard decks and cards, notes (Tiptap HTML ↔ Markdown) and planner tasks sync
+  through `OwnerSync` (pull, map, merge over the server record, debounced PUT), so web-only fields
+  survive a round trip.
+
+Still on device only in API mode: exams (server exam attempts), English, tutor conversations,
+guardian (parent) views, teacher data, gamification documents and the student profile.
+218 tests; live suite 9/9.
 
 ## Continue on another PC
 1. `git clone https://github.com/amitavrchy/education-flutter.git && cd education-flutter`
@@ -129,8 +138,6 @@ curriculum and question bank (or a mapping is agreed).
    docs/product/FEATURE_MATRIX.md; continue implementing the remaining incomplete features."*
 
 ## Next (in order)
-1. Connect the real API (backend repo `education-backend`): repositories already sit behind interfaces.
-   New persisted stores this session (`guardian`, `teacherReview`, `aiTools`, `english`, `archive`,
-   `gamification`, `learningPrefs`, `notificationPrefs`) each need an endpoint.
+1. Finish the API wiring listed under Session 6 (exams, English, tutor, guardian, teacher, profile).
 2. Translate portal menu labels and role names (X-01); add question image assets (QB-06).
 3. Device QA of voice (Bangla TTS/STT availability varies by phone) and an accessibility pass.
