@@ -16,6 +16,7 @@ import 'package:shikkhaai_mobile/features/notes/data/remote_notes.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
 import 'package:shikkhaai_mobile/features/planner/data/remote_tasks.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
+import 'package:shikkhaai_mobile/features/parent/remote_guardian.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
 
 /// Talks to a running education-backend (demo mode). Skipped unless LIVE_API=1:
@@ -156,5 +157,21 @@ void main() {
     expect(messages.where((m) => m.isUser), isNotEmpty);
     expect(messages.where((m) => !m.isUser && m.sources.isNotEmpty), isNotEmpty);
     expect(data.conversations.any((c) => c.folder != null), isTrue);
+  }, skip: !live);
+
+  test('guardian portal: links, child summaries, feedback and goals map from the server', () async {
+    final s = await ApiAuthRepository(client()).login(identifier: 'parent@shikkha.ai', password: 'demo-password-123');
+    final remote = RemoteGuardian(client(s.accessToken), s.user.id);
+    final links = await remote.links();
+    final children = await remote.children();
+    expect(links, isNotEmpty);
+    for (final l in links.where((l) => l['status'] == 'active')) {
+      final summary = children.firstWhere((c) => (c['link'] as Map)['id'] == l['id']);
+      final child = await remote.childSummary(RemoteGuardian.linkFrom(l), l['studentId'] as String, summary);
+      expect(child.subjectMastery.length, (summary['subjectMastery'] as List).length);
+    }
+    final feedback = await remote.feedback();
+    expect(feedback, isNotEmpty);
+    expect(await remote.goals(), isNotEmpty);
   }, skip: !live);
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n/tr.dart';
@@ -17,6 +19,7 @@ import '../profile/application/student_profile_controller.dart';
 import '../progress/application/learning_progress_controller.dart';
 import '../progress/domain/learning_progress.dart';
 import '../teacher/teacher_data.dart';
+import 'remote_guardian.dart';
 
 /// Guardian portal data (web §27): linked children with per-link sharing, goals and teacher
 /// feedback. The first child is the student who uses this device, so every number shown for
@@ -177,7 +180,7 @@ class TeacherNote {
 }
 
 class GuardianState {
-  const GuardianState({required this.links, required this.selectedId, required this.goals, required this.notes, this.onboarded = false});
+  const GuardianState({required this.links, required this.selectedId, required this.goals, required this.notes, this.onboarded = false, this.summaries = const {}});
 
   final List<GuardianLink> links;
   final String? selectedId;
@@ -187,16 +190,27 @@ class GuardianState {
   /// Guardian onboarding (PAR-01) seen.
   final bool onboarded;
 
+  /// API mode: each linked child's summary from the server, by link id.
+  final Map<String, ChildSummary> summaries;
+
   List<GuardianLink> get active => [for (final l in links) if (l.active) l];
 
   GuardianLink? get selected => active.where((l) => l.id == selectedId).firstOrNull ?? active.firstOrNull;
 
-  GuardianState copyWith({List<GuardianLink>? links, String? Function()? selectedId, List<GuardianGoal>? goals, List<TeacherNote>? notes, bool? onboarded}) => GuardianState(
+  GuardianState copyWith({
+    List<GuardianLink>? links,
+    String? Function()? selectedId,
+    List<GuardianGoal>? goals,
+    List<TeacherNote>? notes,
+    bool? onboarded,
+    Map<String, ChildSummary>? summaries,
+  }) => GuardianState(
     links: links ?? this.links,
     selectedId: selectedId == null ? this.selectedId : selectedId(),
     goals: goals ?? this.goals,
     notes: notes ?? this.notes,
     onboarded: onboarded ?? this.onboarded,
+    summaries: summaries ?? this.summaries,
   );
 }
 
@@ -212,10 +226,22 @@ const _defaultPerms = {
 class GuardianController extends Notifier<GuardianState> {
   static const _col = 'guardian';
   late LocalStore _store;
+  RemoteGuardian? _remote;
+
+  /// API mode: link id → the child's user id, and pending link → verification challenge.
+  final Map<String, String> _studentIds = {};
+  final Map<String, String> _challenges = {};
+  Future<void>? _refreshing;
 
   @override
   GuardianState build() {
     _store = watchStore(ref);
+    _remote = ref.watch(remoteGuardianProvider);
+    if (_remote != null) {
+      Future.microtask(refresh);
+      final cached = _store.get(_col, 'remote');
+      return cached == null ? const GuardianState(links: [], selectedId: null, goals: [], notes: []) : _decode(cached);
+    }
     final d = _store.get(_col, 'state');
     if (d != null) {
       return GuardianState(
@@ -276,9 +302,66 @@ class GuardianController extends Notifier<GuardianState> {
     );
   }
 
+  GuardianState _decode(Map<String, dynamic> d) => GuardianState(
+    links: [for (final l in d['links'] as List) GuardianLink.fromJson((l as Map).cast<String, dynamic>())],
+    selectedId: d['selectedId'] as String?,
+    goals: [for (final g in d['goals'] as List) GuardianGoal.fromJson((g as Map).cast<String, dynamic>())],
+    notes: [for (final n in d['notes'] as List) TeacherNote.fromJson((n as Map).cast<String, dynamic>())],
+    onboarded: d['onboarded'] as bool? ?? false,
+  );
+
+  /// API mode: links, child summaries, teacher feedback and goals from the server (single-flight).
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    final remote = _remote;
+    if (remote == null || !ref.mounted) return;
+    try {
+      final (rawLinks, children, feedback, goals) = await (remote.links(), remote.children(), remote.feedback(), remote.goals()).wait;
+      _studentIds
+        ..clear()
+        ..addAll({for (final l in rawLinks) l['id'] as String: l['studentId'] as String});
+      final linkOf = {for (final e in _studentIds.entries) e.value: e.key};
+      final links = [for (final l in rawLinks) RemoteGuardian.linkFrom(l)];
+      final byLink = {for (final c in children) ((c['link'] as Map?)?['id'] as String?) ?? '': c};
+      final summaries = <String, ChildSummary>{};
+      await Future.wait([
+        for (final l in links)
+          if (l.active && byLink[l.id] != null)
+            remote.childSummary(l, _studentIds[l.id]!, byLink[l.id]!).then((s) => summaries[l.id] = s),
+      ]);
+      if (!ref.mounted) return;
+      final selected = links.any((l) => l.id == state.selectedId && l.active) ? state.selectedId : links.where((l) => l.active).firstOrNull?.id;
+      await _save(state.copyWith(
+        links: links,
+        selectedId: () => selected,
+        notes: [
+          for (final f in feedback)
+            if (linkOf[f['studentId']] case final linkId?) RemoteGuardian.noteFrom(f, linkId),
+        ],
+        goals: [
+          for (final g in goals)
+            if (linkOf[g['studentId']] case final linkId?) RemoteGuardian.goalFrom(g, linkId),
+        ],
+        summaries: summaries,
+      ));
+    } catch (_) {
+      // Offline: keep the cached portal.
+    }
+  }
+
+  Future<void> _pushGoals() async {
+    final remote = _remote;
+    if (remote == null) return;
+    await remote.saveGoals([
+      for (final g in state.goals)
+        if (_studentIds[g.linkId] case final sid?) RemoteGuardian.goalToApi(g, sid),
+    ]);
+  }
+
   Future<void> _save(GuardianState s) async {
     state = s;
-    await _store.put(_col, 'state', {
+    await _store.put(_col, _remote == null ? 'state' : 'remote', {
       'links': [for (final l in s.links) l.toJson()],
       'selectedId': s.selectedId,
       'goals': [for (final g in s.goals) g.toJson()],
@@ -295,6 +378,14 @@ class GuardianController extends Notifier<GuardianState> {
 
   /// Step 1 of linking: the code the student shared → a pending link (OTP goes to the guardian).
   Future<GuardianLink> requestLink(String code, String relation) async {
+    if (_remote != null) {
+      final r = await _remote!.requestLink(code, relation);
+      final link = RemoteGuardian.linkFrom(r.link);
+      _challenges[link.id] = r.challengeId;
+      _studentIds[link.id] = r.link['studentId'] as String? ?? '';
+      await _save(state.copyWith(links: [...state.links.where((l) => l.id != link.id), link]));
+      return link;
+    }
     await _sim.run(() {});
     if (code.trim().toUpperCase() != demoLinkCode) {
       throw const ApiException(statusCode: 400, message: 'লিংক কোড সঠিক নয়', code: 'LINK_CODE_INVALID');
@@ -310,6 +401,15 @@ class GuardianController extends Notifier<GuardianState> {
 
   /// Step 2: OTP sent to the guardian's phone (demo 123456).
   Future<void> confirmLink(String linkId, String otp) async {
+    if (_remote != null) {
+      final challenge = _challenges[linkId];
+      if (challenge == null) throw const ApiException(statusCode: 400, message: 'আবার লিংক কোড দাও', code: 'CHALLENGE_MISSING');
+      await _remote!.confirmLink(linkId, challenge, otp);
+      _challenges.remove(linkId);
+      await _save(state.copyWith(selectedId: () => linkId));
+      await refresh();
+      return;
+    }
     await _sim.run(() {});
     if (otp.trim() != demoOtp) throw const ApiException(statusCode: 400, message: 'OTP সঠিক নয়', code: 'OTP_INVALID');
     await _save(state.copyWith(
@@ -319,7 +419,11 @@ class GuardianController extends Notifier<GuardianState> {
   }
 
   Future<void> unlink(String linkId) async {
-    await _sim.run(() {});
+    if (_remote != null) {
+      await _remote!.unlink(linkId);
+    } else {
+      await _sim.run(() {});
+    }
     final links = state.links.where((l) => l.id != linkId).toList();
     await _save(state.copyWith(links: links, selectedId: () => state.selectedId == linkId ? links.where((l) => l.active).firstOrNull?.id : state.selectedId));
   }
@@ -329,22 +433,47 @@ class GuardianController extends Notifier<GuardianState> {
     if (key == ShareKey.aiConversations && value) {
       throw const ApiException(statusCode: 403, message: 'শুধু শিক্ষার্থী নিজে AI কথোপকথন শেয়ার চালু করতে পারে', code: 'STUDENT_CONSENT_REQUIRED');
     }
+    final before = state;
     await _save(state.copyWith(links: [
       for (final l in state.links) l.id == linkId ? l.copyWith(permissions: {...l.permissions, key: value}) : l,
     ]));
+    if (_remote != null) {
+      try {
+        await _remote!.setPermissions(linkId, state.links.firstWhere((l) => l.id == linkId).permissions);
+        unawaited(refresh()); // the child's summary changes with what is shared
+      } catch (_) {
+        await _save(before);
+        rethrow;
+      }
+    }
   }
 
-  Future<void> saveGoal(GuardianGoal goal) => _save(state.copyWith(goals: [goal, ...state.goals.where((g) => g.id != goal.id)]));
+  Future<void> saveGoal(GuardianGoal goal) async {
+    await _save(state.copyWith(goals: [goal, ...state.goals.where((g) => g.id != goal.id)]));
+    await _pushGoals();
+  }
 
-  Future<void> removeGoal(String id) => _save(state.copyWith(goals: state.goals.where((g) => g.id != id).toList()));
+  Future<void> removeGoal(String id) async {
+    await _save(state.copyWith(goals: state.goals.where((g) => g.id != id).toList()));
+    await _pushGoals();
+  }
 
   /// Upserts [note] (notes derived from teacher reviews are stored on first interaction).
   Future<void> _upsertNote(TeacherNote note) => _save(state.copyWith(notes: [note, ...state.notes.where((n) => n.id != note.id)]));
 
-  Future<void> acknowledge(TeacherNote note) => _upsertNote(note.copyWith(acknowledged: true));
+  Future<void> acknowledge(TeacherNote note) async {
+    await _upsertNote(note.copyWith(acknowledged: true));
+    if (_remote != null) await _remote!.acknowledge(note.id);
+  }
 
   /// Reply goes to the teacher's inbox (teacher portal notification).
   Future<void> reply(TeacherNote note, String message) async {
+    if (_remote != null) {
+      // The server acknowledges the note and notifies the teacher.
+      await _remote!.reply(note.id, message);
+      await _upsertNote(note.copyWith(acknowledged: true, reply: message));
+      return;
+    }
     await _sim.run(() {});
     await _upsertNote(note.copyWith(acknowledged: true, reply: message));
     await ref.read(notificationsProvider.notifier).push(AppNotification(
@@ -437,8 +566,10 @@ class ChildSummary {
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 
 final childSummaryProvider = Provider.family<ChildSummary?, String>((ref, linkId) {
-  final link = ref.watch(guardianProvider).links.where((l) => l.id == linkId).firstOrNull;
+  final g = ref.watch(guardianProvider);
+  final link = g.links.where((l) => l.id == linkId).firstOrNull;
   if (link == null) return null;
+  if (g.summaries[linkId] case final remote?) return remote;
   final privacy = ref.watch(accountProvider).privacy;
   final perms = effectivePermissions(link, privacy);
   final now = DateTime.now();
