@@ -25,6 +25,7 @@ import '../exams/application/exam_controller.dart';
 import '../exams/domain/exam.dart';
 import '../question_bank/data/question_repository.dart';
 import '../question_bank/domain/question.dart';
+import '../curriculum/domain/curriculum_models.dart';
 import 'review_data.dart';
 import 'teacher_data.dart';
 import 'teacher_workflow_screens.dart';
@@ -551,7 +552,8 @@ class TeacherExamsScreen extends ConsumerStatefulWidget {
 
 class _TeacherExamsScreenState extends ConsumerState<TeacherExamsScreen> {
   final _title = TextEditingController(text: 'শ্রেণি কুইজ — বল ও গতি');
-  String _subject = 'ssc-phy';
+  /// Physics when the curriculum has it (bundled or server id), else the first SSC subject.
+  String _subject = defaultTeacherSubjectId();
   double _count = 5;
   double _minutes = 15;
 
@@ -615,7 +617,8 @@ class QuestionGeneratorScreen extends ConsumerStatefulWidget {
 }
 
 class _QuestionGeneratorScreenState extends ConsumerState<QuestionGeneratorScreen> {
-  String _subject = 'ssc-phy';
+  /// Physics when the curriculum has it (bundled or server id), else the first SSC subject.
+  String _subject = defaultTeacherSubjectId();
   List<Question> _out = const [];
   final Set<String> _sent = {};
 
@@ -782,4 +785,10 @@ class TeacherAnalyticsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Default subject for teacher forms in whichever curriculum is active.
+String defaultTeacherSubjectId() {
+  final ssc = [for (final s in seedSubjects) if (s.level == EducationLevel.ssc) s];
+  return (ssc.where((s) => s.id == 'ssc-phy' || s.id == 'ssc-physics').firstOrNull ?? ssc.firstOrNull ?? seedSubjects.first).id;
 }

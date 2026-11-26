@@ -21,6 +21,7 @@ import '../curriculum/domain/curriculum_models.dart';
 import '../question_bank/data/question_repository.dart';
 import '../question_bank/domain/question.dart';
 import 'review_data.dart';
+import 'teacher_screens.dart' show defaultTeacherSubjectId;
 import 'teacher_data.dart';
 
 abstract final class WStr {
@@ -598,7 +599,7 @@ class _QuestionEditorScreenState extends ConsumerState<QuestionEditorScreen> {
   late final _explanation = TextEditingController(text: _q?.explanation?.bn ?? '');
   late final _options = TextEditingController(text: _q?.options.map((o) => o.bn).join('\n') ?? '');
   late QuestionType _type = _q?.type ?? QuestionType.mcq;
-  late Subject _subject = subjectById(_q?.subjectId ?? 'ssc-phy') ?? seedSubjects.first;
+  late Subject _subject = subjectById(_q?.subjectId ?? defaultTeacherSubjectId()) ?? seedSubjects.first;
   late Chapter _chapter = _subject.chapters.where((c) => c.id == _q?.chapterId).firstOrNull ?? _subject.chapters.first;
   late Difficulty _difficulty = _q?.difficulty ?? Difficulty.medium;
   late int _marks = _q?.marks ?? 1;

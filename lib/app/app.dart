@@ -6,6 +6,7 @@ import '../core/l10n/tr.dart';
 import '../core/settings/app_settings.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_mode_controller.dart';
+import '../features/curriculum/presentation/catalog_gate.dart';
 import 'router/app_router.dart';
 
 class ShikkhaApp extends ConsumerWidget {
@@ -34,7 +35,7 @@ class ShikkhaApp extends ConsumerWidget {
             textScaler: TextScaler.linear(media.textScaler.scale(1) * settings.textScale),
             disableAnimations: media.disableAnimations || settings.reducedMotion,
           ),
-          child: NumeralScope(banglaDigits: settings.banglaDigits, child: child!),
+          child: NumeralScope(banglaDigits: settings.banglaDigits, child: CatalogGate(child: child!)),
         );
       },
     );

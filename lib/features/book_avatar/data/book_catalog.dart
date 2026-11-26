@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/l10n/tr.dart';
 import '../../../mock/seed/curriculum_seed.dart';
 import '../../../mock/seed/tutor_knowledge_seed.dart';
+import '../../curriculum/data/curriculum_catalog.dart';
 import '../../curriculum/domain/curriculum_models.dart';
 
 /// One searchable page of a sample textbook.
@@ -106,6 +107,17 @@ Book _buildBook(Subject subject) {
 }
 
 /// All sample textbooks, built once from the curriculum seed.
-final List<Book> sampleBooks = [for (final s in seedSubjects) _buildBook(s)];
+List<Book>? _books;
+int _booksVersion = -1;
+
+/// One sample book per subject of the active curriculum (rebuilt when the catalog changes).
+List<Book> get sampleBooks {
+  final subjects = seedSubjects;
+  if (_books == null || _booksVersion != CurriculumCatalog.version) {
+    _books = [for (final s in subjects) _buildBook(s)];
+    _booksVersion = CurriculumCatalog.version;
+  }
+  return _books!;
+}
 
 Book? bookById(String id) => sampleBooks.where((b) => b.id == id).firstOrNull;

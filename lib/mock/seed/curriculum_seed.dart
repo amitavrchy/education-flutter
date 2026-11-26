@@ -3,6 +3,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/l10n/tr.dart';
+import '../../features/curriculum/data/curriculum_catalog.dart';
 import '../../features/curriculum/domain/curriculum_models.dart';
 
 const curriculumVersions = [
@@ -133,7 +134,8 @@ const _ict = Color(0xFF5C6BC0);
 const _commerce = Color(0xFFB08A12);
 const _humanities = Color(0xFF8D6E63);
 
-final List<Subject> seedSubjects = [
+/// The sample curriculum bundled with the app (mock mode and offline fallback).
+final List<Subject> bundledSubjects = [
   // ───────────────────────────── SSC ─────────────────────────────
   _subject(
     id: 'ssc-phy', code: '136', level: EducationLevel.ssc, bn: 'পদার্থবিজ্ঞান', en: 'Physics',
@@ -684,6 +686,12 @@ final List<Subject> seedSubjects = [
     ],
   ),
 ];
+
+/// The active curriculum: bundled in mock mode, the backend's in API mode (see [CurriculumCatalog]).
+List<Subject> get seedSubjects {
+  CurriculumCatalog.registerBundled(() => bundledSubjects);
+  return CurriculumCatalog.subjects;
+}
 
 Subject? subjectById(String id) {
   for (final s in seedSubjects) {
