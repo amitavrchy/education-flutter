@@ -75,7 +75,13 @@ class CqPart {
   final Tr prompt;
   final Tr answer;
 
-  Map<String, dynamic> toJson() => {'label': label, 'level': level.name, 'marks': marks, 'prompt': prompt.toJson(), 'answer': answer.toJson()};
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    'level': level.name,
+    'marks': marks,
+    'prompt': prompt.toJson(),
+    'answer': answer.toJson(),
+  };
 }
 
 /// A textbook location backing an answer. Fixtures are synthetic sample books.
@@ -143,7 +149,10 @@ class Question {
     steps: [for (final s in j['steps'] as List? ?? const []) Tr.fromJson(s)],
     stimulus: j['stimulus'] == null ? null : Tr.fromJson(j['stimulus']),
     parts: [for (final p in j['parts'] as List? ?? const []) CqPart.fromJson(p as Map<String, dynamic>)],
-    pairs: [for (final p in j['pairs'] as List? ?? const []) (Tr.fromJson((p as Map<String, dynamic>)['left']), Tr.fromJson(p['right']))],
+    pairs: [
+      for (final p in j['pairs'] as List? ?? const [])
+        (Tr.fromJson((p as Map<String, dynamic>)['left']), Tr.fromJson(p['right'])),
+    ],
     altMethod: j['altMethod'] == null ? null : Tr.fromJson(j['altMethod']),
     rubric: [for (final r in j['rubric'] as List? ?? const []) Tr.fromJson(r)],
     source: QuestionSource.values.byName(j['source'] as String? ?? 'chapterBank'),
@@ -236,9 +245,7 @@ class Question {
     'steps': [for (final s in steps) s.toJson()],
     'stimulus': stimulus?.toJson(),
     'parts': [for (final p in parts) p.toJson()],
-    'pairs': [
-      for (final p in pairs) {'left': p.$1.toJson(), 'right': p.$2.toJson()},
-    ],
+    'pairs': [for (final p in pairs) {'left': p.$1.toJson(), 'right': p.$2.toJson()}],
     'altMethod': altMethod?.toJson(),
     'rubric': [for (final r in rubric) r.toJson()],
     'source': source.name,
@@ -362,21 +369,8 @@ class QuestionFilter {
       other.sort == sort;
 
   @override
-  int get hashCode => Object.hash(
-    subjectId,
-    chapterId,
-    topicId,
-    Object.hashAllUnordered(types),
-    difficulty,
-    source,
-    year,
-    boardId,
-    marks,
-    verifiedOnly,
-    highRelevanceOnly,
-    query,
-    sort,
-  );
+  int get hashCode => Object.hash(subjectId, chapterId, topicId, Object.hashAllUnordered(types), difficulty, source, year,
+      boardId, marks, verifiedOnly, highRelevanceOnly, query, sort);
 }
 
 enum QuestionSort {

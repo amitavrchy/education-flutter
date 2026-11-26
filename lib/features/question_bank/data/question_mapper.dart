@@ -99,9 +99,7 @@ Map<String, dynamic> questionToApi(Question q) {
     'levelCode': q.subjectId.startsWith('hsc') ? 'HSC' : 'SSC',
     'language': 'bn',
     if (q.options.isNotEmpty && q.type != QuestionType.trueFalse) ...{
-      'options': [
-        for (final (i, o) in q.options.indexed) {'id': letters[i], 'text': o.bn},
-      ],
+      'options': [for (final (i, o) in q.options.indexed) {'id': letters[i], 'text': o.bn}],
       'correctOptionId': ?(q.correctIndex == null ? null : letters[q.correctIndex!]),
     },
     if (q.type == QuestionType.trueFalse) 'correctBoolean': q.correctIndex == 0,

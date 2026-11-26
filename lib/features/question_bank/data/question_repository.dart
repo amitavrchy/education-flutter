@@ -59,31 +59,24 @@ class MockQuestionRepository implements QuestionRepository {
   }
 
   @override
-  Future<QuestionPage> search(QuestionFilter filter, {int page = 0, int pageSize = 20}) => _sim.run(
-    () {
-      final all = _sorted(cached.where(filter.matches).toList(), filter.sort);
-      final start = (page * pageSize).clamp(0, all.length);
-      final end = (start + pageSize).clamp(0, all.length);
-      return QuestionPage(items: all.sublist(start, end), total: all.length, page: page, pageSize: pageSize);
-    },
-    requiresNetwork: false,
-    latencyFactor: 0.6,
-  );
+  Future<QuestionPage> search(QuestionFilter filter, {int page = 0, int pageSize = 20}) => _sim.run(() {
+    final all = _sorted(cached.where(filter.matches).toList(), filter.sort);
+    final start = (page * pageSize).clamp(0, all.length);
+    final end = (start + pageSize).clamp(0, all.length);
+    return QuestionPage(items: all.sublist(start, end), total: all.length, page: page, pageSize: pageSize);
+  }, requiresNetwork: false, latencyFactor: 0.6);
 
   @override
-  Future<Question> question(String id) => _sim.run(() => _collection.get(id) ?? (throw const ApiException.notFound()), requiresNetwork: false);
+  Future<Question> question(String id) =>
+      _sim.run(() => _collection.get(id) ?? (throw const ApiException.notFound()), requiresNetwork: false);
 
   @override
-  Future<List<Question>> related(Question q, {int limit = 4}) => _sim.run(
-    () {
-      final others = cached.where((o) => o.id != q.id).toList();
-      final sameTopic = others.where((o) => o.topicId == q.topicId);
-      final sameChapter = others.where((o) => o.chapterId == q.chapterId && o.topicId != q.topicId);
-      return [...sameTopic, ...sameChapter].take(limit).toList();
-    },
-    requiresNetwork: false,
-    latencyFactor: 0.4,
-  );
+  Future<List<Question>> related(Question q, {int limit = 4}) => _sim.run(() {
+    final others = cached.where((o) => o.id != q.id).toList();
+    final sameTopic = others.where((o) => o.topicId == q.topicId);
+    final sameChapter = others.where((o) => o.chapterId == q.chapterId && o.topicId != q.topicId);
+    return [...sameTopic, ...sameChapter].take(limit).toList();
+  }, requiresNetwork: false, latencyFactor: 0.4);
 
   @override
   Future<void> report(String questionId, String reason) => _sim.run(() async {
@@ -101,4 +94,6 @@ class MockQuestionRepository implements QuestionRepository {
   Future<Question> save(Question q) => _sim.run(() => _collection.upsert(q), requiresNetwork: false);
 }
 
-final questionRepositoryProvider = Provider<QuestionRepository>((ref) => MockQuestionRepository(ref.watch(mockSimulatorProvider), watchStore(ref)));
+final questionRepositoryProvider = Provider<QuestionRepository>(
+  (ref) => MockQuestionRepository(ref.watch(mockSimulatorProvider), watchStore(ref)),
+);

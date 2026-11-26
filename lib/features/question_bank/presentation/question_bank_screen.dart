@@ -83,7 +83,8 @@ class _QuestionBankScreenState extends ConsumerState<QuestionBankScreen> {
   Widget build(BuildContext context) {
     final subjects = ref.watch(mySubjectsProvider).value ?? const <Subject>[];
     final repo = ref.watch(curriculumRepositoryProvider);
-    final subject = subjects.where((s) => s.id == _filter.subjectId).firstOrNull ?? repo.cachedSubjects.where((s) => s.id == _filter.subjectId).firstOrNull;
+    final subject = subjects.where((s) => s.id == _filter.subjectId).firstOrNull ??
+        repo.cachedSubjects.where((s) => s.id == _filter.subjectId).firstOrNull;
     final latest = ref.watch(practiceProvider.select((s) => s.latestResult));
 
     return Scaffold(
@@ -95,12 +96,18 @@ class _QuestionBankScreenState extends ConsumerState<QuestionBankScreen> {
             icon: const Icon(Icons.sort),
             initialValue: _filter.sort,
             onSelected: (s) => _apply(_filter.copyWith(sort: s)),
-            itemBuilder: (context) => [for (final s in QuestionSort.values) PopupMenuItem(value: s, child: Text(context.tr(s.label)))],
+            itemBuilder: (context) => [
+              for (final s in QuestionSort.values) PopupMenuItem(value: s, child: Text(context.tr(s.label))),
+            ],
           ),
           IconButton(
             key: const Key('bank.filters'),
             tooltip: context.tr(QStrings.filters),
-            icon: Badge(isLabelVisible: _filter.activeCount > 0, label: Text(context.n(_filter.activeCount)), child: const Icon(Icons.tune)),
+            icon: Badge(
+              isLabelVisible: _filter.activeCount > 0,
+              label: Text(context.n(_filter.activeCount)),
+              child: const Icon(Icons.tune),
+            ),
             onPressed: () async {
               final f = await showModalBottomSheet<QuestionFilter>(
                 context: context,
@@ -115,7 +122,11 @@ class _QuestionBankScreenState extends ConsumerState<QuestionBankScreen> {
       ),
       floatingActionButton: _total > 0
           ? FloatingActionButton.extended(
-              onPressed: () => context.push(AppRoutes.practiceSession(subjectId: _filter.subjectId, chapterId: _filter.chapterId, topicId: _filter.topicId)),
+              onPressed: () => context.push(AppRoutes.practiceSession(
+                subjectId: _filter.subjectId,
+                chapterId: _filter.chapterId,
+                topicId: _filter.topicId,
+              )),
               icon: const Icon(Icons.play_arrow),
               label: Text(context.tr(QStrings.practiceThese)),
             )
@@ -127,73 +138,70 @@ class _QuestionBankScreenState extends ConsumerState<QuestionBankScreen> {
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
-                sliver: SliverList.list(
-                  children: [
-                    DebouncedSearchField(
-                      hint: context.tr(QStrings.searchHint),
-                      initial: _filter.query,
-                      onChanged: (q) => _apply(_filter.copyWith(query: q)),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
+                sliver: SliverList.list(children: [
+                  DebouncedSearchField(
+                    hint: context.tr(QStrings.searchHint),
+                    initial: _filter.query,
+                    onChanged: (q) => _apply(_filter.copyWith(query: q)),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _ScopeChip(
+                          label: subject == null ? context.tr(S.subject) : context.tr(subject.name),
+                          active: subject != null,
+                          onTap: () async {
+                            final picked = await _pickSubject(context, subjects);
+                            if (picked != null) {
+                              _apply(_filter.copyWith(subjectId: () => picked.isEmpty ? null : picked, chapterId: () => null, topicId: () => null));
+                            }
+                          },
+                        ),
+                        if (subject != null)
                           _ScopeChip(
-                            label: subject == null ? context.tr(S.subject) : context.tr(subject.name),
-                            active: subject != null,
+                            label: _filter.chapterId == null
+                                ? context.tr(S.chapter)
+                                : context.tr(repo.findChapter(_filter.chapterId!)?.chapter.title ?? S.chapter),
+                            active: _filter.chapterId != null,
                             onTap: () async {
-                              final picked = await _pickSubject(context, subjects);
+                              final picked = await _pickChapter(context, subject);
                               if (picked != null) {
-                                _apply(_filter.copyWith(subjectId: () => picked.isEmpty ? null : picked, chapterId: () => null, topicId: () => null));
+                                _apply(_filter.copyWith(chapterId: () => picked.isEmpty ? null : picked, topicId: () => null));
                               }
                             },
                           ),
-                          if (subject != null)
-                            _ScopeChip(
-                              label: _filter.chapterId == null
-                                  ? context.tr(S.chapter)
-                                  : context.tr(repo.findChapter(_filter.chapterId!)?.chapter.title ?? S.chapter),
-                              active: _filter.chapterId != null,
-                              onTap: () async {
-                                final picked = await _pickChapter(context, subject);
-                                if (picked != null) {
-                                  _apply(_filter.copyWith(chapterId: () => picked.isEmpty ? null : picked, topicId: () => null));
-                                }
-                              },
+                        for (final d in Difficulty.values)
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
+                            child: FilterChip(
+                              label: Text(context.tr(d.label)),
+                              selected: _filter.difficulty == d,
+                              onSelected: (on) => _apply(_filter.copyWith(difficulty: () => on ? d : null)),
                             ),
-                          for (final d in Difficulty.values)
-                            Padding(
-                              padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
-                              child: FilterChip(
-                                label: Text(context.tr(d.label)),
-                                selected: _filter.difficulty == d,
-                                onSelected: (on) => _apply(_filter.copyWith(difficulty: () => on ? d : null)),
-                              ),
-                            ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
-                    if (subject != null) _Coverage(subject: subject, chapterId: _filter.chapterId),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                      child: Row(
-                        children: [
-                          Text(context.tr(QStrings.results.fill({'n': _total})), style: context.text.labelLarge),
-                          const Spacer(),
-                          if (_filter.activeCount > 0) TextButton(onPressed: () => _apply(_filter.cleared()), child: Text(context.tr(S.clearFilters))),
-                        ],
-                      ),
+                  ),
+                  if (subject != null) _Coverage(subject: subject, chapterId: _filter.chapterId),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                    child: Row(
+                      children: [
+                        Text(context.tr(QStrings.results.fill({'n': _total})), style: context.text.labelLarge),
+                        const Spacer(),
+                        if (_filter.activeCount > 0)
+                          TextButton(onPressed: () => _apply(_filter.cleared()), child: Text(context.tr(S.clearFilters))),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ]),
               ),
               if (_items.isEmpty && _loading)
                 const SliverToBoxAdapter(child: SkeletonList(count: 4))
               else if (_items.isEmpty && _error != null)
-                SliverToBoxAdapter(
-                  child: ErrorView(error: _error, onRetry: () => _load(reset: true)),
-                )
+                SliverToBoxAdapter(child: ErrorView(error: _error, onRetry: () => _load(reset: true)))
               else if (_items.isEmpty)
                 SliverToBoxAdapter(
                   child: EmptyState(
@@ -217,14 +225,18 @@ class _QuestionBankScreenState extends ConsumerState<QuestionBankScreen> {
                           child: _loading
                               ? const Center(child: CircularProgressIndicator())
                               : _items.length < _total
-                              ? OutlinedButton(onPressed: _load, child: Text(context.tr(QStrings.loadMore)))
-                              : const SizedBox.shrink(),
+                                  ? OutlinedButton(onPressed: _load, child: Text(context.tr(QStrings.loadMore)))
+                                  : const SizedBox.shrink(),
                         );
                       }
                       final q = _items[i];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: QuestionListTile(question: q, status: latest[q.id], onTap: () => context.push(AppRoutes.question(q.id))),
+                        child: QuestionListTile(
+                          question: q,
+                          status: latest[q.id],
+                          onTap: () => context.push(AppRoutes.question(q.id)),
+                        ),
                       );
                     },
                   ),
@@ -283,10 +295,7 @@ class _ScopeChip extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
     child: InputChip(
-      label: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 160),
-        child: Text(label, overflow: TextOverflow.ellipsis),
-      ),
+      label: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 160), child: Text(label, overflow: TextOverflow.ellipsis)),
       selected: active,
       onPressed: onTap,
       avatar: const Icon(Icons.arrow_drop_down, size: 18),
@@ -355,74 +364,54 @@ class _FilterSheetState extends State<_FilterSheet> {
               children: [
                 Text(context.tr(QStrings.filters), style: context.text.titleLarge),
                 title(QStrings.type),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final t in QuestionType.values)
-                      FilterChip(
-                        label: Text(context.tr(t.label)),
-                        selected: f.types.contains(t),
-                        onSelected: (on) => setState(() {
-                          final next = Set.of(f.types);
-                          on ? next.add(t) : next.remove(t);
-                          f = f.copyWith(types: next);
-                        }),
-                      ),
-                  ],
-                ),
+                Wrap(spacing: AppSpacing.xs, runSpacing: AppSpacing.xs, children: [
+                  for (final t in QuestionType.values)
+                    FilterChip(
+                      label: Text(context.tr(t.label)),
+                      selected: f.types.contains(t),
+                      onSelected: (on) => setState(() {
+                        final next = Set.of(f.types);
+                        on ? next.add(t) : next.remove(t);
+                        f = f.copyWith(types: next);
+                      }),
+                    ),
+                ]),
                 title(QStrings.source),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final s in QuestionSource.values)
-                      ChoiceChip(
-                        label: Text(context.tr(s.label)),
-                        selected: f.source == s,
-                        onSelected: (on) => setState(() => f = f.copyWith(source: () => on ? s : null)),
-                      ),
-                  ],
-                ),
+                Wrap(spacing: AppSpacing.xs, runSpacing: AppSpacing.xs, children: [
+                  for (final s in QuestionSource.values)
+                    ChoiceChip(
+                      label: Text(context.tr(s.label)),
+                      selected: f.source == s,
+                      onSelected: (on) => setState(() => f = f.copyWith(source: () => on ? s : null)),
+                    ),
+                ]),
                 title(QStrings.board),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final b in educationBoards)
-                      ChoiceChip(
-                        label: Text(context.tr(b.name)),
-                        selected: f.boardId == b.id,
-                        onSelected: (on) => setState(() => f = f.copyWith(boardId: () => on ? b.id : null)),
-                      ),
-                  ],
-                ),
+                Wrap(spacing: AppSpacing.xs, runSpacing: AppSpacing.xs, children: [
+                  for (final b in educationBoards)
+                    ChoiceChip(
+                      label: Text(context.tr(b.name)),
+                      selected: f.boardId == b.id,
+                      onSelected: (on) => setState(() => f = f.copyWith(boardId: () => on ? b.id : null)),
+                    ),
+                ]),
                 title(QStrings.year),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (var y = 2024; y >= 2015; y--)
-                      ChoiceChip(
-                        label: Text(context.n(y)),
-                        selected: f.year == y,
-                        onSelected: (on) => setState(() => f = f.copyWith(year: () => on ? y : null)),
-                      ),
-                  ],
-                ),
+                Wrap(spacing: AppSpacing.xs, runSpacing: AppSpacing.xs, children: [
+                  for (var y = 2024; y >= 2015; y--)
+                    ChoiceChip(
+                      label: Text(context.n(y)),
+                      selected: f.year == y,
+                      onSelected: (on) => setState(() => f = f.copyWith(year: () => on ? y : null)),
+                    ),
+                ]),
                 title(QStrings.marks),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final m in const [1, 2, 3, 4, 10])
-                      ChoiceChip(
-                        label: Text(context.n(m)),
-                        selected: f.marks == m,
-                        onSelected: (on) => setState(() => f = f.copyWith(marks: () => on ? m : null)),
-                      ),
-                  ],
-                ),
+                Wrap(spacing: AppSpacing.xs, runSpacing: AppSpacing.xs, children: [
+                  for (final m in const [1, 2, 3, 4, 10])
+                    ChoiceChip(
+                      label: Text(context.n(m)),
+                      selected: f.marks == m,
+                      onSelected: (on) => setState(() => f = f.copyWith(marks: () => on ? m : null)),
+                    ),
+                ]),
                 const SizedBox(height: AppSpacing.sm),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -445,11 +434,18 @@ class _FilterSheetState extends State<_FilterSheet> {
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(onPressed: () => setState(() => f = f.cleared()), child: Text(context.tr(S.clearFilters))),
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => f = f.cleared()),
+                      child: Text(context.tr(S.clearFilters)),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: FilledButton(key: const Key('filters.apply'), onPressed: () => Navigator.pop(context, f), child: Text(context.tr(S.apply))),
+                    child: FilledButton(
+                      key: const Key('filters.apply'),
+                      onPressed: () => Navigator.pop(context, f),
+                      child: Text(context.tr(S.apply)),
+                    ),
                   ),
                 ],
               ),

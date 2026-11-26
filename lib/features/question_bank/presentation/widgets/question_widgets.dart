@@ -37,29 +37,17 @@ class QuestionMetaRow extends StatelessWidget {
       runSpacing: AppSpacing.xs,
       children: [
         Pill(context.tr(q.type.label), icon: q.type.icon, tone: Tone.primary),
-        Pill(
-          context.tr(q.difficulty.label),
-          tone: switch (q.difficulty) {
-            Difficulty.easy => Tone.success,
-            Difficulty.medium => Tone.info,
-            Difficulty.hard => Tone.danger,
-          },
-        ),
+        Pill(context.tr(q.difficulty.label),
+            tone: switch (q.difficulty) { Difficulty.easy => Tone.success, Difficulty.medium => Tone.info, Difficulty.hard => Tone.danger }),
         Pill('${context.n(q.marks)} ${context.tr(S.marks)}'),
         if (showSource && q.source == QuestionSource.board && board != null)
-          Pill(
-            '${context.tr(QStrings.boardStyle)} · ${context.tr(board.name)} ${q.year == null ? '' : context.n(q.year!)}',
-            tone: Tone.warning,
-            icon: Icons.history_edu_outlined,
-          )
+          Pill('${context.tr(QStrings.boardStyle)} · ${context.tr(board.name)} ${q.year == null ? '' : context.n(q.year!)}',
+              tone: Tone.warning, icon: Icons.history_edu_outlined)
         else if (showSource)
           Pill(context.tr(q.source.label)),
         if (q.synthetic) const DemoBadge(label: S.syntheticSample),
-        Pill(
-          context.tr(q.verified ? QStrings.verified : QStrings.unverified),
-          tone: q.verified ? Tone.success : Tone.neutral,
-          icon: q.verified ? Icons.verified_outlined : Icons.hourglass_empty,
-        ),
+        Pill(context.tr(q.verified ? QStrings.verified : QStrings.unverified),
+            tone: q.verified ? Tone.success : Tone.neutral, icon: q.verified ? Icons.verified_outlined : Icons.hourglass_empty),
       ],
     );
   }
@@ -155,18 +143,16 @@ class MatchingTable extends StatelessWidget {
       border: TableBorder.all(color: context.colors.outlineVariant, borderRadius: AppRadius.chip),
       children: [
         for (var i = 0; i < pairs.length; i++)
-          TableRow(
-            children: [
-              Padding(padding: const EdgeInsets.all(AppSpacing.sm), child: Text('${context.n(i + 1)}. ${context.tr(pairs[i].$1)}')),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Text(
-                  '${revealed ? '→ ' : '${optionLabel(context, i)}. '}${context.tr(shown[i])}',
-                  style: revealed ? TextStyle(color: context.palette.success, fontWeight: FontWeight.w600) : null,
-                ),
+          TableRow(children: [
+            Padding(padding: const EdgeInsets.all(AppSpacing.sm), child: Text('${context.n(i + 1)}. ${context.tr(pairs[i].$1)}')),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Text(
+                '${revealed ? '→ ' : '${optionLabel(context, i)}. '}${context.tr(shown[i])}',
+                style: revealed ? TextStyle(color: context.palette.success, fontWeight: FontWeight.w600) : null,
               ),
-            ],
-          ),
+            ),
+          ]),
       ],
     );
   }
@@ -207,7 +193,8 @@ class AnswerPanel extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${p.label}) ${context.tr(p.level.label)} · ${context.n(p.marks)} ${context.tr(S.marks)}', style: context.text.labelMedium),
+                    Text('${p.label}) ${context.tr(p.level.label)} · ${context.n(p.marks)} ${context.tr(S.marks)}',
+                        style: context.text.labelMedium),
                     RichContent(context.tr(p.answer)),
                   ],
                 ),
@@ -235,13 +222,7 @@ class AnswerPanel extends ConsumerWidget {
           if (q.rubric.isNotEmpty) ...[
             heading(QStrings.rubric, Icons.checklist),
             for (final r in q.rubric)
-              Row(
-                children: [
-                  const Icon(Icons.check, size: 16),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(child: Text(context.tr(r))),
-                ],
-              ),
+              Row(children: [const Icon(Icons.check, size: 16), const SizedBox(width: AppSpacing.xs), Expanded(child: Text(context.tr(r)))]),
           ],
           if (q.citation != null) ...[
             const SizedBox(height: AppSpacing.md),
@@ -251,7 +232,10 @@ class AnswerPanel extends ConsumerWidget {
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
-                    context.tr(QStrings.citation.fill({'book': context.tr(sampleBookTitle(ref, q.citation!.bookId)), 'page': q.citation!.page})),
+                    context.tr(QStrings.citation.fill({
+                      'book': context.tr(sampleBookTitle(ref, q.citation!.bookId)),
+                      'page': q.citation!.page,
+                    })),
                     style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
                   ),
                 ),

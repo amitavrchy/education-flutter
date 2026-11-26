@@ -16,11 +16,7 @@ import '../../helpers/test_app.dart';
 void main() {
   group('seed integrity', () {
     final questions = seedQuestions();
-    final topicIds = {
-      for (final s in seedSubjects)
-        for (final c in s.chapters)
-          for (final t in c.topics) t.id,
-    };
+    final topicIds = {for (final s in seedSubjects) for (final c in s.chapters) for (final t in c.topics) t.id};
 
     test('every question points at a real topic and has a non-empty answer', () {
       for (final q in questions) {
@@ -137,14 +133,10 @@ void main() {
   });
 
   testWidgets('answering an MCQ shows feedback and records the attempt', (tester) async {
-    await tester.pumpWidget(
-      testApp(
-        const PracticeSessionScreen(
-          request: PracticeRequest(mode: 'quick', chapterId: 'ssc-phy-p1-c2', topicId: 'ssc-phy-p1-c2-t2'),
-        ),
-        lang: AppLanguage.en,
-      ),
-    );
+    await tester.pumpWidget(testApp(
+      const PracticeSessionScreen(request: PracticeRequest(mode: 'quick', chapterId: 'ssc-phy-p1-c2', topicId: 'ssc-phy-p1-c2-t2')),
+      lang: AppLanguage.en,
+    ));
     await tester.pumpAndSettle();
     expect(find.text('Question 1/5'), findsOneWidget);
     // q-phy-m1: correct option index 1.

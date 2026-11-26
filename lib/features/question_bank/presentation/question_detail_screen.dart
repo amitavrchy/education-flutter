@@ -21,7 +21,9 @@ import '../domain/question.dart';
 import '../question_strings.dart';
 import 'widgets/question_widgets.dart';
 
-final questionProvider = FutureProvider.autoDispose.family<Question, String>((ref, id) => ref.watch(questionRepositoryProvider).question(id));
+final questionProvider = FutureProvider.autoDispose.family<Question, String>(
+  (ref, id) => ref.watch(questionRepositoryProvider).question(id),
+);
 
 final relatedQuestionsProvider = FutureProvider.autoDispose.family<List<Question>, String>((ref, id) async {
   final q = await ref.watch(questionProvider(id).future);
@@ -57,26 +59,11 @@ class QuestionDetailScreen extends ConsumerWidget {
           PopupMenuButton<String>(
             onSelected: (v) => _menu(context, ref, q, v),
             itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'set',
-                child: ListTile(leading: const Icon(Icons.playlist_add), title: Text(context.tr(QStrings.addToSet))),
-              ),
-              PopupMenuItem(
-                value: 'note',
-                child: ListTile(leading: const Icon(Icons.note_add_outlined), title: Text(context.tr(QStrings.saveToNotes))),
-              ),
-              PopupMenuItem(
-                value: 'copy',
-                child: ListTile(leading: const Icon(Icons.copy), title: Text(context.tr(S.copy))),
-              ),
-              PopupMenuItem(
-                value: 'print',
-                child: ListTile(leading: const Icon(Icons.print_outlined), title: Text(context.tr(QStrings.printView))),
-              ),
-              PopupMenuItem(
-                value: 'report',
-                child: ListTile(leading: const Icon(Icons.flag_outlined), title: Text(context.tr(S.report))),
-              ),
+              PopupMenuItem(value: 'set', child: ListTile(leading: const Icon(Icons.playlist_add), title: Text(context.tr(QStrings.addToSet)))),
+              PopupMenuItem(value: 'note', child: ListTile(leading: const Icon(Icons.note_add_outlined), title: Text(context.tr(QStrings.saveToNotes)))),
+              PopupMenuItem(value: 'copy', child: ListTile(leading: const Icon(Icons.copy), title: Text(context.tr(S.copy)))),
+              PopupMenuItem(value: 'print', child: ListTile(leading: const Icon(Icons.print_outlined), title: Text(context.tr(QStrings.printView)))),
+              PopupMenuItem(value: 'report', child: ListTile(leading: const Icon(Icons.flag_outlined), title: Text(context.tr(S.report)))),
             ],
           ),
         ],
@@ -193,12 +180,7 @@ class _QuestionBodyState extends ConsumerState<_QuestionBody> {
           ),
         ],
         const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: QuestionPrompt(question: q),
-          ),
-        ),
+        Card(child: Padding(padding: const EdgeInsets.all(AppSpacing.lg), child: QuestionPrompt(question: q))),
         const SizedBox(height: AppSpacing.md),
         if (_revealed) ...[
           AnswerPanel(question: q),
@@ -234,8 +216,12 @@ class _QuestionBodyState extends ConsumerState<_QuestionBody> {
           label: Text(context.tr(_revealed ? QStrings.hideAnswer : QStrings.showAnswer)),
         ),
         OutlinedButton.icon(
-          onPressed: () =>
-              context.go(AppRoutes.tutor(subjectId: q.subjectId, chapterId: q.chapterId, topicId: q.topicId, prompt: plainTextOf(q.stem.of(context.lang)))),
+          onPressed: () => context.go(AppRoutes.tutor(
+            subjectId: q.subjectId,
+            chapterId: q.chapterId,
+            topicId: q.topicId,
+            prompt: plainTextOf(q.stem.of(context.lang)),
+          )),
           icon: const Icon(Icons.smart_toy_outlined),
           label: Text(context.tr(S.askAi)),
         ),

@@ -91,10 +91,7 @@ class PracticeState {
   }
 
   /// Questions whose most recent attempt was wrong (the "reattempt" list).
-  List<String> get wrongIds => [
-    for (final e in latestResult.entries)
-      if (!e.value) e.key,
-  ];
+  List<String> get wrongIds => [for (final e in latestResult.entries) if (!e.value) e.key];
 
   int attemptsFor(String questionId) => attempts.where((a) => a.questionId == questionId).length;
 }
@@ -133,7 +130,13 @@ class PracticeController extends Notifier<PracticeState> {
       toJson: (a) => a.toJson(),
       idOf: (a) => a.id,
     );
-    _sets = JsonCollection<PracticeSet>(store: _store, name: 'practice_sets', fromJson: PracticeSet.fromJson, toJson: (s) => s.toJson(), idOf: (s) => s.id);
+    _sets = JsonCollection<PracticeSet>(
+      store: _store,
+      name: 'practice_sets',
+      fromJson: PracticeSet.fromJson,
+      toJson: (s) => s.toJson(),
+      idOf: (s) => s.id,
+    );
     final bookmarks = {for (final b in _store.all(_bookmarkCollection)) b['questionId'] as String};
     final attempts = _attempts.all()..sort((a, b) => b.at.compareTo(a.at));
     final sets = _sets.all()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -180,9 +183,7 @@ class PracticeController extends Notifier<PracticeState> {
         if (b['serverId'] == null && !server.containsKey(qid)) server[qid] = await remote.addBookmark(qid, title: qid);
       }
       await _store.clearCollection(_bookmarkCollection);
-      await _store.putAll(_bookmarkCollection, {
-        for (final e in server.entries) e.key: {'questionId': e.key, 'serverId': e.value, 'at': DateTime.now().toIso8601String()},
-      });
+      await _store.putAll(_bookmarkCollection, {for (final e in server.entries) e.key: {'questionId': e.key, 'serverId': e.value, 'at': DateTime.now().toIso8601String()}});
       if (ref.mounted) state = PracticeState(bookmarks: server.keys.toSet(), attempts: state.attempts, sets: state.sets);
     } catch (_) {
       // Offline: keep the local bookmarks.
@@ -207,13 +208,7 @@ class PracticeController extends Notifier<PracticeState> {
 
   List<Map<String, dynamic>> _setRecords() {
     final now = DateTime.now().toUtc().toIso8601String();
-    return [
-      for (final s in state.sets)
-        {
-          ..._setSync!.merge(s.id, s.apiFields(), defaults: {'kind': 'manual'}),
-          'updatedAt': now,
-        },
-    ];
+    return [for (final s in state.sets) {..._setSync!.merge(s.id, s.apiFields(), defaults: {'kind': 'manual'}), 'updatedAt': now}];
   }
 
   /// API mode: the server's sets replace the local ones; sets made offline are added and pushed.
@@ -224,12 +219,7 @@ class PracticeController extends Notifier<PracticeState> {
       final server = [for (final r in await sync.pull()) PracticeSet.fromApi(r)];
       if (!ref.mounted) return;
       final serverIds = {for (final s in server) s.id};
-      final localOnly = _setsLoaded
-          ? const <PracticeSet>[]
-          : [
-              for (final s in state.sets)
-                if (!serverIds.contains(s.id)) s,
-            ];
+      final localOnly = _setsLoaded ? const <PracticeSet>[] : [for (final s in state.sets) if (!serverIds.contains(s.id)) s];
       final sets = [...server, ...localOnly]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       await _store.clearCollection('practice_sets');
       await _sets.upsertAll(sets);
@@ -273,7 +263,8 @@ class PracticeController extends Notifier<PracticeState> {
     await _saveSet(set.copyWith(questionIds: set.questionIds.where((id) => id != questionId).toList()));
   }
 
-  Future<void> renameSet(String setId, String name) async => _saveSet(state.sets.firstWhere((s) => s.id == setId).copyWith(name: name));
+  Future<void> renameSet(String setId, String name) async =>
+      _saveSet(state.sets.firstWhere((s) => s.id == setId).copyWith(name: name));
 
   Future<void> deleteSet(String setId) async {
     state = PracticeState(bookmarks: state.bookmarks, attempts: state.attempts, sets: state.sets.where((s) => s.id != setId).toList());
@@ -281,7 +272,11 @@ class PracticeController extends Notifier<PracticeState> {
   }
 
   Future<void> _saveSet(PracticeSet set) async {
-    state = PracticeState(bookmarks: state.bookmarks, attempts: state.attempts, sets: [for (final s in state.sets) s.id == set.id ? set : s]);
+    state = PracticeState(
+      bookmarks: state.bookmarks,
+      attempts: state.attempts,
+      sets: [for (final s in state.sets) s.id == set.id ? set : s],
+    );
     await _sets.upsert(set);
   }
 }
@@ -328,7 +323,8 @@ List<Question> buildPracticeSession({
   DateTime? now,
 }) {
   final today = now ?? DateTime.now();
-  List<Question> objectiveFirst(Iterable<Question> qs) => [...qs.where((q) => q.type.isObjective), ...qs.where((q) => !q.type.isObjective)];
+  List<Question> objectiveFirst(Iterable<Question> qs) =>
+      [...qs.where((q) => q.type.isObjective), ...qs.where((q) => !q.type.isObjective)];
 
   switch (request.mode) {
     case 'quick':
@@ -367,5 +363,10 @@ final practiceSessionProvider = FutureProvider.autoDispose.family<List<Question>
   // Goes through the repository once so loading and error states are real.
   await repo.search(const QuestionFilter(), pageSize: 1);
   final progress = ref.read(learningProgressProvider);
-  return buildPracticeSession(request: request, all: repo.cached, practice: ref.read(practiceProvider), masteryOf: (id) => progress.topic(id).mastery);
+  return buildPracticeSession(
+    request: request,
+    all: repo.cached,
+    practice: ref.read(practiceProvider),
+    masteryOf: (id) => progress.topic(id).mastery,
+  );
 });
