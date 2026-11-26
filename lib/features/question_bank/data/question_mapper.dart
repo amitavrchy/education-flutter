@@ -81,3 +81,28 @@ Question questionFromApi(Map<String, dynamic> j) {
     createdAt: j['createdAt'] == null ? null : DateTime.tryParse(j['createdAt'] as String),
   );
 }
+
+/// The app's question in the backend's shape (teacher authoring). Text fields are Bangla.
+Map<String, dynamic> questionToApi(Question q) {
+  const letters = 'abcdefghij';
+  return {
+    'id': q.id,
+    'type': questionTypeToApi(q.type),
+    'stem': q.stem.bn,
+    'answer': q.answer.bn,
+    'explanation': q.explanation?.bn ?? '',
+    'subjectId': q.subjectId,
+    'chapterId': q.chapterId,
+    'topicId': q.topicId,
+    'difficulty': q.difficulty.name,
+    'marks': q.marks,
+    'levelCode': q.subjectId.startsWith('hsc') ? 'HSC' : 'SSC',
+    'language': 'bn',
+    if (q.options.isNotEmpty && q.type != QuestionType.trueFalse) ...{
+      'options': [for (final (i, o) in q.options.indexed) {'id': letters[i], 'text': o.bn}],
+      'correctOptionId': ?(q.correctIndex == null ? null : letters[q.correctIndex!]),
+    },
+    if (q.type == QuestionType.trueFalse) 'correctBoolean': q.correctIndex == 0,
+    if (q.acceptedAnswers.isNotEmpty) 'blanks': [q.acceptedAnswers],
+  };
+}

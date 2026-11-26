@@ -18,6 +18,7 @@ import 'package:shikkhaai_mobile/features/planner/data/remote_tasks.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/parent/remote_guardian.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
+import 'package:shikkhaai_mobile/features/teacher/remote_review.dart';
 import 'package:shikkhaai_mobile/features/teacher/remote_teacher.dart';
 
 /// Talks to a running education-backend (demo mode). Skipped unless LIVE_API=1:
@@ -184,5 +185,8 @@ void main() {
     expect(snap.state.assignments, isNotEmpty);
     expect(snap.studentIds, isNotEmpty);
     expect(snap.state.submissions.every((x) => snap.evaluationOwners.containsKey(x.id)), isTrue);
+    final review = RemoteReview(client(s.accessToken));
+    expect(await review.items(), isNotEmpty);
+    expect((await review.rubrics()).every((r) => r.criteria.isNotEmpty), isTrue);
   }, skip: !live);
 }

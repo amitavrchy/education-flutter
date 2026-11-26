@@ -8,6 +8,7 @@ import '../../core/storage/local_store.dart';
 import '../notifications/application/notifications_controller.dart';
 import '../notifications/domain/app_notification.dart';
 import '../question_bank/domain/question.dart';
+import 'remote_review.dart';
 
 /// Editorial workflow (web §28, TCH-03..11, TCH-19, TCH-22/23):
 /// draft → submitted → in review → changes requested → approved → published → archived.
@@ -365,10 +366,14 @@ class ReviewState {
 class ReviewController extends Notifier<ReviewState> {
   static const _col = 'teacherReview';
   late LocalStore _store;
+  RemoteReview? _remote;
+  Future<void>? _refreshing;
 
   @override
   ReviewState build() {
     _store = watchStore(ref);
+    _remote = ref.watch(remoteReviewProvider);
+    if (_remote != null) Future.microtask(refresh);
     final d = _store.get(_col, 'me');
     if (d != null) {
       return ReviewState(
@@ -378,7 +383,37 @@ class ReviewController extends Notifier<ReviewState> {
         actingAs: ActorRole.values.byName(d['actingAs'] as String? ?? 'teacher'),
       );
     }
+    if (_remote != null) return const ReviewState(items: [], rubrics: [], questions: []);
     return ReviewState(items: _seedItems(DateTime.now()), rubrics: _seedRubrics, questions: const []);
+  }
+
+  /// API mode: review items and rubrics from the server (single-flight). Authored questions
+  /// stay on the device as the teacher's drafts list; their review items come from the server.
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    final remote = _remote;
+    if (remote == null || !ref.mounted) return;
+    try {
+      final (items, rubrics) = await (remote.items(), remote.rubrics()).wait;
+      if (!ref.mounted) return;
+      items.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      await _save(state.copyWith(items: items, rubrics: rubrics));
+    } catch (_) {
+      // Offline: keep the cached queue.
+    }
+  }
+
+  /// Applies an item the server returned (and the authored question's status, if any).
+  Future<void> _applyServer(ReviewItem item) async {
+    final known = state.items.any((i) => i.id == item.id);
+    await _save(state.copyWith(
+      items: known ? [for (final i in state.items) i.id == item.id ? item : i] : [item, ...state.items],
+      questions: [
+        for (final q in state.questions)
+          q.question.id == item.contentId ? AuthoredQuestion(question: q.question, status: item.status, version: q.version, versions: q.versions) : q,
+      ],
+    ));
   }
 
   Future<void> _save(ReviewState s) async {
@@ -399,6 +434,10 @@ class ReviewController extends Notifier<ReviewState> {
 
   /// Validated status change; a decision note is required to request changes.
   Future<void> transition(String id, ContentStatus to, {String? note}) async {
+    if (_remote != null) {
+      // The server checks the move and the actor's permission, and notifies the author.
+      return _applyServer(await _remote!.transition(id, to, note: note?.trim()));
+    }
     await ref.read(mockSimulatorProvider).run(() {});
     final item = _get(id);
     final actor = state.actor;
@@ -436,11 +475,13 @@ class ReviewController extends Notifier<ReviewState> {
   }
 
   Future<void> comment(String id, String text) async {
+    if (_remote != null) return _applyServer(await _remote!.comment(id, text.trim()));
     final item = _get(id);
     await _put(item.copyWith(comments: [...item.comments, ReviewComment(state.actor, text.trim(), DateTime.now())]));
   }
 
   Future<void> suggest(String id, String from, String to) async {
+    if (_remote != null) return _applyServer(await _remote!.suggest(id, from.trim(), to.trim()));
     final item = _get(id);
     if (from.trim().isEmpty || !item.preview.contains(from.trim())) {
       throw const ApiException(statusCode: 400, code: 'TEXT_NOT_FOUND', message: 'বর্তমান লেখাটি কনটেন্টে পাওয়া যায়নি');
@@ -453,6 +494,7 @@ class ReviewController extends Notifier<ReviewState> {
 
   /// Accepting replaces the text in the preview.
   Future<void> resolveSuggestion(String id, String suggestionId, {required bool accept}) async {
+    if (_remote != null) return _applyServer(await _remote!.resolve(id, suggestionId, accept: accept));
     final item = _get(id);
     final s = item.suggestions.firstWhere((x) => x.id == suggestionId);
     await _put(item.copyWith(
@@ -464,6 +506,7 @@ class ReviewController extends Notifier<ReviewState> {
   /// Teacher authoring: saves the question as a draft (or submits it) and keeps one open
   /// review item per question.
   Future<AuthoredQuestion> saveQuestion(Question q, {required bool submit}) async {
+    if (_remote != null) await _remote!.saveQuestion(q, submit: submit);
     await ref.read(mockSimulatorProvider).run(() {});
     final now = DateTime.now();
     final existing = state.questions.where((x) => x.question.id == q.id).firstOrNull;
@@ -498,7 +541,8 @@ class ReviewController extends Notifier<ReviewState> {
             ),
             ...state.items,
           ];
-    await _save(state.copyWith(questions: [authored, ...state.questions.where((x) => x.question.id != q.id)], items: items));
+    await _save(state.copyWith(questions: [authored, ...state.questions.where((x) => x.question.id != q.id)], items: _remote == null ? items : null));
+    if (_remote != null) await refresh(); // the server created or updated the review item
     return authored;
   }
 
@@ -506,10 +550,17 @@ class ReviewController extends Notifier<ReviewState> {
     if (r.name.trim().isEmpty || r.criteria.isEmpty) {
       throw const ApiException(statusCode: 400, code: 'INVALID', message: 'নাম ও অন্তত একটি মানদণ্ড দিন');
     }
+    if (_remote != null) {
+      final exists = state.rubrics.any((x) => x.id == r.id);
+      exists ? await _remote!.updateRubric(r) : await _remote!.createRubric(r);
+    }
     await _save(state.copyWith(rubrics: [r, ...state.rubrics.where((x) => x.id != r.id)]));
   }
 
-  Future<void> removeRubric(String id) => _save(state.copyWith(rubrics: state.rubrics.where((r) => r.id != id).toList()));
+  Future<void> removeRubric(String id) async {
+    if (_remote != null) await _remote!.deleteRubric(id);
+    await _save(state.copyWith(rubrics: state.rubrics.where((r) => r.id != id).toList()));
+  }
 }
 
 final reviewProvider = NotifierProvider<ReviewController, ReviewState>(ReviewController.new);
