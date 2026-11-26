@@ -6,6 +6,7 @@ import '../../mock/seed/curriculum_seed.dart';
 import '../book_avatar/application/avatar_controller.dart' show mixHash;
 import '../curriculum/domain/curriculum_models.dart';
 import '../question_bank/domain/question.dart';
+import 'remote_archive.dart';
 
 /// Exam categories for school/college papers.
 enum PaperCategory {
@@ -51,6 +52,8 @@ class ArchivePaper {
     this.boardId,
     this.institution,
     this.category,
+    this.serverPrivate,
+    this.serverTeacherUploaded,
   });
 
   final String id;
@@ -62,6 +65,10 @@ class ArchivePaper {
   final DemoInstitution? institution;
   final PaperCategory? category;
 
+  /// From the server's paper (null for demo papers).
+  final bool? serverPrivate;
+  final bool? serverTeacherUploaded;
+
   bool get isBoard => boardId != null;
 }
 
@@ -69,15 +76,25 @@ const archiveYears = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015
 
 /// Deterministic pick of up to [n] questions of a subject for a paper.
 List<String> _pick(List<Question> bank, Subject s, String seed, {int n = 8, String? boardId, int? year}) {
-  final mine = [for (final q in bank) if (q.subjectId == s.id) q];
+  final mine = [
+    for (final q in bank)
+      if (q.subjectId == s.id) q,
+  ];
   // Real board-tagged samples of this board/year come first.
-  final tagged = [for (final q in mine) if (boardId != null && q.boardId == boardId && q.year == year) q.id];
-  final rest = [for (final q in mine) if (!tagged.contains(q.id)) q]..sort((a, b) => mixHash('$seed${a.id}').compareTo(mixHash('$seed${b.id}')));
+  final tagged = [
+    for (final q in mine)
+      if (boardId != null && q.boardId == boardId && q.year == year) q.id,
+  ];
+  final rest = [
+    for (final q in mine)
+      if (!tagged.contains(q.id)) q,
+  ]..sort((a, b) => mixHash('$seed${a.id}').compareTo(mixHash('$seed${b.id}')));
   return [...tagged, ...rest.map((q) => q.id)].take(n).toList();
 }
 
 /// Board-style sample paper (null when the subject has no questions yet, or HSC 2020).
 ArchivePaper? boardPaper(List<Question> bank, {required Subject subject, required String boardId, required int year}) {
+  if (ArchiveCatalog.loaded) return _serverBoardPaper(bank, subject, boardId, year);
   if (subject.level == EducationLevel.hsc && year == 2020) return null; // No HSC exam was held in 2020.
   final id = 'bp-$boardId-$year-${subject.id}';
   final ids = _pick(bank, subject, id, boardId: boardId, year: year);
@@ -93,22 +110,73 @@ ArchivePaper? boardPaper(List<Question> bank, {required Subject subject, require
   );
 }
 
-/// School/college papers of the demo directory (two per institution and subject level).
-List<ArchivePaper> institutionPapers(List<Question> bank) => [
-  for (final inst in demoInstitutions)
-    for (final s in seedSubjects.where((s) => s.level == (inst.college ? EducationLevel.hsc : EducationLevel.ssc)).take(4))
-      for (final (i, cat) in [PaperCategory.values[mixHash('${inst.id}${s.id}') % 3], PaperCategory.values[3 + mixHash('${s.id}${inst.id}') % 3]].indexed)
-        if (_pick(bank, s, '${inst.id}-${s.id}-$i', n: 6) case final ids when ids.isNotEmpty)
+/// API mode: the server's MCQ and creative papers of that board/year as one paper.
+ArchivePaper? _serverBoardPaper(List<Question> bank, Subject subject, String boardId, int year) {
+  final known = {for (final q in bank) q.id};
+  final ids = <String>{
+    for (final p in ArchiveCatalog.boardPapers(subject.id, boardId, year))
+      for (final q in p['questionIds'] as List? ?? const [])
+        if (known.contains(q)) q as String,
+  }.toList();
+  if (ids.isEmpty) return null;
+  final board = educationBoards.where((b) => b.id == boardId).firstOrNull;
+  return ArchivePaper(
+    id: 'bp-$boardId-$year-${subject.id}',
+    title: Tr('${subject.name.bn} — ${board?.name.bn ?? boardId} বোর্ড $year', '${subject.name.en} — ${board?.name.en ?? boardId} board $year'),
+    subject: subject,
+    year: year,
+    boardId: boardId,
+    questionIds: ids,
+  );
+}
+
+/// Schools and colleges of the archive: the server's directory in API mode, else the demo one.
+List<DemoInstitution> get archiveInstitutions => ArchiveCatalog.loaded ? ArchiveCatalog.institutions : demoInstitutions;
+
+/// API mode: the server's school/college papers (approved and licensed).
+List<ArchivePaper> _serverInstitutionPapers(List<Question> bank) {
+  final known = {for (final q in bank) q.id};
+  final insts = {for (final i in ArchiveCatalog.institutions) i.id: i};
+  return [
+    for (final p in ArchiveCatalog.institutionPapers)
+      if ((subjectById(p['subjectId'] as String? ?? ''), insts[p['institutionId']]) case (final s?, final inst?))
+        if ([
+              for (final q in p['questionIds'] as List? ?? const [])
+                if (known.contains(q)) q as String,
+            ]
+            case final ids when ids.isNotEmpty)
           ArchivePaper(
-            id: 'ip-${inst.id}-${s.id}-$i',
-            title: Tr('${s.name.bn} — ${cat.label.bn} পরীক্ষা', '${s.name.en} — ${cat.label.en} exam'),
+            id: p['id'] as String,
+            title: Tr.same(p['title'] as String? ?? s.name.bn),
             subject: s,
-            year: 2025 - i,
+            year: int.tryParse('${p['academicYear']}') ?? DateTime.now().year,
             institution: inst,
-            category: cat,
+            category: ArchiveCatalog.categoryOf(p['category'] as String?),
             questionIds: ids,
+            serverPrivate: p['visibility'] == 'private',
+            serverTeacherUploaded: (p['uploadedBy'] as Map?)?['role'] == 'teacher',
           ),
-];
+  ];
+}
+
+/// School/college papers of the demo directory (two per institution and subject level).
+List<ArchivePaper> institutionPapers(List<Question> bank) => ArchiveCatalog.loaded
+    ? _serverInstitutionPapers(bank)
+    : [
+        for (final inst in demoInstitutions)
+          for (final s in seedSubjects.where((s) => s.level == (inst.college ? EducationLevel.hsc : EducationLevel.ssc)).take(4))
+            for (final (i, cat) in [PaperCategory.values[mixHash('${inst.id}${s.id}') % 3], PaperCategory.values[3 + mixHash('${s.id}${inst.id}') % 3]].indexed)
+              if (_pick(bank, s, '${inst.id}-${s.id}-$i', n: 6) case final ids when ids.isNotEmpty)
+                ArchivePaper(
+                  id: 'ip-${inst.id}-${s.id}-$i',
+                  title: Tr('${s.name.bn} — ${cat.label.bn} পরীক্ষা', '${s.name.en} — ${cat.label.en} exam'),
+                  subject: s,
+                  year: 2025 - i,
+                  institution: inst,
+                  category: cat,
+                  questionIds: ids,
+                ),
+      ];
 
 ArchivePaper? paperById(List<Question> bank, String id) {
   if (id.startsWith('bp-')) {
@@ -131,10 +199,10 @@ enum BoardExamType {
 }
 
 /// Who may see an institution paper (INQ-13).
-bool paperIsPrivate(ArchivePaper p) => !p.isBoard && mixHash('vis:${p.id}') % 5 == 0;
+bool paperIsPrivate(ArchivePaper p) => p.serverPrivate ?? (!p.isBoard && mixHash('vis:${p.id}') % 5 == 0);
 
 /// Teacher-uploaded vs. collected (INQ-16).
-bool paperTeacherUploaded(ArchivePaper p) => !p.isBoard && mixHash('up:${p.id}') % 3 == 0;
+bool paperTeacherUploaded(ArchivePaper p) => p.serverTeacherUploaded ?? (!p.isBoard && mixHash('up:${p.id}') % 3 == 0);
 
 /// Another paper with mostly the same questions (INQ-18), or null.
 ArchivePaper? duplicateOf(ArchivePaper p, List<ArchivePaper> all) {
@@ -159,10 +227,21 @@ class ArchiveState {
 class ArchiveController extends Notifier<ArchiveState> {
   static const _col = 'archive';
   late LocalStore _store;
+  RemoteArchive? _remote;
+  Future<void>? _refreshing;
+
+  /// API mode: saved paper id → the server bookmark id.
+  final Map<String, String> _bookmarkIds = {};
 
   @override
   ArchiveState build() {
     _store = watchStore(ref);
+    _remote = ref.watch(remoteArchiveProvider);
+    if (_remote == null) {
+      ArchiveCatalog.clear();
+    } else {
+      Future.microtask(refresh);
+    }
     final d = _store.get(_col, 'me');
     return ArchiveState(saved: (d?['saved'] as List? ?? const []).cast<String>(), reported: (d?['reported'] as Map? ?? const {}).cast<String, String>());
   }
@@ -172,13 +251,55 @@ class ArchiveController extends Notifier<ArchiveState> {
     await _store.put(_col, 'me', {'saved': s.saved, 'reported': s.reported});
   }
 
-  Future<bool> toggleSaved(String paperId) async {
+  /// API mode: the server's papers, then the saved ones (bookmarks) — single-flight.
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    final remote = _remote;
+    if (remote == null) return;
+    try {
+      await remote.loadCatalog();
+      final saved = await remote.savedPapers();
+      _bookmarkIds
+        ..clear()
+        ..addAll(saved);
+      if (ref.mounted) await _save(ArchiveState(saved: saved.keys.toList(), reported: state.reported));
+    } catch (_) {
+      // Offline: keep the demo archive and the local saved list.
+    }
+  }
+
+  Future<bool> toggleSaved(String paperId, {ArchivePaper? paper}) async {
     final on = !state.saved.contains(paperId);
-    await _save(ArchiveState(saved: on ? [paperId, ...state.saved] : [for (final x in state.saved) if (x != paperId) x], reported: state.reported));
+    if (_remote case final remote?) {
+      if (on && paper != null) {
+        final id = await remote.save(paper);
+        if (id != null) _bookmarkIds[paperId] = id;
+      } else if (!on) {
+        final id = _bookmarkIds.remove(paperId);
+        if (id != null) await remote.unsave(id);
+      }
+    }
+    await _save(
+      ArchiveState(
+        saved: on
+            ? [paperId, ...state.saved]
+            : [
+                for (final x in state.saved)
+                  if (x != paperId) x,
+              ],
+        reported: state.reported,
+      ),
+    );
     return on;
   }
 
-  Future<void> report(String paperId, String reason) => _save(ArchiveState(saved: state.saved, reported: {...state.reported, paperId: reason}));
+  Future<void> report(String paperId, String reason, {ArchivePaper? paper}) async {
+    if (_remote != null && paper != null) await _remote!.report(paper, reason);
+    await _saveReport(paperId, reason);
+  }
+
+  Future<void> _saveReport(String paperId, String reason) => _save(ArchiveState(saved: state.saved, reported: {...state.reported, paperId: reason}));
 }
 
 final archiveProvider = NotifierProvider<ArchiveController, ArchiveState>(ArchiveController.new);

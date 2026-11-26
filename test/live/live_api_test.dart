@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shikkhaai_mobile/core/l10n/tr.dart';
 import 'package:shikkhaai_mobile/core/network/api_client.dart';
 import 'package:shikkhaai_mobile/core/network/owner_sync.dart';
 import 'package:shikkhaai_mobile/features/account/account_controller.dart';
 import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
 import 'package:shikkhaai_mobile/features/ai_tutor/data/remote_tutor.dart';
+import 'package:shikkhaai_mobile/features/archives/archive_data.dart';
+import 'package:shikkhaai_mobile/features/archives/remote_archive.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
 import 'package:shikkhaai_mobile/features/book_avatar/data/remote_avatar.dart';
@@ -27,6 +30,7 @@ import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dar
 import 'package:shikkhaai_mobile/features/study_tools/english_coach.dart';
 import 'package:shikkhaai_mobile/features/teacher/remote_review.dart';
 import 'package:shikkhaai_mobile/features/teacher/remote_teacher.dart';
+import 'package:shikkhaai_mobile/mock/seed/curriculum_seed.dart';
 
 /// Talks to a running education-backend (demo mode). Skipped unless LIVE_API=1:
 ///   LIVE_API=1 flutter test test/live
@@ -279,5 +283,22 @@ void main() {
     expect(messages.where((m) => m.sessionId == session.id).length, 3);
     expect((await remote.avatars()).any((a) => a.bookId == 'book-ssc-physics'), isTrue);
     expect(await remote.usage('u-student-1'), isNotEmpty);
+  }, skip: !live);
+
+  test('paper archive: server board/institution papers; a saved paper is a web bookmark', () async {
+    final remote = RemoteArchive(client(await student()), 'u-student-1');
+    await remote.loadCatalog();
+    addTearDown(ArchiveCatalog.clear);
+    final dhaka = ArchiveCatalog.boardPapers('ssc-physics', 'dhaka', 2023);
+    expect(dhaka, isNotEmpty);
+    expect(ArchiveCatalog.institutionPapers, isNotEmpty);
+    expect(ArchiveCatalog.institutions, isNotEmpty);
+    final appId = ArchiveCatalog.appPaperId(dhaka.first['id'] as String);
+    expect(appId, 'bp-dhaka-2023-ssc-physics');
+    final paper = ArchivePaper(id: appId, title: const Tr.same('live'), subject: subjectById('ssc-phy')!, year: 2023, questionIds: const [], boardId: 'dhaka');
+    final id = (await remote.save(paper))!;
+    expect((await remote.savedPapers())[appId], id);
+    await remote.unsave(id);
+    expect((await remote.savedPapers()).containsKey(appId), isFalse);
   }, skip: !live);
 }
