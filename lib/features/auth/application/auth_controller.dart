@@ -62,20 +62,42 @@ class AuthController extends Notifier<AuthState> {
 
   /// Throws ApiException on failure; the caller shows the message.
   Future<void> login({required String identifier, required String password}) async {
-    final session = await _repository.login(identifier: identifier.trim(), password: password);
-    await _storage.saveSession(
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
-      userJson: jsonEncode(session.user.toJson()),
-    );
+    await _start(await _repository.login(identifier: identifier.trim(), password: password));
+  }
+
+  Future<void> _start(AuthSession session) async {
+    await _storage.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken, userJson: jsonEncode(session.user.toJson()));
     state = Authenticated(session.user);
   }
 
-  /// Signs in a freshly registered account (after OTP verification).
-  Future<void> register({required String name, required String identifier, required String password, required UserRole role}) async {
-    final session = await _repository.register(name: name.trim(), identifier: identifier.trim(), password: password, role: role);
-    await _storage.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken, userJson: jsonEncode(session.user.toJson()));
-    state = Authenticated(session.user);
+  /// Signup step 1: returns the server's OTP challenge id (null in the mock).
+  Future<String?> startRegistration({required String name, required String identifier, required String password, required UserRole role}) =>
+      _repository.startRegistration(name: name.trim(), identifier: identifier.trim(), password: password, role: role);
+
+  /// Signup step 2: verifies the OTP and signs the new account in.
+  Future<void> completeRegistration({
+    required String? challengeId,
+    required String code,
+    required String name,
+    required String identifier,
+    required String password,
+    required UserRole role,
+  }) async {
+    final session = await _repository.completeRegistration(challengeId: challengeId, code: code, name: name.trim(), identifier: identifier.trim(), password: password, role: role);
+    await _start(session);
+  }
+
+  /// Rotates the refresh token; returns the new access token or null when the session is gone.
+  Future<String?> refreshSession() async {
+    final token = await _storage.readRefreshToken();
+    if (token == null || token.isEmpty) return null;
+    try {
+      final session = await _repository.refresh(token);
+      await _start(session);
+      return session.accessToken;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> logout() async {
@@ -96,7 +118,7 @@ class AuthController extends Notifier<AuthState> {
   }
 
   /// Demo tool (AUTH-09): signs in as another mock role without the login form.
-  Future<void> switchDemoRole(UserRole role) => login(identifier: '${role.pathSegment}@shikkha.ai', password: 'demo');
+  Future<void> switchDemoRole(UserRole role) async => _start(await _repository.switchRole(role));
 }
 
 final authControllerProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);

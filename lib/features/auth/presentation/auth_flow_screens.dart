@@ -80,7 +80,10 @@ abstract final class AuthFlowStrings {
 enum OtpPurpose { register, reset }
 
 class PendingAuth {
-  const PendingAuth({required this.purpose, required this.identifier, this.name = '', this.password = '', this.role = UserRole.student});
+  const PendingAuth({required this.purpose, required this.identifier, this.name = '', this.password = '', this.role = UserRole.student, this.challengeId});
+
+  /// API mode: the server's OTP challenge for this signup.
+  final String? challengeId;
 
   final OtpPurpose purpose;
   final String identifier;
@@ -267,12 +270,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: AppSpacing.sm),
         FilledButton(
           key: const Key('reg.submit'),
-          onPressed: () {
+          onPressed: () async {
             final ok = _form.currentState?.validate() ?? false;
             setState(() => _termsError = !_terms);
             if (!ok || !_terms) return;
-            ref.read(pendingAuthProvider.notifier).set(PendingAuth(purpose: OtpPurpose.register, identifier: _id.text.trim(), name: _name.text.trim(), password: _pw.text, role: _role));
-            context.go(AppRoutes.verifyOtp);
+            try {
+              // API mode sends the OTP now; the mock checks the demo code on the next screen.
+              final challengeId = await ref.read(authControllerProvider.notifier).startRegistration(name: _name.text.trim(), identifier: _id.text.trim(), password: _pw.text, role: _role);
+              ref.read(pendingAuthProvider.notifier).set(PendingAuth(purpose: OtpPurpose.register, identifier: _id.text.trim(), name: _name.text.trim(), password: _pw.text, role: _role, challengeId: challengeId));
+              if (context.mounted) context.go(AppRoutes.verifyOtp);
+            } on ApiException catch (e) {
+              if (context.mounted) context.showErrorSnack(e);
+            }
           },
           child: Text(context.tr(AuthFlowStrings.next)),
         ),
@@ -320,7 +329,8 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   }
 
   Future<void> _verify(PendingAuth p) async {
-    if (_code.text.trim() != '123456') return setState(() => _error = context.tr(AuthFlowStrings.wrongOtp));
+    // The mock checks the demo code here; the API verifies it on the server.
+    if (p.challengeId == null && _code.text.trim() != '123456') return setState(() => _error = context.tr(AuthFlowStrings.wrongOtp));
     setState(() {
       _busy = true;
       _error = null;
@@ -330,7 +340,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
         if (mounted) context.go(AppRoutes.resetPassword);
         return;
       }
-      await ref.read(authControllerProvider.notifier).register(name: p.name, identifier: p.identifier, password: p.password, role: p.role);
+      await ref.read(authControllerProvider.notifier).completeRegistration(challengeId: p.challengeId, code: _code.text.trim(), name: p.name, identifier: p.identifier, password: p.password, role: p.role);
       ref.read(pendingAuthProvider.notifier).set(null);
       if (p.role == UserRole.student) {
         await ref.read(studentProfileProvider.notifier).update((s) => s.copyWith(name: p.name, onboarded: false));

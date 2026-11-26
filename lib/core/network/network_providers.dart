@@ -14,6 +14,9 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 /// the user out, so core/ never imports features/.
 final unauthorizedHandlerProvider = Provider<void Function()>((ref) => () {});
 
+/// Rotates the refresh token (overridden in main.dart); resolves to the new access token or null.
+final refreshHandlerProvider = Provider<Future<String?> Function()>((ref) => () async => null);
+
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
@@ -29,6 +32,8 @@ final dioProvider = Provider<Dio>((ref) {
     AuthInterceptor(
       tokenStorage: ref.watch(tokenStorageProvider),
       onUnauthorized: () => ref.read(unauthorizedHandlerProvider)(),
+      refresh: () => ref.read(refreshHandlerProvider)(),
+      retry: dio.fetch,
     ),
   );
 

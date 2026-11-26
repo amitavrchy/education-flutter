@@ -15,10 +15,20 @@ enum UserRole {
   bool get supportedOnMobile =>
       this == UserRole.student || this == UserRole.teacher || this == UserRole.parent;
 
-  static UserRole fromKey(String key) => UserRole.values.firstWhere(
-    (role) => role.key == key,
-    orElse: () => throw FormatException('Unknown role key: $key'),
-  );
+  /// Accepts the app's own keys (`STUDENT`) and the backend's role names (`student`,
+  /// `content_reviewer`, …). Reviewers use the teacher portal; other staff roles are web-only.
+  static UserRole fromKey(String key) {
+    for (final role in UserRole.values) {
+      if (role.key == key || role.pathSegment == key) return role;
+    }
+    return switch (key.toLowerCase()) {
+      'student' => UserRole.student,
+      'teacher' || 'content_reviewer' => UserRole.teacher,
+      'parent' || 'guardian' => UserRole.parent,
+      'super_admin' || 'platform_admin' || 'content_manager' || 'school_admin' || 'college_admin' || 'support' => UserRole.superAdmin,
+      _ => throw FormatException('Unknown role key: $key'),
+    };
+  }
 }
 
 class AppUser {

@@ -21,6 +21,7 @@ Future<void> main() async {
         unauthorizedHandlerProvider.overrideWith(
           (ref) => () => ref.read(authControllerProvider.notifier).onUnauthorized(),
         ),
+        refreshHandlerProvider.overrideWith((ref) => () => ref.read(authControllerProvider.notifier).refreshSession()),
       ],
       child: const ShikkhaApp(),
     ),
