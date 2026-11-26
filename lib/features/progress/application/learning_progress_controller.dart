@@ -96,7 +96,12 @@ class LearningProgressController extends Notifier<LearningState> {
   }
 
   /// API mode: replaces the local copy with the server's progress (and practice history).
-  Future<void> refresh() async {
+  Future<void>? _refreshing;
+
+  /// One refresh at a time; concurrent callers share it.
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
     final remote = _remote;
     if (remote == null || !ref.mounted) return;
     try {

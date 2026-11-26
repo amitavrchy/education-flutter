@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shikkhaai_mobile/core/network/api_client.dart';
+import 'package:shikkhaai_mobile/core/network/owner_sync.dart';
 import 'package:shikkhaai_mobile/features/account/account_controller.dart';
 import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
 import 'package:shikkhaai_mobile/features/curriculum/data/curriculum_catalog.dart';
+import 'package:shikkhaai_mobile/features/flashcards/data/remote_flashcards.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
@@ -88,5 +90,14 @@ void main() {
     expect((await remote.questionBookmarks())['q-phy-001-live'], id);
     await remote.removeBookmark(id);
     expect((await remote.questionBookmarks()).length, before.length);
+  }, skip: !live);
+
+  test("student's decks and cards map onto the app model", () async {
+    final api = client(await student());
+    final decks = await OwnerSync(api, collection: 'decks', studentId: 'u-student-1').pull();
+    final cards = await OwnerSync(api, collection: 'cards', studentId: 'u-student-1').pull();
+    expect([for (final d in decks) FlashcardMapper.deckFrom(d)], isNotEmpty);
+    final mapped = [for (final c in cards) FlashcardMapper.cardFrom(c)];
+    expect(mapped.every((c) => decks.any((d) => d['id'] == c.deckId)), isTrue);
   }, skip: !live);
 }

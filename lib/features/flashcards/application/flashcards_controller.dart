@@ -14,6 +14,10 @@ import '../../question_bank/application/practice_controller.dart';
 import '../../question_bank/data/question_repository.dart';
 import '../../question_bank/domain/question.dart';
 import '../domain/flashcard.dart';
+import '../../../core/network/network_providers.dart';
+import '../../../core/network/owner_sync.dart';
+import '../../progress/data/remote_progress.dart';
+import '../data/remote_flashcards.dart';
 
 @immutable
 class FlashcardState {
@@ -35,14 +39,59 @@ class FlashcardsController extends Notifier<FlashcardState> {
   late JsonCollection<Deck> _decks;
   late JsonCollection<Flashcard> _cards;
 
+  OwnerSync? _deckSync;
+  OwnerSync? _cardSync;
+  bool _applyingServer = false;
+
   @override
   FlashcardState build() {
     final store = watchStore(ref);
-    final seed = _seed();
+    final remote = ref.watch(remoteProgressProvider);
+    final seed = remote == null ? _seed() : (decks: <Deck>[], cards: <Flashcard>[]);
     _decks = JsonCollection<Deck>(store: store, name: 'fc_decks', fromJson: Deck.fromJson, toJson: (d) => d.toJson(), idOf: (d) => d.id, seed: () => seed.decks);
     _cards = JsonCollection<Flashcard>(store: store, name: 'fc_cards', fromJson: Flashcard.fromJson, toJson: (c) => c.toJson(), idOf: (c) => c.id, seed: () => seed.cards);
+    _deckSync = remote == null ? null : OwnerSync(ref.read(apiClientProvider), collection: 'decks', studentId: remote.studentId);
+    _cardSync = remote == null ? null : OwnerSync(ref.read(apiClientProvider), collection: 'cards', studentId: remote.studentId);
+    ref.onDispose(() {
+      _deckSync?.dispose();
+      _cardSync?.dispose();
+    });
+    if (remote != null) {
+      // Any local change is pushed (debounced) as the whole deck and card lists.
+      listenSelf((prev, next) {
+        if (prev == null || _applyingServer) return;
+        if (!identical(prev.decks, next.decks)) _deckSync?.schedule(() => [for (final d in state.decks) _deckSync!.merge(d.id, FlashcardMapper.deckFields(d), defaults: FlashcardMapper.deckDefaults)]);
+        if (!identical(prev.cards, next.cards)) _cardSync?.schedule(() => [for (final c in state.cards) _cardSync!.merge(c.id, FlashcardMapper.cardFields(c))]);
+      });
+      Future.microtask(refresh);
+    }
     final decks = _decks.all()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return FlashcardState(decks: decks, cards: _cards.all());
+  }
+
+  /// API mode: the server's decks and cards replace the local copy.
+  Future<void>? _refreshing;
+
+  /// One refresh at a time; concurrent callers share it.
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    if (_deckSync == null || _cardSync == null || !ref.mounted) return;
+    try {
+      final decks = [for (final d in await _deckSync!.pull()) FlashcardMapper.deckFrom(d)];
+      final cards = [for (final c in await _cardSync!.pull()) FlashcardMapper.cardFrom(c)];
+      if (!ref.mounted) return;
+      final store = ref.read(localStoreProvider);
+      await store.clearCollection('fc_decks');
+      await store.clearCollection('fc_cards');
+      await _decks.upsertAll(decks);
+      await _cards.upsertAll(cards);
+      _applyingServer = true;
+      state = FlashcardState(decks: decks..sort((a, b) => b.createdAt.compareTo(a.createdAt)), cards: cards);
+      _applyingServer = false;
+    } catch (_) {
+      // Offline: keep the cached decks.
+    }
   }
 
   String _id(String p) => '$p-${DateTime.now().microsecondsSinceEpoch}';
