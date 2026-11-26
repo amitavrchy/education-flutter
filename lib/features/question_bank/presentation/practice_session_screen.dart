@@ -33,7 +33,10 @@ class PracticeSessionScreen extends ConsumerWidget {
     return AsyncValueView<List<Question>>(
       value: value,
       onRetry: () => ref.invalidate(practiceSessionProvider(request)),
-      loading: Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator())),
+      loading: Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
       data: (questions) => questions.isEmpty
           ? Scaffold(
               appBar: AppBar(title: Text(context.tr(QStrings.session))),
@@ -108,12 +111,9 @@ class _SessionState extends ConsumerState<_Session> {
     }
     final minutes = DateTime.now().difference(_started).inMinutes.clamp(1, 120);
     final correct = _results.values.where((c) => c).length;
-    await ref.read(learningProgressProvider.notifier).logActivity(
-      ActivityKind.practice,
-      minutes: minutes,
-      xp: 5 + correct * 5,
-      subjectId: widget.request.subjectId ?? _q.subjectId,
-    );
+    await ref
+        .read(learningProgressProvider.notifier)
+        .logActivity(ActivityKind.practice, minutes: minutes, xp: 5 + correct * 5, subjectId: widget.request.subjectId ?? _q.subjectId);
     setState(() => _finished = true);
   }
 
@@ -187,8 +187,8 @@ class _SessionState extends ConsumerState<_Session> {
               state: !answered
                   ? null
                   : q.isCorrectChoice(i)
-                      ? true
-                      : (_selected == i ? false : null),
+                  ? true
+                  : (_selected == i ? false : null),
               onTap: answered ? null : () => setState(() => _selected = i),
             ),
           ),
@@ -213,11 +213,7 @@ class _SessionState extends ConsumerState<_Session> {
     final q = _q;
     final last = _index == widget.questions.length - 1;
     if (answered) {
-      return FilledButton(
-        key: const Key('practice.next'),
-        onPressed: _next,
-        child: Text(context.tr(last ? QStrings.finish : S.next)),
-      );
+      return FilledButton(key: const Key('practice.next'), onPressed: _next, child: Text(context.tr(last ? QStrings.finish : S.next)));
     }
     if (q.type.isObjective) {
       final ready = q.type == QuestionType.fillBlank ? _text.text.trim().isNotEmpty : _selected != null;
@@ -233,11 +229,7 @@ class _SessionState extends ConsumerState<_Session> {
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton(
-            key: const Key('practice.selfWrong'),
-            onPressed: () => _record(false),
-            child: Text(context.tr(QStrings.iMissed)),
-          ),
+          child: OutlinedButton(key: const Key('practice.selfWrong'), onPressed: () => _record(false), child: Text(context.tr(QStrings.iMissed))),
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
@@ -278,7 +270,10 @@ class _OptionTile extends StatelessWidget {
       label: '$label. $text',
       child: Material(
         color: fill ?? context.colors.surfaceContainerLow,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.field, side: BorderSide(color: border, width: selected || state != null ? 2 : 1)),
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.field,
+          side: BorderSide(color: border, width: selected || state != null ? 2 : 1),
+        ),
         child: InkWell(
           borderRadius: AppRadius.field,
           onTap: onTap,
@@ -286,7 +281,11 @@ class _OptionTile extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
-                CircleAvatar(radius: 14, backgroundColor: border.withValues(alpha: 0.15), child: Text(label, style: TextStyle(color: border))),
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: border.withValues(alpha: 0.15),
+                  child: Text(label, style: TextStyle(color: border)),
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(child: InlineRich(text, style: context.text.bodyLarge!)),
                 if (state == true) Icon(Icons.check_circle, color: p.success),
@@ -331,7 +330,10 @@ class _Summary extends StatelessWidget {
   Widget build(BuildContext context) {
     final correct = results.values.where((c) => c).length;
     final total = questions.length;
-    final wrongIds = [for (final e in results.entries) if (!e.value) questions[e.key].id];
+    final wrongIds = [
+      for (final e in results.entries)
+        if (!e.value) questions[e.key].id,
+    ];
     return Scaffold(
       appBar: AppBar(title: Text(context.tr(QStrings.sessionDone)), automaticallyImplyLeading: false),
       body: ListView(
@@ -354,17 +356,12 @@ class _Summary extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Center(
-            child: Text(context.tr(QStrings.xpEarned.fill({'n': 5 + correct * 5})),
-                style: context.text.titleMedium?.copyWith(color: context.palette.xp)),
+            child: Text(context.tr(QStrings.xpEarned.fill({'n': 5 + correct * 5})), style: context.text.titleMedium?.copyWith(color: context.palette.xp)),
           ),
           Center(child: Text(context.tr(QStrings.masteryUpdated), style: context.text.bodySmall)),
           const SizedBox(height: AppSpacing.lg),
           for (var i = 0; i < questions.length; i++)
-            QuestionListTile(
-              question: questions[i],
-              status: results[i],
-              onTap: () => context.push(AppRoutes.question(questions[i].id)),
-            ),
+            QuestionListTile(question: questions[i], status: results[i], onTap: () => context.push(AppRoutes.question(questions[i].id))),
           const SizedBox(height: AppSpacing.lg),
           if (wrongIds.isNotEmpty)
             OutlinedButton.icon(

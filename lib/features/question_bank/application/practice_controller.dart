@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/mock/json_collection.dart';
+import '../../../core/network/network_providers.dart';
+import '../../../core/network/owner_sync.dart';
 import '../../../core/storage/local_store.dart';
 import '../../progress/application/learning_progress_controller.dart';
 import '../../progress/data/remote_progress.dart';
@@ -55,6 +57,16 @@ class PracticeSet {
       PracticeSet(id: id, name: name ?? this.name, questionIds: questionIds ?? this.questionIds, createdAt: createdAt);
 
   Map<String, dynamic> toJson() => {'id': id, 'name': name, 'questionIds': questionIds, 'createdAt': createdAt.toIso8601String()};
+
+  /// The web's `practiceSets` record (its `kind` and `updatedAt` are kept by the merge).
+  factory PracticeSet.fromApi(Map<String, dynamic> j) => PracticeSet(
+    id: j['id'] as String,
+    name: j['name'] as String? ?? '',
+    questionIds: [for (final q in j['questionIds'] as List? ?? const []) q as String],
+    createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal() ?? DateTime.now(),
+  );
+
+  Map<String, dynamic> apiFields() => {'name': name, 'questionIds': questionIds, 'createdAt': createdAt.toUtc().toIso8601String()};
 }
 
 @immutable
@@ -79,7 +91,10 @@ class PracticeState {
   }
 
   /// Questions whose most recent attempt was wrong (the "reattempt" list).
-  List<String> get wrongIds => [for (final e in latestResult.entries) if (!e.value) e.key];
+  List<String> get wrongIds => [
+    for (final e in latestResult.entries)
+      if (!e.value) e.key,
+  ];
 
   int attemptsFor(String questionId) => attempts.where((a) => a.questionId == questionId).length;
 }
@@ -93,9 +108,24 @@ class PracticeController extends Notifier<PracticeState> {
 
   static const _bookmarkCollection = 'bookmarks';
 
+  /// API mode: personal sets sync with the web's `practiceSets`.
+  OwnerSync? _setSync;
+  bool _setsLoaded = false;
+  bool _applyingServer = false;
+
   @override
   PracticeState build() {
     _store = watchStore(ref);
+    final remote = ref.watch(remoteProgressProvider);
+    _setSync = remote == null ? null : OwnerSync(ref.read(apiClientProvider), collection: 'practice-sets', studentId: remote.studentId);
+    _setsLoaded = false;
+    ref.onDispose(() => _setSync?.dispose());
+    if (_setSync != null) {
+      listenSelf((prev, next) {
+        if (prev == null || _applyingServer || !_setsLoaded || identical(prev.sets, next.sets)) return;
+        _setSync?.schedule(_setRecords);
+      });
+    }
     _attempts = JsonCollection<QuestionAttempt>(
       store: _store,
       name: 'question_attempts',
@@ -103,13 +133,7 @@ class PracticeController extends Notifier<PracticeState> {
       toJson: (a) => a.toJson(),
       idOf: (a) => a.id,
     );
-    _sets = JsonCollection<PracticeSet>(
-      store: _store,
-      name: 'practice_sets',
-      fromJson: PracticeSet.fromJson,
-      toJson: (s) => s.toJson(),
-      idOf: (s) => s.id,
-    );
+    _sets = JsonCollection<PracticeSet>(store: _store, name: 'practice_sets', fromJson: PracticeSet.fromJson, toJson: (s) => s.toJson(), idOf: (s) => s.id);
     final bookmarks = {for (final b in _store.all(_bookmarkCollection)) b['questionId'] as String};
     final attempts = _attempts.all()..sort((a, b) => b.at.compareTo(a.at));
     final sets = _sets.all()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -156,7 +180,9 @@ class PracticeController extends Notifier<PracticeState> {
         if (b['serverId'] == null && !server.containsKey(qid)) server[qid] = await remote.addBookmark(qid, title: qid);
       }
       await _store.clearCollection(_bookmarkCollection);
-      await _store.putAll(_bookmarkCollection, {for (final e in server.entries) e.key: {'questionId': e.key, 'serverId': e.value, 'at': DateTime.now().toIso8601String()}});
+      await _store.putAll(_bookmarkCollection, {
+        for (final e in server.entries) e.key: {'questionId': e.key, 'serverId': e.value, 'at': DateTime.now().toIso8601String()},
+      });
       if (ref.mounted) state = PracticeState(bookmarks: server.keys.toSet(), attempts: state.attempts, sets: state.sets);
     } catch (_) {
       // Offline: keep the local bookmarks.
@@ -179,9 +205,51 @@ class PracticeController extends Notifier<PracticeState> {
     }
   }
 
+  List<Map<String, dynamic>> _setRecords() {
+    final now = DateTime.now().toUtc().toIso8601String();
+    return [
+      for (final s in state.sets)
+        {
+          ..._setSync!.merge(s.id, s.apiFields(), defaults: {'kind': 'manual'}),
+          'updatedAt': now,
+        },
+    ];
+  }
+
+  /// API mode: the server's sets replace the local ones; sets made offline are added and pushed.
+  Future<void> syncSets() async {
+    final sync = _setSync;
+    if (sync == null) return;
+    try {
+      final server = [for (final r in await sync.pull()) PracticeSet.fromApi(r)];
+      if (!ref.mounted) return;
+      final serverIds = {for (final s in server) s.id};
+      final localOnly = _setsLoaded
+          ? const <PracticeSet>[]
+          : [
+              for (final s in state.sets)
+                if (!serverIds.contains(s.id)) s,
+            ];
+      final sets = [...server, ...localOnly]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      await _store.clearCollection('practice_sets');
+      await _sets.upsertAll(sets);
+      _applyingServer = true;
+      state = PracticeState(bookmarks: state.bookmarks, attempts: state.attempts, sets: sets);
+      _applyingServer = false;
+      _setsLoaded = true;
+      if (localOnly.isNotEmpty) {
+        sync.schedule(_setRecords);
+        await sync.flush();
+      }
+    } catch (_) {
+      // Offline: keep the local sets.
+    }
+  }
+
   /// API mode: the server's attempt history replaces the local one.
   Future<void> replaceAttempts(List<QuestionAttempt> attempts) async {
     await syncBookmarks();
+    await syncSets();
     await _store.clearCollection('question_attempts');
     await _attempts.upsertAll(attempts);
     state = PracticeState(bookmarks: state.bookmarks, attempts: [...attempts]..sort((a, b) => b.at.compareTo(a.at)), sets: state.sets);
@@ -205,8 +273,7 @@ class PracticeController extends Notifier<PracticeState> {
     await _saveSet(set.copyWith(questionIds: set.questionIds.where((id) => id != questionId).toList()));
   }
 
-  Future<void> renameSet(String setId, String name) async =>
-      _saveSet(state.sets.firstWhere((s) => s.id == setId).copyWith(name: name));
+  Future<void> renameSet(String setId, String name) async => _saveSet(state.sets.firstWhere((s) => s.id == setId).copyWith(name: name));
 
   Future<void> deleteSet(String setId) async {
     state = PracticeState(bookmarks: state.bookmarks, attempts: state.attempts, sets: state.sets.where((s) => s.id != setId).toList());
@@ -214,11 +281,7 @@ class PracticeController extends Notifier<PracticeState> {
   }
 
   Future<void> _saveSet(PracticeSet set) async {
-    state = PracticeState(
-      bookmarks: state.bookmarks,
-      attempts: state.attempts,
-      sets: [for (final s in state.sets) s.id == set.id ? set : s],
-    );
+    state = PracticeState(bookmarks: state.bookmarks, attempts: state.attempts, sets: [for (final s in state.sets) s.id == set.id ? set : s]);
     await _sets.upsert(set);
   }
 }
@@ -265,8 +328,7 @@ List<Question> buildPracticeSession({
   DateTime? now,
 }) {
   final today = now ?? DateTime.now();
-  List<Question> objectiveFirst(Iterable<Question> qs) =>
-      [...qs.where((q) => q.type.isObjective), ...qs.where((q) => !q.type.isObjective)];
+  List<Question> objectiveFirst(Iterable<Question> qs) => [...qs.where((q) => q.type.isObjective), ...qs.where((q) => !q.type.isObjective)];
 
   switch (request.mode) {
     case 'quick':
@@ -305,10 +367,5 @@ final practiceSessionProvider = FutureProvider.autoDispose.family<List<Question>
   // Goes through the repository once so loading and error states are real.
   await repo.search(const QuestionFilter(), pageSize: 1);
   final progress = ref.read(learningProgressProvider);
-  return buildPracticeSession(
-    request: request,
-    all: repo.cached,
-    practice: ref.read(practiceProvider),
-    masteryOf: (id) => progress.topic(id).mastery,
-  );
+  return buildPracticeSession(request: request, all: repo.cached, practice: ref.read(practiceProvider), masteryOf: (id) => progress.topic(id).mastery);
 });

@@ -34,11 +34,7 @@ class BookmarksScreen extends ConsumerWidget {
               for (final q in items)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: QuestionListTile(
-                    question: q,
-                    status: practice.latestResult[q.id],
-                    onTap: () => context.push(AppRoutes.question(q.id)),
-                  ),
+                  child: QuestionListTile(question: q, status: practice.latestResult[q.id], onTap: () => context.push(AppRoutes.question(q.id))),
                 ),
             ],
           );
@@ -96,8 +92,10 @@ class BookmarksScreen extends ConsumerWidget {
                       final q = all[a.questionId];
                       if (q == null) return const SizedBox.shrink();
                       return ListTile(
-                        leading: Icon(a.correct ? Icons.check_circle : Icons.cancel,
-                            color: a.correct ? Colors.green.shade600 : Theme.of(context).colorScheme.error),
+                        leading: Icon(
+                          a.correct ? Icons.check_circle : Icons.cancel,
+                          color: a.correct ? Colors.green.shade600 : Theme.of(context).colorScheme.error,
+                        ),
                         title: Text(plainStem(context, q), maxLines: 2, overflow: TextOverflow.ellipsis),
                         subtitle: Text('${context.tr(q.type.label)} · ${relativeTime(a.at, context.lang)}'),
                         onTap: () => context.push(AppRoutes.question(q.id)),

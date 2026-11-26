@@ -26,6 +26,7 @@ import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/parent/remote_guardian.dart';
 import 'package:shikkhaai_mobile/features/insights/insights_engine.dart';
 import 'package:shikkhaai_mobile/features/library/remote_reading.dart';
+import 'package:shikkhaai_mobile/features/question_bank/application/practice_controller.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
 import 'package:shikkhaai_mobile/features/study_tools/english_coach.dart';
 import 'package:shikkhaai_mobile/features/teacher/remote_review.dart';
@@ -300,5 +301,13 @@ void main() {
     expect((await remote.savedPapers())[appId], id);
     await remote.unsave(id);
     expect((await remote.savedPapers()).containsKey(appId), isFalse);
+  }, skip: !live);
+
+  test("student's practice sets map onto the app", () async {
+    final records = await OwnerSync(client(await student()), collection: 'practice-sets', studentId: 'u-student-1').pull();
+    expect(records, isNotEmpty);
+    final set = PracticeSet.fromApi(records.first);
+    expect(set.name, isNotEmpty);
+    expect(set.questionIds, isNotEmpty);
   }, skip: !live);
 }
