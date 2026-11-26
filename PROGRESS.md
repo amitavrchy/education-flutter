@@ -107,6 +107,21 @@ Branch `feat/web-parity` (from `origin/main`). Analyzer clean, 190 tests.
 Still open (honest list): question image assets (QB-06), Bangla-only portal menu/role labels (X-01),
 formal accessibility audit (X-02), JSON-schema contracts (X-04), real API wiring.
 
+### Session 6 (2026-11-26) — backend API wiring started
+Branch `feat/api-integration`. Run with `--dart-define=USE_MOCK_API=false` (and `API_BASE_URL`,
+10.0.2.2 on the Android emulator). Live checks: `LIVE_API=1 flutter test test/live` with the backend
+running in demo mode. 199 tests.
+
+- Auth on the real `/auth/*`: login, two-step signup (server OTP challenge), refresh-token rotation
+  in `AuthInterceptor`, switch-role, backend role names (reviewers → teacher portal).
+- Notifications: server inbox merged with device-raised ones; read/archive/delete/read-all on the server.
+- Billing: plan, renewal, invoices from `/billing/me`; checkout/cancel/resume on `/billing/*`.
+
+Blocker for the rest: the app's curriculum ids (`ssc-phy`, `ssc-phy-p1-c1`) differ from the backend's
+(`ssc-physics`, `ssc-physics-c1`; 3 of 23 subjects match). Progress, exams, questions, notes, flashcards
+and the planner all reference these ids, so they can't sync until the app reads the backend's
+curriculum and question bank (or a mapping is agreed).
+
 ## Continue on another PC
 1. `git clone https://github.com/amitavrchy/education-flutter.git && cd education-flutter`
 2. `flutter pub get && flutter analyze && flutter test` (do not change the global Flutter SDK)
