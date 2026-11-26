@@ -19,7 +19,9 @@ import 'package:shikkhaai_mobile/features/profile/data/remote_profile.dart';
 import 'package:shikkhaai_mobile/features/profile/domain/student_profile.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/parent/remote_guardian.dart';
+import 'package:shikkhaai_mobile/features/insights/insights_engine.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
+import 'package:shikkhaai_mobile/features/study_tools/english_coach.dart';
 import 'package:shikkhaai_mobile/features/teacher/remote_review.dart';
 import 'package:shikkhaai_mobile/features/teacher/remote_teacher.dart';
 
@@ -199,5 +201,14 @@ void main() {
     expect(p.name, isNotEmpty);
     expect(p.onboarded, isTrue);
     expect(RemoteProfile.privacyFrom(j).keys, containsAll(['progress', 'scores', 'conversations', 'leaderboard']));
+  }, skip: !live);
+
+  test('English progress document and server gamification map onto the app', () async {
+    final api = client(await student());
+    final doc = (await api.get('/documents/english:u-student-1', parse: (d) => (d! as Map).cast<String, dynamic>())).data;
+    expect(EnglishDoc.fromDoc(doc).scores, isNotEmpty);
+    final g = ServerGamification.fromJson((await api.get('/progress/u-student-1/gamification', parse: (d) => (d! as Map).cast<String, dynamic>())).data);
+    expect(g.xp, greaterThan(0));
+    expect(g.badges, isNotEmpty);
   }, skip: !live);
 }

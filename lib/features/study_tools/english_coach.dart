@@ -4,7 +4,9 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/l10n/tr.dart';
 import '../../core/mock/mock_simulator.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/network/network_providers.dart';
 import '../../core/storage/local_store.dart';
+import '../progress/data/remote_progress.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../shared/widgets/app_page_scaffold.dart';
 import '../../shared/widgets/badges.dart';
@@ -109,13 +111,53 @@ class EnglishProgress {
   List<EngSkill> get plan => [...EngSkill.values]..sort((a, b) => (average(a) ?? -1).compareTo(average(b) ?? -1));
 }
 
+/// The web's `english:<studentId>` document ↔ the app's score lists. Known words are kept in
+/// the same document (`knownWords`), which the web leaves alone.
+abstract final class EnglishDoc {
+  static EnglishProgress fromDoc(Map<String, dynamic> d) {
+    final skills = (d['skills'] as Map? ?? const {}).cast<String, dynamic>();
+    return EnglishProgress(
+      scores: {
+        for (final skill in EngSkill.values)
+          if (skills[skill.name] case final Map<dynamic, dynamic> s)
+            skill: [
+              for (final h in s['history'] as List? ?? const []) ((h as Map)['score'] as num).round(),
+              // An average without history (seed data) still counts as one score.
+              if ((s['history'] as List? ?? const []).isEmpty && ((s['attempts'] as num?) ?? 0) > 0) ((s['score'] as num?) ?? 0).round(),
+            ],
+      },
+      known: {for (final w in d['knownWords'] as List? ?? const []) w as String},
+    );
+  }
+
+  /// [doc] with one more [score] for [skill] (running average and last 20 scores, like the web).
+  static Map<String, dynamic> record(Map<String, dynamic> doc, EngSkill skill, int score, DateTime now) {
+    final skills = {...(doc['skills'] as Map? ?? const {}).cast<String, dynamic>()};
+    final s = (skills[skill.name] as Map? ?? const {'attempts': 0, 'score': 0, 'history': <Object>[]}).cast<String, dynamic>();
+    final attempts = ((s['attempts'] as num?) ?? 0).round() + 1;
+    final avg = ((((s['score'] as num?) ?? 0) * (attempts - 1) + score) / attempts).round();
+    final date = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final history = [...s['history'] as List? ?? const [], {'date': date, 'score': score}];
+    skills[skill.name] = {'attempts': attempts, 'score': avg, 'history': history.length > 20 ? history.sublist(history.length - 20) : history};
+    return {'id': 'english', 'writing': <Object>[], ...doc, 'skills': skills};
+  }
+}
+
 class EnglishController extends Notifier<EnglishProgress> {
   static const _col = 'english';
   late LocalStore _store;
+  String? _docKey;
+  Map<String, dynamic> _doc = {};
+
+  /// The server document has been read, so pushing it back can't drop fields we never saw.
+  bool _loaded = false;
 
   @override
   EnglishProgress build() {
     _store = watchStore(ref);
+    final remote = ref.watch(remoteProgressProvider);
+    _docKey = remote == null ? null : 'english:${remote.studentId}';
+    if (_docKey != null) Future.microtask(refresh);
     final d = _store.get(_col, 'me');
     if (d == null) return const EnglishProgress();
     return EnglishProgress(
@@ -132,9 +174,58 @@ class EnglishController extends Notifier<EnglishProgress> {
     });
   }
 
-  Future<void> record(EngSkill skill, int score) => _save(EnglishProgress(scores: {...state.scores, skill: [...?state.scores[skill], score.clamp(0, 100)]}, known: state.known));
+  /// API mode: the server document replaces the local scores.
+  Future<void> refresh() async {
+    final key = _docKey;
+    if (key == null || !ref.mounted) return;
+    try {
+      final doc = (await ref.read(apiClientProvider).get('/documents/$key', parse: (d) => d == null ? <String, dynamic>{} : (d as Map).cast<String, dynamic>())).data;
+      if (!ref.mounted) return;
+      _loaded = true;
+      if (doc.isEmpty) return;
+      _doc = doc;
+      await _save(EnglishDoc.fromDoc(doc));
+    } catch (_) {
+      // Offline: keep the cached scores.
+    }
+  }
 
-  Future<void> markKnown(String word) => _save(EnglishProgress(scores: state.scores, known: {...state.known, word}));
+  /// Applies [change] to the server document (read first if needed) and saves it whole.
+  Future<void> _push(Map<String, dynamic> Function(Map<String, dynamic> doc) change) async {
+    final key = _docKey;
+    if (key == null) return;
+    if (!_loaded) await refresh();
+    if (!_loaded) return; // offline: kept on the device
+    final doc = change(_doc);
+    _doc = doc;
+    final merged = EnglishDoc.fromDoc(doc);
+    await _save(EnglishProgress(scores: merged.scores, known: {...state.known, ...merged.known}));
+    try {
+      await ref.read(apiClientProvider).put('/documents/$key', body: doc, parse: (d) => d);
+    } catch (_) {
+      // Saved on the device; the next change sends the whole document again.
+    }
+  }
+
+  Future<void> record(EngSkill skill, int score) async {
+    final clamped = score.clamp(0, 100);
+    await _save(EnglishProgress(scores: {...state.scores, skill: [...?state.scores[skill], clamped]}, known: state.known));
+    if (_docKey != null) await _push((doc) => EnglishDoc.record(doc, skill, clamped, DateTime.now()));
+  }
+
+  Future<void> markKnown(String word) async {
+    final known = {...state.known, word};
+    await _save(EnglishProgress(scores: state.scores, known: known));
+    if (_docKey != null) {
+      await _push((doc) => {
+        'id': 'english',
+        'skills': <String, dynamic>{},
+        'writing': <Object>[],
+        ...doc,
+        'knownWords': {...known, for (final w in doc['knownWords'] as List? ?? const []) w as String}.toList(),
+      });
+    }
+  }
 }
 
 final englishProvider = NotifierProvider<EnglishController, EnglishProgress>(EnglishController.new);

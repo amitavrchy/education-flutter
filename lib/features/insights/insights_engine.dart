@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/l10n/tr.dart';
+import '../../core/network/network_providers.dart';
 import '../../core/storage/local_store.dart';
 import '../../mock/seed/curriculum_seed.dart';
 import '../curriculum/domain/curriculum_models.dart';
@@ -14,6 +15,7 @@ import '../notifications/domain/app_notification.dart';
 import '../planner/application/planner_controller.dart';
 import '../profile/application/student_profile_controller.dart';
 import '../progress/application/learning_progress_controller.dart';
+import '../progress/data/remote_progress.dart';
 import '../progress/domain/learning_progress.dart';
 import '../question_bank/application/practice_controller.dart';
 import '../question_bank/data/question_repository.dart';
@@ -389,6 +391,47 @@ class GamificationController extends Notifier<GameStore> {
   Future<void> removeChallenge(String id) => _save(GameStore(state.seen, state.challenges.where((c) => c.id != id).toList()));
 }
 
+/// API mode: the server's XP, points, streak and badges (`GET /progress/:id/gamification`).
+/// Refetched when new study activity arrives; null with the mock.
+final serverGamificationProvider = FutureProvider<ServerGamification?>((ref) async {
+  final remote = ref.watch(remoteProgressProvider);
+  if (remote == null) return null;
+  ref.watch(learningProgressProvider.select((p) => p.activities.length));
+  final res = await ref.read(apiClientProvider).get('/progress/${remote.studentId}/gamification', parse: (d) => (d! as Map).cast<String, dynamic>());
+  return ServerGamification.fromJson(res.data);
+});
+
+class ServerGamification {
+  const ServerGamification({required this.xp, required this.points, required this.streak, required this.badges});
+
+  factory ServerGamification.fromJson(Map<String, dynamic> j) => ServerGamification(
+    xp: (j['xp'] as num?)?.round() ?? 0,
+    points: (j['points'] as num?)?.round() ?? 0,
+    streak: ((j['streak'] as Map?)?['current'] as num?)?.round() ?? 0,
+    badges: {
+      for (final b in j['badges'] as List? ?? const [])
+        ?_badgeIds[(b as Map)['id']]: DateTime.tryParse(b['earnedAt'] as String? ?? '') ?? DateTime.now(),
+    },
+  );
+
+  /// Server badge ids → the app's badge ids (badges the app doesn't show are ignored).
+  static const _badgeIds = {
+    'first-steps': 'first-step',
+    'first-step': 'first-step',
+    'streak-3': 'streak-3',
+    'streak-7': 'streak-7',
+    'questions-100': 'q-100',
+    'exam-1': 'exam-1',
+    'chapter-1': 'chapter-1',
+    'cards-50': 'cards-50',
+  };
+
+  final int xp;
+  final int points;
+  final int streak;
+  final Map<String, DateTime> badges;
+}
+
 final gamificationStoreProvider = NotifierProvider<GamificationController, GameStore>(GamificationController.new);
 
 final gamificationProvider = Provider<GamificationData>((ref) {
@@ -398,6 +441,7 @@ final gamificationProvider = Provider<GamificationData>((ref) {
   final practice = ref.watch(practiceProvider);
   final daily = ref.watch(plannerProvider.select((s) => s.prefs.dailyMinutes));
   final store = ref.watch(gamificationStoreProvider);
+  final server = ref.watch(serverGamificationProvider).value;
   final level = ref.watch(studentProfileProvider.select((s) => s.level));
   final now = DateTime.now();
   final today = _day(now);
@@ -405,7 +449,7 @@ final gamificationProvider = Provider<GamificationData>((ref) {
   final chaptersDone = chapters.where((c) => c.topics.isNotEmpty && p.chapterCompletion(c) >= 1).length;
   final topicsDone = p.topics.values.where((t) => t.completed).length;
   final goalDays = [for (var d = 0; d < 30; d++) p.minutesOn(today.subtract(Duration(days: d)))].where((m) => daily > 0 && m >= daily).length;
-  final lvl = levelFor(p.totalXp);
+  final lvl = levelFor(server?.xp ?? p.totalXp);
   final conditions = <String, bool>{
     'first-step': p.activities.isNotEmpty,
     'streak-3': p.streak >= 3,
@@ -418,9 +462,13 @@ final gamificationProvider = Provider<GamificationData>((ref) {
     'cards-50': cards.learned >= 50,
     'goal-5': goalDays >= 5,
   };
+  // Badges the server awarded count as earned too (with the server's date).
+  for (final id in server?.badges.keys ?? const <String>[]) {
+    conditions[id] = true;
+  }
   final earned = <String, DateTime>{
     for (final b in badgeDefs)
-      if (conditions[b.id] ?? false) b.id: store.seen[b.id] ?? now,
+      if (conditions[b.id] ?? false) b.id: server?.badges[b.id] ?? store.seen[b.id] ?? now,
   };
   final unseen = [for (final b in badgeDefs) if ((conditions[b.id] ?? false) && !store.seen.containsKey(b.id)) b];
   final weekStart = today.subtract(const Duration(days: 6));
@@ -435,9 +483,9 @@ final gamificationProvider = Provider<GamificationData>((ref) {
   int minutesSince(DateTime since) => p.activities.where((a) => !a.at.isBefore(since)).fold(0, (s, a) => s + a.minutes);
   int questionsSince(DateTime since) => practice.attempts.where((a) => !a.at.isBefore(since)).length;
   return GamificationData(
-    xp: p.totalXp,
-    points: p.activities.fold(0, (s, a) => s + a.minutes) + topicsDone * 10,
-    streak: p.streak,
+    xp: server?.xp ?? p.totalXp,
+    points: server?.points ?? p.activities.fold(0, (s, a) => s + a.minutes) + topicsDone * 10,
+    streak: server?.streak ?? p.streak,
     earned: earned,
     missions: [
       Mission(const Tr('এই সপ্তাহে ১২০ মিনিট পড়ো', 'Study 120 minutes this week'), (weekMinutes / 120).clamp(0.0, 1.0), 50),
