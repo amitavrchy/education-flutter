@@ -131,11 +131,16 @@ class PlannerController extends Notifier<PlannerState> {
   bool _applyingServer = false;
   Future<void>? _refreshing;
 
+  /// API mode: the web's `planSettings:<studentId>` document (fields the app doesn't edit are kept).
+  String? _settingsKey;
+  Map<String, dynamic> _serverSettings = const {};
+
   @override
   PlannerState build() {
     _store = watchStore(ref);
     final remote = ref.watch(remoteProgressProvider);
     _sync = remote == null ? null : OwnerSync(ref.read(apiClientProvider), collection: 'tasks', studentId: remote.studentId);
+    _settingsKey = remote == null ? null : 'planSettings:${remote.studentId}';
     ref.onDispose(() => _sync?.dispose());
     final profile = ref.read(studentProfileProvider);
     final prefsJson = _store.get('prefs', _prefsId);
@@ -173,6 +178,7 @@ class PlannerController extends Notifier<PlannerState> {
 
   Future<void> _refresh() async {
     if (_sync == null || !ref.mounted) return;
+    await _pullSettings();
     try {
       final tasks = [for (final t in await _sync!.pull()) TaskMapper.fromApi(t)];
       if (!ref.mounted) return;
@@ -283,6 +289,36 @@ class PlannerController extends Notifier<PlannerState> {
   Future<void> setPrefs(PlannerPrefs prefs) async {
     state = PlannerState(tasks: state.tasks, prefs: prefs);
     await _store.put('prefs', _prefsId, prefs.toJson());
+    if (_settingsKey case final key?) {
+      try {
+        // Merge over the server document so web-only fields (priorities, study days) survive.
+        if (_serverSettings.isEmpty) await _fetchSettings(key);
+        _serverSettings = {..._serverSettings, ...PlanSettingsMapper.toApi(prefs)};
+        await ref.read(apiClientProvider).put('/documents/$key', body: _serverSettings, parse: (d) => d);
+      } catch (_) {
+        // Offline: kept on the device; the next change sends it again.
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _fetchSettings(String key) async {
+    final doc = (await ref.read(apiClientProvider).get('/documents/$key', parse: (d) => d == null ? null : (d as Map).cast<String, dynamic>())).data;
+    if (doc != null) _serverSettings = doc;
+    return doc;
+  }
+
+  Future<void> _pullSettings() async {
+    final key = _settingsKey;
+    if (key == null) return;
+    try {
+      final doc = await _fetchSettings(key);
+      if (doc == null || !ref.mounted) return;
+      final prefs = PlanSettingsMapper.fromApi(doc, state.prefs);
+      state = PlannerState(tasks: state.tasks, prefs: prefs);
+      await _store.put('prefs', _prefsId, prefs.toJson());
+    } catch (_) {
+      // Offline or never saved: keep the device prefs.
+    }
   }
 
   /// Simulated daily reminder: raises an in-app notification for today's first task.
@@ -306,3 +342,25 @@ class PlannerController extends Notifier<PlannerState> {
 }
 
 final plannerProvider = NotifierProvider<PlannerController, PlannerState>(PlannerController.new);
+
+/// The web's study-plan settings document ↔ [PlannerPrefs].
+abstract final class PlanSettingsMapper {
+  static const _times = {'early_morning': StudyTime.morning};
+
+  static PlannerPrefs fromApi(Map<String, dynamic> j, PlannerPrefs fallback) => PlannerPrefs(
+    examDate: DateTime.tryParse(j['examDate'] as String? ?? '') ?? fallback.examDate,
+    dailyMinutes: (j['dailyMinutes'] as num?)?.round() ?? fallback.dailyMinutes,
+    studyTime: _times[j['preferredTime']] ?? StudyTime.values.where((t) => t.name == j['preferredTime']).firstOrNull ?? fallback.studyTime,
+    targetGpa: (j['targetGpa'] as num?)?.toDouble() ?? fallback.targetGpa,
+    reminders: j['remindersEnabled'] as bool? ?? fallback.reminders,
+  );
+
+  static Map<String, dynamic> toApi(PlannerPrefs p) => {
+    'id': 'settings',
+    'examDate': '${p.examDate.year.toString().padLeft(4, '0')}-${p.examDate.month.toString().padLeft(2, '0')}-${p.examDate.day.toString().padLeft(2, '0')}',
+    'dailyMinutes': p.dailyMinutes,
+    'preferredTime': p.studyTime.name,
+    'targetGpa': p.targetGpa,
+    'remindersEnabled': p.reminders,
+  };
+}

@@ -19,7 +19,9 @@ import 'package:shikkhaai_mobile/features/exams/data/remote_exams.dart';
 import 'package:shikkhaai_mobile/features/flashcards/data/remote_flashcards.dart';
 import 'package:shikkhaai_mobile/features/notes/data/remote_notes.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
+import 'package:shikkhaai_mobile/features/planner/application/planner_controller.dart';
 import 'package:shikkhaai_mobile/features/planner/data/remote_tasks.dart';
+import 'package:shikkhaai_mobile/features/planner/domain/study_task.dart';
 import 'package:shikkhaai_mobile/features/profile/data/remote_profile.dart';
 import 'package:shikkhaai_mobile/features/profile/domain/student_profile.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
@@ -270,5 +272,12 @@ void main() {
     final set = PracticeSet.fromApi(records.first);
     expect(set.name, isNotEmpty);
     expect(set.questionIds, isNotEmpty);
+  }, skip: !live);
+
+  test("student's study-plan settings document maps onto the planner", () async {
+    final doc = (await client(await student()).get('/documents/planSettings:u-student-1', parse: (d) => (d! as Map).cast<String, dynamic>())).data;
+    final prefs = PlanSettingsMapper.fromApi(doc, PlannerPrefs(examDate: DateTime(2000)));
+    expect(prefs.examDate.year, greaterThan(2025));
+    expect(prefs.dailyMinutes, doc['dailyMinutes']);
   }, skip: !live);
 }

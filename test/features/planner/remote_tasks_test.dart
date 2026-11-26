@@ -49,4 +49,33 @@ void main() {
     expect(pushed['color'], 'web-only');
     expect(pushed['reflection'], {'rating': 4, 'actualMinutes': 40});
   });
+
+  test('API mode: plan settings come from the planSettings document and save back merged', () async {
+    final server = FakeServer({'/tasks/u-student-1': const []});
+    const key = '/documents/planSettings:u-student-1';
+    server.responses['GET $key'] = {
+      'id': 'settings', 'targetGpa': 4.5, 'dailyMinutes': 150, 'preferredTime': 'early_morning', 'studyDays': [0, 1, 2],
+      'examDate': '2027-02-15', 'subjectPriority': {'ssc-phy': 3}, 'chapterPriority': <String, int>{}, 'remindersEnabled': false,
+    };
+    server.responses['PUT $key'] = null;
+    final c = testContainer(
+      overrides: [apiClientProvider.overrideWithValue(server.client), remoteProgressProvider.overrideWithValue(RemoteProgress(server.client, 'u-student-1'))],
+    );
+    c.read(plannerProvider);
+    await c.read(plannerProvider.notifier).refresh();
+    final prefs = c.read(plannerProvider).prefs;
+    expect(prefs.dailyMinutes, 150);
+    expect(prefs.studyTime, StudyTime.morning);
+    expect(prefs.targetGpa, 4.5);
+    expect(prefs.reminders, isFalse);
+    expect(prefs.examDate, DateTime(2027, 2, 15));
+
+    await c.read(plannerProvider.notifier).setPrefs(prefs.copyWith(dailyMinutes: 200, studyTime: StudyTime.night));
+    final saved = server.lastBody[key]! as Map;
+    expect(saved['dailyMinutes'], 200);
+    expect(saved['preferredTime'], 'night');
+    expect(saved['examDate'], '2027-02-15');
+    expect(saved['subjectPriority'], {'ssc-phy': 3}); // web-only fields kept
+    expect(saved['studyDays'], [0, 1, 2]);
+  });
 }
