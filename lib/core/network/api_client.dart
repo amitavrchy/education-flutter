@@ -38,6 +38,12 @@ class ApiClient {
     Object? body,
   }) => _send(() => _dio.patch<Object?>(path, data: body), parse);
 
+  Future<ApiResponse<T>> put<T>(
+    String path, {
+    required T Function(Object? data) parse,
+    Object? body,
+  }) => _send(() => _dio.put<Object?>(path, data: body), parse);
+
   /// For endpoints that answer 204 No Content (logout, delete).
   Future<void> sendNoContent(String method, String path, {Object? body}) async {
     try {

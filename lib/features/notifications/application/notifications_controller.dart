@@ -5,7 +5,13 @@ import '../../../core/mock/json_collection.dart';
 import '../../../core/storage/local_store.dart';
 import '../../../mock/seed/notifications_seed.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../../core/config/env.dart';
+import '../../../core/network/network_providers.dart';
+import '../data/remote_notifications.dart';
 import '../domain/app_notification.dart';
+
+/// Server notifications in API mode; null with the mock.
+final remoteNotificationsProvider = Provider<RemoteNotifications?>((ref) => Env.useMockApi ? null : RemoteNotifications(ref.watch(apiClientProvider)));
 
 /// Path segment of the signed-in role (`student`, `parent`, `teacher`), or null when signed out.
 final currentRoleProvider = Provider<String?>((ref) {
@@ -28,10 +34,32 @@ class NotificationsController extends Notifier<List<AppNotification>> {
       fromJson: AppNotification.fromJson,
       toJson: (n) => n.toJson(),
       idOf: (n) => n.id,
-      seed: seedNotifications,
+      // API mode: the server sends the inbox; the device keeps only what it raised itself.
+      seed: () => _remote == null ? seedNotifications() : const [],
     );
+    if (_remote != null) {
+      ref.watch(currentRoleProvider); // reload after sign-in / role switch
+      Future.microtask(refresh);
+    }
     return _sorted(_collection.all());
   }
+
+  RemoteNotifications? get _remote => ref.read(remoteNotificationsProvider);
+
+  /// API mode: merges the server inbox with this device's own notifications.
+  Future<void> refresh() async {
+    final remote = _remote;
+    if (remote == null || !ref.mounted) return;
+    try {
+      final server = await remote.all();
+      if (!ref.mounted) return;
+      state = _sorted([...server, ..._collection.all()]);
+    } catch (_) {
+      // Offline or signed out: keep what we have.
+    }
+  }
+
+  bool _onServer(String id) => _remote != null && RemoteNotifications.isServerId(id);
 
   List<AppNotification> _sorted(List<AppNotification> items) => items..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -43,23 +71,35 @@ class NotificationsController extends Notifier<List<AppNotification>> {
   Future<void> markRead(String id, {bool read = true}) async {
     final item = state.where((n) => n.id == id).firstOrNull;
     if (item == null || item.read == read) return;
+    if (_onServer(id)) {
+      state = [for (final n in state) n.id == id ? item.copyWith(read: read) : n];
+      await _remote!.update(id, read: read);
+      return;
+    }
     await _replace(item.copyWith(read: read));
   }
 
   /// Marks every notification visible to [role] as read.
   Future<void> markAllRead({String? role}) async {
     state = [for (final n in state) n.isFor(role) ? n.copyWith(read: true) : n];
-    await _collection.upsertAll(state);
+    await _collection.upsertAll([for (final n in state) if (!_onServer(n.id)) n]);
+    if (_remote != null) await _remote!.markAllRead(role);
   }
 
   Future<void> archive(String id, {bool archived = true}) async {
     final item = state.where((n) => n.id == id).firstOrNull;
     if (item == null) return;
+    if (_onServer(id)) {
+      state = [for (final n in state) n.id == id ? item.copyWith(archived: archived, read: true) : n];
+      await _remote!.update(id, archived: archived, read: true);
+      return;
+    }
     await _replace(item.copyWith(archived: archived, read: true));
   }
 
   Future<void> remove(String id) async {
     state = state.where((n) => n.id != id).toList();
+    if (_onServer(id)) return _remote!.remove(id);
     await _collection.remove(id);
   }
 

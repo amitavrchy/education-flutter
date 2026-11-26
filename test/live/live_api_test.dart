@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shikkhaai_mobile/core/network/api_client.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
+import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
 
 /// Talks to a running education-backend (demo mode). Skipped unless LIVE_API=1:
 ///   LIVE_API=1 flutter test test/live
@@ -32,5 +33,12 @@ void main() {
     expect(ch, isNotNull);
     final s = await repo.completeRegistration(challengeId: ch, code: '123456', name: 'Live Test', identifier: phone, password: 'abcd1234', role: UserRole.student);
     expect(s.user.role, UserRole.student);
+  }, skip: !live);
+
+  test('student inbox loads from /notifications and maps to app notifications', () async {
+    final s = await ApiAuthRepository(client()).login(identifier: 'student@shikkha.ai', password: 'demo-password-123');
+    final items = await RemoteNotifications(client(s.accessToken)).all();
+    expect(items, isNotEmpty);
+    expect(items.every((n) => RemoteNotifications.isServerId(n.id)), isTrue);
   }, skip: !live);
 }
