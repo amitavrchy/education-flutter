@@ -14,6 +14,10 @@ import '../../progress/application/learning_progress_controller.dart';
 import '../../progress/domain/learning_progress.dart';
 import '../../curriculum/data/curriculum_repository.dart';
 import '../domain/study_task.dart';
+import '../../../core/network/network_providers.dart';
+import '../../../core/network/owner_sync.dart';
+import '../../progress/data/remote_progress.dart';
+import '../data/remote_tasks.dart';
 
 /// Deterministic study-plan generator ("AI plan" simulation). Pure, unit-tested.
 ///
@@ -123,10 +127,16 @@ class PlannerController extends Notifier<PlannerState> {
   late JsonCollection<StudyTask> _tasks;
   late LocalStore _store;
   static const _prefsId = 'planner';
+  OwnerSync? _sync;
+  bool _applyingServer = false;
+  Future<void>? _refreshing;
 
   @override
   PlannerState build() {
     _store = watchStore(ref);
+    final remote = ref.watch(remoteProgressProvider);
+    _sync = remote == null ? null : OwnerSync(ref.read(apiClientProvider), collection: 'tasks', studentId: remote.studentId);
+    ref.onDispose(() => _sync?.dispose());
     final profile = ref.read(studentProfileProvider);
     final prefsJson = _store.get('prefs', _prefsId);
     final prefs = prefsJson == null
@@ -138,8 +148,17 @@ class PlannerController extends Notifier<PlannerState> {
       fromJson: StudyTask.fromJson,
       toJson: (t) => t.toJson(),
       idOf: (t) => t.id,
-      seed: () => _seed(prefs),
+      // API mode: the server holds the plan; no generated demo seed.
+      seed: () => _sync == null ? _seed(prefs) : const [],
     );
+    if (_sync != null) {
+      listenSelf((prev, next) {
+        if (prev == null || _applyingServer || identical(prev.tasks, next.tasks)) return;
+        final now = DateTime.now().toUtc().toIso8601String();
+        _sync?.schedule(() => [for (final t in state.tasks) _sync!.merge(t.id, TaskMapper.fields(t), defaults: {'createdAt': now})]);
+      });
+      Future.microtask(refresh);
+    }
     // Anything still scheduled from before today becomes "missed".
     final today = dayOf(DateTime.now());
     final all = _tasks.all();
@@ -147,6 +166,24 @@ class PlannerController extends Notifier<PlannerState> {
     if (missed.isNotEmpty) _tasks.upsertAll(missed);
     final byId = {for (final t in all) t.id: t, for (final t in missed) t.id: t};
     return PlannerState(tasks: byId.values.toList(), prefs: prefs);
+  }
+
+  /// API mode: the server's tasks replace the local copy (single-flight).
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    if (_sync == null || !ref.mounted) return;
+    try {
+      final tasks = [for (final t in await _sync!.pull()) TaskMapper.fromApi(t)];
+      if (!ref.mounted) return;
+      await _store.clearCollection('planner_tasks');
+      await _tasks.upsertAll(tasks);
+      _applyingServer = true;
+      state = PlannerState(tasks: tasks, prefs: state.prefs);
+      _applyingServer = false;
+    } catch (_) {
+      // Offline: keep the cached plan.
+    }
   }
 
   List<StudyTask> _seed(PlannerPrefs prefs) {

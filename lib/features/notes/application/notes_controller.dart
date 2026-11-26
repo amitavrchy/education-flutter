@@ -11,6 +11,10 @@ import '../../question_bank/data/question_repository.dart';
 import '../../question_bank/domain/question.dart';
 import '../domain/note.dart';
 import 'note_generator.dart';
+import '../../../core/network/network_providers.dart';
+import '../../../core/network/owner_sync.dart';
+import '../../progress/data/remote_progress.dart';
+import '../data/remote_notes.dart';
 
 /// Notes CRUD with autosave history, folders, tags, favourites, linking and generation.
 class NotesController extends Notifier<List<Note>> {
@@ -19,17 +23,50 @@ class NotesController extends Notifier<List<Note>> {
   static const _maxHistory = 10;
   static const _snapshotGap = Duration(minutes: 2);
 
+  OwnerSync? _sync;
+  bool _applyingServer = false;
+  Future<void>? _refreshing;
+
   @override
   List<Note> build() {
+    final remote = ref.watch(remoteProgressProvider);
     _collection = JsonCollection<Note>(
       store: watchStore(ref),
       name: 'notes',
       fromJson: Note.fromJson,
       toJson: (n) => n.toJson(),
       idOf: (n) => n.id,
-      seed: _seed,
+      seed: remote == null ? _seed : () => const [],
     );
+    _sync = remote == null ? null : OwnerSync(ref.read(apiClientProvider), collection: 'notes', studentId: remote.studentId);
+    ref.onDispose(() => _sync?.dispose());
+    if (_sync != null) {
+      // Local edits push the whole note list (debounced); web-only fields are preserved.
+      listenSelf((prev, next) {
+        if (prev == null || _applyingServer || identical(prev, next)) return;
+        _sync?.schedule(() => [for (final n in state) _sync!.merge(n.id, NoteMapper.fields(n), defaults: NoteMapper.defaults(n))]);
+      });
+      Future.microtask(refresh);
+    }
     return _sorted(_collection.all());
+  }
+
+  /// API mode: the server's notes replace the local copy (single-flight).
+  Future<void> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<void> _refresh() async {
+    if (_sync == null || !ref.mounted) return;
+    try {
+      final notes = [for (final n in await _sync!.pull()) NoteMapper.fromApi(n)];
+      if (!ref.mounted) return;
+      await ref.read(localStoreProvider).clearCollection('notes');
+      await _collection.upsertAll(notes);
+      _applyingServer = true;
+      state = _sorted(notes);
+      _applyingServer = false;
+    } catch (_) {
+      // Offline: keep the cached notes.
+    }
   }
 
   List<Note> _sorted(List<Note> list) => list..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));

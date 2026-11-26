@@ -10,7 +10,9 @@ import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
 import 'package:shikkhaai_mobile/features/curriculum/data/curriculum_catalog.dart';
 import 'package:shikkhaai_mobile/features/flashcards/data/remote_flashcards.dart';
+import 'package:shikkhaai_mobile/features/notes/data/remote_notes.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
+import 'package:shikkhaai_mobile/features/planner/data/remote_tasks.dart';
 import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
 
@@ -99,5 +101,24 @@ void main() {
     expect([for (final d in decks) FlashcardMapper.deckFrom(d)], isNotEmpty);
     final mapped = [for (final c in cards) FlashcardMapper.cardFrom(c)];
     expect(mapped.every((c) => decks.any((d) => d['id'] == c.deckId)), isTrue);
+  }, skip: !live);
+
+  test("student's notes and planner tasks map onto the app model and round-trip", () async {
+    final api = client(await student());
+    final notes = await OwnerSync(api, collection: 'notes', studentId: 'u-student-1').pull();
+    final tasks = await OwnerSync(api, collection: 'tasks', studentId: 'u-student-1').pull();
+    expect(notes, isNotEmpty);
+    expect(tasks, isNotEmpty);
+    for (final j in notes) {
+      final n = NoteMapper.fromApi(j);
+      expect(n.title, j['title']);
+      expect(NoteMapper.kindOf(n.type), j['kind'] == 'custom' || j['kind'] == null ? 'custom' : j['kind']);
+    }
+    for (final j in tasks) {
+      final t = TaskMapper.fromApi(j);
+      final back = TaskMapper.fields(t);
+      expect(back['date'], (j['date'] as String).substring(0, 10));
+      expect(back['durationMinutes'], j['durationMinutes']);
+    }
   }, skip: !live);
 }
