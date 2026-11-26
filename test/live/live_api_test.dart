@@ -9,6 +9,7 @@ import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
 import 'package:shikkhaai_mobile/features/auth/domain/app_user.dart';
 import 'package:shikkhaai_mobile/features/curriculum/data/curriculum_catalog.dart';
 import 'package:shikkhaai_mobile/features/notifications/data/remote_notifications.dart';
+import 'package:shikkhaai_mobile/features/progress/data/remote_progress.dart';
 import 'package:shikkhaai_mobile/features/question_bank/data/question_mapper.dart';
 
 /// Talks to a running education-backend (demo mode). Skipped unless LIVE_API=1:
@@ -71,4 +72,12 @@ void main() {
     expect(questions.where((q) => !chapters.contains(q.chapterId)), isEmpty);
     expect(questions.where((q) => !topics.contains(q.topicId)).length, lessThan(questions.length ~/ 20));
   }, skip: !live, timeout: const Timeout(Duration(minutes: 2)));
+
+  test('student progress loads from mastery, chapter progress, activity and attempts', () async {
+    final token = await student();
+    final data = await RemoteProgress(client(token), 'u-student-1').load();
+    expect(data.topics, isNotEmpty);
+    expect(data.activities, isNotEmpty);
+    expect(data.attempts, isNotEmpty);
+  }, skip: !live);
 }

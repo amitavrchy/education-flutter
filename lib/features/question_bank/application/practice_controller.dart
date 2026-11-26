@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/mock/json_collection.dart';
 import '../../../core/storage/local_store.dart';
 import '../../progress/application/learning_progress_controller.dart';
+import '../../progress/data/remote_progress.dart';
 import '../data/question_repository.dart';
 import '../domain/question.dart';
 
@@ -134,6 +135,21 @@ class PracticeController extends Notifier<PracticeState> {
     state = PracticeState(bookmarks: state.bookmarks, attempts: [attempt, ...state.attempts], sets: state.sets);
     await _attempts.upsert(attempt);
     await ref.read(learningProgressProvider.notifier).recordAnswer(q.topicId, correct: correct);
+    final remote = ref.read(remoteProgressProvider);
+    if (remote != null) {
+      try {
+        await remote.recordAttempt(q.id, correct: correct, context: context);
+      } catch (_) {
+        // Offline: the local attempt stays; the next refresh reconciles.
+      }
+    }
+  }
+
+  /// API mode: the server's attempt history replaces the local one.
+  Future<void> replaceAttempts(List<QuestionAttempt> attempts) async {
+    await _store.clearCollection('question_attempts');
+    await _attempts.upsertAll(attempts);
+    state = PracticeState(bookmarks: state.bookmarks, attempts: [...attempts]..sort((a, b) => b.at.compareTo(a.at)), sets: state.sets);
   }
 
   Future<PracticeSet> createSet(String name, {List<String> questionIds = const []}) async {

@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/mock/json_collection.dart';
 import '../../../core/storage/local_store.dart';
+import '../../../mock/seed/curriculum_seed.dart';
 import '../../../mock/seed/progress_seed.dart';
 import '../../curriculum/domain/curriculum_models.dart';
+import '../../question_bank/application/practice_controller.dart';
+import '../data/remote_progress.dart';
 import '../domain/learning_progress.dart';
 
 @immutable
@@ -63,9 +66,12 @@ class LearningProgressController extends Notifier<LearningState> {
 
   ({List<TopicProgress> topics, List<StudyActivity> activities}) get _seedData => _seed ??= seedProgress();
 
+  RemoteProgress? _remote;
+
   @override
   LearningState build() {
     final store = watchStore(ref);
+    _remote = ref.watch(remoteProgressProvider);
     _seed = null;
     _topics = JsonCollection<TopicProgress>(
       store: store,
@@ -73,7 +79,8 @@ class LearningProgressController extends Notifier<LearningState> {
       fromJson: TopicProgress.fromJson,
       toJson: (t) => t.toJson(),
       idOf: (t) => t.topicId,
-      seed: () => _seedData.topics,
+      // API mode: the server holds the student's progress; no demo seed.
+      seed: () => _remote == null ? _seedData.topics : const [],
     );
     _activities = JsonCollection<StudyActivity>(
       store: store,
@@ -81,10 +88,41 @@ class LearningProgressController extends Notifier<LearningState> {
       fromJson: StudyActivity.fromJson,
       toJson: (a) => a.toJson(),
       idOf: (a) => a.id,
-      seed: () => _seedData.activities,
+      seed: () => _remote == null ? _seedData.activities : const [],
     );
+    if (_remote != null) Future.microtask(refresh);
     final activities = _activities.all()..sort((a, b) => b.at.compareTo(a.at));
     return LearningState(topics: {for (final t in _topics.all()) t.topicId: t}, activities: activities);
+  }
+
+  /// API mode: replaces the local copy with the server's progress (and practice history).
+  Future<void> refresh() async {
+    final remote = _remote;
+    if (remote == null || !ref.mounted) return;
+    try {
+      final data = await remote.load();
+      if (!ref.mounted) return;
+      final store = ref.read(localStoreProvider);
+      await store.clearCollection('topic_progress');
+      await store.clearCollection('activities');
+      await _topics.upsertAll(data.topics);
+      await _activities.upsertAll(data.activities);
+      state = LearningState(topics: {for (final t in data.topics) t.topicId: t}, activities: [...data.activities]..sort((a, b) => b.at.compareTo(a.at)));
+      await ref.read(practiceProvider.notifier).replaceAttempts(data.attempts);
+    } catch (_) {
+      // Offline: keep the cached progress.
+    }
+  }
+
+  /// Fire-and-forget server write; the local copy is already updated (offline-first).
+  Future<void> _push(Future<void> Function(RemoteProgress r) write) async {
+    final remote = _remote;
+    if (remote == null) return;
+    try {
+      await write(remote);
+    } catch (_) {
+      // Next refresh reconciles with the server.
+    }
   }
 
   Future<void> _saveTopic(TopicProgress t) async {
@@ -92,8 +130,15 @@ class LearningProgressController extends Notifier<LearningState> {
     await _topics.upsert(t);
   }
 
-  Future<void> setTopicCompleted(String topicId, {bool completed = true}) =>
-      _saveTopic(state.topic(topicId).copyWith(completed: completed, lastStudied: DateTime.now()));
+  Future<void> setTopicCompleted(String topicId, {bool completed = true}) async {
+    await _saveTopic(state.topic(topicId).copyWith(completed: completed, lastStudied: DateTime.now()));
+    if (!completed) return;
+    for (final s in seedSubjects) {
+      for (final c in s.chapters) {
+        if (c.topics.any((t) => t.id == topicId)) return _push((r) => r.topicDone(c.id, topicId, c.topics.length));
+      }
+    }
+  }
 
   /// Records one practice/exam answer against a topic.
   Future<void> recordAnswer(String topicId, {required bool correct}) {
@@ -115,6 +160,7 @@ class LearningProgressController extends Notifier<LearningState> {
     );
     state = LearningState(topics: state.topics, activities: [activity, ...state.activities]);
     await _activities.upsert(activity);
+    await _push((r) => r.logActivity(kind, minutes: minutes, label: kind.name));
   }
 }
 
