@@ -24,6 +24,7 @@ import '../../shared/widgets/rich_content.dart';
 import '../../shared/widgets/section_header.dart';
 import '../settings/learning_prefs.dart';
 import '../teacher/teacher_data.dart';
+import 'remote_ai_tools.dart';
 import 'remote_evaluation.dart';
 import 'ai_tools_data.dart';
 import '../account/account_controller.dart';
@@ -166,6 +167,9 @@ enum _VState { idle, listening, thinking, speaking }
 class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
   late final AvatarVoice _voice;
   final List<(bool, String)> _turns = [];
+
+  /// API mode, oral exam: the question the student is answering.
+  String? _oralQuestion;
   final _typed = TextEditingController();
   bool _active = false;
   bool _paused = false;
@@ -265,14 +269,29 @@ class _VoiceTutorScreenState extends ConsumerState<VoiceTutorScreen> {
       _state = _VState.thinking;
     });
     try {
-      final reply = await ref.read(mockSimulatorProvider).run(() => ref.read(mockTutorEngineProvider).answer(query: q, context: ctx));
+      final remote = ref.read(remoteAiToolsProvider);
+      final String replyText;
+      if (remote != null) {
+        // API mode: the AI service writes the spoken reply (oral exams get the next question).
+        final r = await remote.voiceReply(
+          text: q,
+          oralExam: _mode == TeachingMode.oralExam,
+          language: ctx.language.name,
+          oralQuestion: _oralQuestion,
+          turns: _turns.sublist(0, _turns.length - 1),
+        );
+        if (r.nextQuestion != null && r.nextQuestion!.isNotEmpty) _oralQuestion = r.nextQuestion;
+        replyText = r.text;
+      } else {
+        replyText = (await ref.read(mockSimulatorProvider).run(() => ref.read(mockTutorEngineProvider).answer(query: q, context: ctx))).text;
+      }
       if (!mounted || id != _speech) return;
       setState(() {
-        _turns.add((false, reply.text));
+        _turns.add((false, replyText));
         _state = _VState.speaking;
       });
       final lang = _speechLang(context);
-      final spoken = BookAvatarEngine.toSpoken(reply.text, lang);
+      final spoken = BookAvatarEngine.toSpoken(replyText, lang);
       final ok = await _voice.speak(spoken, lang: lang, rate: _rate, pitch: _male ? 0.8 : 1.1);
       if (!ok) await Future<void>.delayed(Duration(milliseconds: (math.min(8000, spoken.length * 60) / _rate * _voice.simulationScale).round()));
       if (!mounted || id != _speech) return;
@@ -720,6 +739,10 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
   TutorReply? _answer;
   bool _solving = false;
 
+  /// API mode: the server's photo-solver job and the subject it detected.
+  String? _jobId;
+  String? _subjectId;
+
   @override
   void dispose() {
     _text.dispose();
@@ -757,6 +780,30 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
 
   Future<void> _read() async {
     setState(() => _reading = true);
+    final remote = ref.read(remoteAiToolsProvider);
+    final path = _shots.isEmpty ? null : _shots[_current].path;
+    if (remote != null && path != null) {
+      // API mode: the AI service reads the photo; the job is kept in the server history.
+      try {
+        final r = await remote.readPhoto(path);
+        if (!mounted) return;
+        setState(() {
+          _jobId = r.jobId;
+          _subjectId = r.subjectId;
+          _detected = null;
+          _chapterId = null;
+          _text.text = r.text;
+          _reading = false;
+        });
+        if (!r.readable && mounted) context.showSnack(AiToolStrings.badFile);
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        setState(() => _reading = false);
+        context.showErrorSnack(e);
+      }
+      return;
+    }
+    _jobId = null;
     try {
       final key = _shots.map((s) => s.path ?? 'demo').join('|');
       final q = await ref.read(mockSimulatorProvider).run(() {
@@ -780,8 +827,16 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
   Future<void> _solve() async {
     setState(() => _solving = true);
     try {
+      final remote = ref.read(remoteAiToolsProvider);
       final ctx = _context(ref, context, TeachingMode.stepByStep);
-      final r = await ref
+      final r = remote != null
+          // API mode: step-by-step solution from the AI service (stored on the photo job).
+          ? TutorReply(
+              text: await remote.solve(_text.text, jobId: _jobId, subjectId: _subjectId ?? _detected?.subjectId, chapterId: _chapterId),
+              grounding: Grounding.general,
+              confidence: 0.8,
+            )
+          : await ref
           .read(mockSimulatorProvider)
           .run(
             () => ref
@@ -809,7 +864,7 @@ class _PhotoSolverScreenState extends ConsumerState<PhotoSolverScreen> {
               id: 'ps-${DateTime.now().microsecondsSinceEpoch}',
               at: DateTime.now(),
               text: _text.text,
-              subjectId: _detected?.subjectId ?? '',
+              subjectId: _subjectId ?? _detected?.subjectId ?? '',
               chapterId: _chapterId,
               answer: r.text,
               images: _shots.length,
@@ -1116,7 +1171,11 @@ class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
     }
   }
 
+  /// API mode: the evaluation record marked on the server.
+  String? _serverEvalId;
+
   void _reset() => setState(() {
+    _serverEvalId = null;
     _pages.clear();
     _result = null;
     _record = null;
@@ -1129,7 +1188,12 @@ class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
     final lang = context.lang;
     setState(() => _busy = true);
     try {
-      final t = await ref.read(mockSimulatorProvider).run(() => simulatedScriptText(q, lang, _pages.length), latencyFactor: 2);
+      final remote = ref.read(remoteAiToolsProvider);
+      final paths = [for (final p in _pages) ?p.path];
+      // API mode: the AI service transcribes the photographed pages.
+      final t = remote != null && paths.isNotEmpty
+          ? await remote.transcribe(paths)
+          : await ref.read(mockSimulatorProvider).run(() => simulatedScriptText(q, lang, _pages.length), latencyFactor: 2);
       if (mounted) {
         setState(() {
           _ocrText.text = t;
@@ -1143,10 +1207,51 @@ class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
     }
   }
 
+  /// API mode: marks the script with the AI service (pages, or the corrected transcription).
+  Future<HandwritingResult?> _evaluateRemote(RemoteAiTools remote, Question q) async {
+    final paths = [for (final p in _pages) ?p.path];
+    if (paths.isEmpty) return null;
+    final total = math.max(q.marks, 4);
+    final n = q.rubric.length;
+    final rubric = n > 0
+        ? [for (final (i, r) in q.rubric.indexed) (r.bn, i == n - 1 ? total - (total ~/ n) * (n - 1) : total ~/ n)]
+        : [('ধারণার নির্ভুলতা', (total * 0.4).round()), ('হিসাব / যুক্তি', (total * 0.3).round()), ('উপস্থাপন ও একক', total - (total * 0.4).round() - (total * 0.3).round())];
+    final id = 'ev-${DateTime.now().microsecondsSinceEpoch}';
+    final ev = await remote.evaluate(
+      id: id,
+      studentName: ref.read(studentProfileProvider).name,
+      title: q.stem.bn.replaceAll(RegExp(r'[*#$]'), '').split('\n').first,
+      subjectId: q.subjectId,
+      questionId: q.id,
+      questionText: q.stem.bn,
+      modelAnswer: q.answer.bn,
+      pagePaths: paths,
+      rubric: rubric,
+      ocrText: _ocrText.text,
+      correctedText: _ocrDone && _ocrText.text.trim().isNotEmpty ? _ocrText.text : null,
+    );
+    _serverEvalId = id;
+    final crit = [
+      for (final r in ev['rubric'] as List? ?? const [])
+        (Tr.same((r as Map)['criterion'] as String? ?? ''), ((r['ai'] as num?) ?? 0).toDouble(), ((r['max'] as num?) ?? 0).round()),
+    ];
+    List<Tr> texts(Object? v) => [for (final x in v as List? ?? const []) Tr.same('$x')];
+    return HandwritingResult(
+      marks: ((ev['aiMarks'] as num?) ?? 0).toDouble(),
+      total: ((ev['maxMarks'] as num?) ?? total).round(),
+      criteria: crit,
+      strengths: const [],
+      missing: texts(ev['missingPoints']),
+      tips: texts(ev['suggestions']),
+    );
+  }
+
   Future<void> _evaluate(Question q) async {
     setState(() => _busy = true);
     try {
-      final r = await ref.read(mockSimulatorProvider).run(() => evaluateHandwriting(q, _pages.length), latencyFactor: 3);
+      final remote = ref.read(remoteAiToolsProvider);
+      final server = remote == null ? null : await _evaluateRemote(remote, q);
+      final HandwritingResult r = server ?? await ref.read(mockSimulatorProvider).run(() => evaluateHandwriting(q, _pages.length), latencyFactor: 3);
       final rec = EvaluationRecord(
         id: 'ev-${DateTime.now().microsecondsSinceEpoch}',
         at: DateTime.now(),
@@ -1178,6 +1283,22 @@ class _HandwritingScreenState extends ConsumerState<HandwritingScreen> {
     if (rec == null || r == null) return;
     final remote = ref.read(remoteEvaluationProvider);
     final title = context.tr(q.stem).replaceAll(RegExp(r'[*#$]'), '').split('\n').first;
+    // API mode: the script the AI marked is already on the server; ask a teacher to review it.
+    final tools = ref.read(remoteAiToolsProvider);
+    if (tools != null && _serverEvalId != null) {
+      try {
+        await tools.requestReview(_serverEvalId!);
+      } on ApiException catch (e) {
+        if (mounted) context.showErrorSnack(e);
+        return;
+      }
+      await ref.read(aiToolsProvider.notifier).linkSubmission(rec.id, _serverEvalId!);
+      if (mounted) {
+        setState(() => _record = rec.withSubmission(_serverEvalId!));
+        context.showSnack(AiToolStrings.reviewRequested);
+      }
+      return;
+    }
     if (remote != null) {
       try {
         await remote.send(RemoteEvaluation.recordFor(

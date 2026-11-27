@@ -8,6 +8,7 @@ import '../../app/router/app_routes.dart';
 import '../../core/l10n/tr.dart';
 import '../../core/mock/mock_simulator.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/network/network_providers.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/storage/local_store.dart';
 import '../../core/theme/app_spacing.dart';
@@ -19,7 +20,9 @@ import '../../shared/widgets/badges.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/feedback.dart';
 import '../../shared/widgets/section_header.dart';
+import '../ai_tools/remote_ai_tools.dart';
 import '../book_avatar/application/avatar_voice.dart';
+import '../curriculum/data/curriculum_repository.dart';
 import '../book_avatar/data/book_avatar_engine.dart';
 import '../book_avatar/data/book_catalog.dart';
 import '../curriculum/domain/curriculum_models.dart';
@@ -31,7 +34,7 @@ import '../question_bank/application/practice_controller.dart';
 
 abstract final class AudioStrings {
   static const title = Tr('অডিও রিভিশন', 'Audio revision');
-  static const hint = Tr('চলার পথে শুনে রিভিশন — প্রতিটি টপিকের ছোট অডিও লেসন (ডিভাইসের কণ্ঠে পড়ে শোনানো হয়)।', 'Revise on the go — short audio lessons per topic (read aloud with the device voice).');
+  static const hint = Tr('চলার পথে শুনে রিভিশন — প্রতিটি টপিকের ছোট অডিও লেসন।', 'Revise on the go — short audio lessons per topic.');
   static const continueListening = Tr('শোনা চালিয়ে যাও', 'Continue listening');
   static const favorites = Tr('প্রিয়', 'Favourites');
   static const all = Tr('সব লেসন', 'All lessons');
@@ -52,7 +55,7 @@ abstract final class AudioStrings {
   static const next = Tr('পরের লেসন', 'Next lesson');
   static const download = Tr('ডাউনলোড', 'Download');
   static const downloaded = Tr('ডাউনলোড করা', 'Downloaded');
-  static const generate = Tr('অডিও লেসন তৈরি করো (সিমুলেটেড AI)', 'Generate an audio lesson (simulated AI)');
+  static const generate = Tr('AI দিয়ে অডিও লেসন তৈরি করো', 'Generate an audio lesson with AI');
   static const generated = Tr('নতুন অডিও লেসন তৈরি হয়েছে', 'New audio lesson created');
   static const pickTopic = Tr('টপিক বেছে নাও', 'Pick a topic');
   static const sectionTitle = Tr('শিরোনাম', 'Title');
@@ -204,6 +207,15 @@ class AudioController extends Notifier<AudioState> {
   Future<void> toggleDownload(String id) => _save(state.copyWith(downloads: state.downloads.contains(id) ? ({...state.downloads}..remove(id)) : {...state.downloads, id}));
 
   Future<void> generate(String topicId) async {
+    final remote = ref.read(remoteAiToolsProvider);
+    if (remote != null) {
+      // API mode: the AI service writes a lesson for the topic's chapter (saved on the server).
+      final chapterId = ref.read(curriculumRepositoryProvider).findTopic(topicId)?.chapter.id;
+      if (chapterId == null) return;
+      await remote.audioLesson(chapterId);
+      ref.invalidate(serverAudioLessonsProvider);
+      return;
+    }
     await ref.read(mockSimulatorProvider).run(() {}, latencyFactor: 2);
     if (state.generatedTopics.contains(topicId)) return;
     await _save(state.copyWith(generatedTopics: [topicId, ...state.generatedTopics]));
@@ -212,8 +224,32 @@ class AudioController extends Notifier<AudioState> {
 
 final audioProvider = NotifierProvider<AudioController, AudioState>(AudioController.new);
 
-/// Every lesson: the textbook passages plus the student's generated ones.
+/// API mode: the server's lesson catalogue (chapter lessons, podcasts and AI-generated ones).
+final serverAudioLessonsProvider = FutureProvider<List<AudioLesson>?>((ref) async {
+  if (ref.watch(remoteAiToolsProvider) == null) return null;
+  final res = await ref.read(apiClientProvider).get('/audio-lessons', query: {'all': true}, parse: (d) => [for (final x in d! as List) (x as Map).cast<String, dynamic>()]);
+  return [for (final j in res.data) audioLessonFromApi(j)];
+});
+
+AudioLesson audioLessonFromApi(Map<String, dynamic> j) {
+  final title = j['title'];
+  return AudioLesson(
+    id: j['id'] as String,
+    title: title is Map ? Tr(title['bn'] as String? ?? '', title['en'] as String? ?? '') : Tr.same('$title'),
+    subjectId: j['subjectId'] as String? ?? '',
+    chapterId: j['chapterId'] as String? ?? '',
+    generated: j['kind'] == 'generated',
+    sections: [
+      for (final seg in j['segments'] as List? ?? const []) (Tr.same((seg as Map)['title'] as String? ?? ''), Tr.same(seg['text'] as String? ?? '')),
+    ],
+  );
+}
+
+/// Every lesson: the server's catalogue in API mode, else the textbook passages plus the
+/// student's generated ones.
 final audioLessonsProvider = Provider<List<AudioLesson>>((ref) {
+  final server = ref.watch(serverAudioLessonsProvider).value;
+  if (server != null) return [...server.where((l) => l.generated), ...server.where((l) => !l.generated)];
   final generated = ref.watch(audioProvider.select((s) => s.generatedTopics));
   final out = [for (final s in tutorScenarios) lessonFromScenario(s)];
   for (final id in generated) {

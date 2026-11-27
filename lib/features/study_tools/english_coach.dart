@@ -16,6 +16,7 @@ import '../../shared/widgets/rich_content.dart';
 import '../../shared/widgets/section_header.dart';
 import '../ai_tutor/data/ai_tutor_repository.dart';
 import '../ai_tutor/domain/tutor_models.dart';
+import '../ai_tools/remote_ai_tools.dart';
 import '../book_avatar/application/avatar_voice.dart';
 import '../flashcards/application/flashcards_controller.dart';
 
@@ -320,8 +321,34 @@ class EnglishCoachScreen extends ConsumerWidget {
   }
 }
 
-Future<String?> _coach(WidgetRef ref, BuildContext context, String text) async {
+/// AI writing feedback as Markdown, plus the overall score (API mode).
+String writingFeedbackText(Map<String, dynamic> f) {
+  final s = (f['scores'] as Map? ?? const {}).cast<String, dynamic>();
+  final issues = [for (final i in f['issues'] as List? ?? const []) (i as Map).cast<String, dynamic>()];
+  final strengths = [for (final x in f['strengths'] as List? ?? const []) '$x'];
+  return [
+    '**${f['overall']}/100** — Grammar ${s['grammar']} · Vocabulary ${s['vocabulary']} · Structure ${s['structure']} · Task ${s['task']}',
+    if (issues.isNotEmpty) '',
+    for (final i in issues) '- ~~${i['text']}~~ → **${i['fix'] ?? ''}** — ${i['why']}',
+    if (strengths.isNotEmpty) '',
+    for (final x in strengths) '- ✅ $x',
+  ].join('\n');
+}
+
+Future<String?> _coach(WidgetRef ref, BuildContext context, String text, {String kind = 'sentence', int minWords = 0, int maxWords = 1000, void Function(int overall)? onScore}) async {
   if (text.trim().isEmpty) return null;
+  final remote = ref.read(remoteAiToolsProvider);
+  if (remote != null) {
+    // API mode: the AI service checks the English (issues with fixes, scores).
+    try {
+      final f = await remote.writing(text, kind: kind, minWords: minWords, maxWords: maxWords);
+      onScore?.call(((f['overall'] as num?) ?? 0).round());
+      return writingFeedbackText(f);
+    } on ApiException catch (e) {
+      if (context.mounted) context.showErrorSnack(e);
+      return null;
+    }
+  }
   try {
     final r = await ref.read(mockSimulatorProvider).run(
       () => ref.read(mockTutorEngineProvider).answer(query: text, context: TutorContext(mode: TeachingMode.englishCoach, language: context.isBangla ? TutorLanguage.bn : TutorLanguage.en)),
@@ -408,7 +435,8 @@ class _WritingTabState extends ConsumerState<_WritingTab> {
               ? null
               : () async {
                   setState(() => _busy = true);
-                  final f = await _coach(ref, context, _c.text);
+                  int? aiScore;
+                  final f = await _coach(ref, context, _c.text, kind: _type, minWords: (target * 0.6).round(), maxWords: (target * 1.6).round(), onScore: (v) => aiScore = v);
                   if (!mounted) return;
                   setState(() {
                     _feedback = f;
@@ -416,7 +444,7 @@ class _WritingTabState extends ConsumerState<_WritingTab> {
                   });
                   if (f != null) {
                     final lengthScore = (_words / target).clamp(0.0, 1.0);
-                    await ref.read(englishProvider.notifier).record(EngSkill.writing, (50 + 50 * lengthScore).round());
+                    await ref.read(englishProvider.notifier).record(EngSkill.writing, aiScore ?? (50 + 50 * lengthScore).round());
                   }
                 },
           child: Text(context.tr(EngStrings.check)),

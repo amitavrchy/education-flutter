@@ -15,6 +15,7 @@ import '../../../core/network/network_providers.dart';
 import '../../../core/network/owner_sync.dart';
 import '../../progress/data/remote_progress.dart';
 import '../data/remote_notes.dart';
+import '../../ai_tools/remote_ai_tools.dart';
 
 /// Notes CRUD with autosave history, folders, tags, favourites, linking and generation.
 class NotesController extends Notifier<List<Note>> {
@@ -180,13 +181,21 @@ class NotesController extends Notifier<List<Note>> {
     await _collection.remove(id);
   }
 
-  // ── Generation (simulated AI) ──
+  // ── Generation (AI service in API mode; the local generator in the mock) ──
+
+  /// API mode: the note written by the AI service (HTML → the app's Markdown); null in the mock.
+  Future<({String title, String body})?> _aiNote(NoteType type, {String? chapterId, String? topicId, String? questionText, String? answerText, String? conversation}) async {
+    final remote = ref.read(remoteAiToolsProvider);
+    if (remote == null) return null;
+    final r = await remote.note(kind: NoteMapper.kindOf(type), chapterId: chapterId, topicId: topicId, questionText: questionText, answerText: answerText, conversation: conversation);
+    return (title: r.title, body: htmlToMarkdown(r.html));
+  }
 
   Future<Note> generateFromChapter(String chapterId, NoteType type, AppLanguage lang) async {
     final repo = ref.read(curriculumRepositoryProvider);
     final ch = repo.findChapter(chapterId)!;
     final topics = [for (final t in ch.chapter.topics) repo.findTopic(t.id)!];
-    final out = generator.fromTopics(scopeTitle: ch.chapter.title.of(lang), topics: topics, type: type, lang: lang);
+    final out = await _aiNote(type, chapterId: chapterId) ?? generator.fromTopics(scopeTitle: ch.chapter.title.of(lang), topics: topics, type: type, lang: lang);
     return create(
       title: out.title,
       body: out.body,
@@ -201,7 +210,7 @@ class NotesController extends Notifier<List<Note>> {
 
   Future<Note> generateFromTopic(String topicId, NoteType type, AppLanguage lang) async {
     final r = ref.read(curriculumRepositoryProvider).findTopic(topicId)!;
-    final out = generator.fromTopics(scopeTitle: r.topic.title.of(lang), topics: [r], type: type, lang: lang);
+    final out = await _aiNote(type, topicId: topicId) ?? generator.fromTopics(scopeTitle: r.topic.title.of(lang), topics: [r], type: type, lang: lang);
     return create(
       title: out.title,
       body: out.body,
@@ -215,7 +224,7 @@ class NotesController extends Notifier<List<Note>> {
   }
 
   Future<Note> generateFromQuestion(Question q, AppLanguage lang) async {
-    final out = generator.fromQuestion(q, lang);
+    final out = await _aiNote(NoteType.importantQuestions, questionText: q.stem.of(lang), answerText: q.answer.of(lang)) ?? generator.fromQuestion(q, lang);
     return create(
       title: out.title,
       body: out.body,
@@ -229,7 +238,7 @@ class NotesController extends Notifier<List<Note>> {
   }
 
   Future<Note> generateFromConversation(Conversation c, AppLanguage lang) async {
-    final out = generator.fromConversation(c, lang);
+    final out = await _aiNote(NoteType.detailed, conversation: [for (final m in c.messages) '${m.role == ChatRole.user ? 'Student' : 'Tutor'}: ${m.text}'].join('\n')) ?? generator.fromConversation(c, lang);
     return create(
       title: out.title,
       body: out.body,

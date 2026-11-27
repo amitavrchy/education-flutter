@@ -9,6 +9,7 @@ import 'package:shikkhaai_mobile/core/network/owner_sync.dart';
 import 'package:shikkhaai_mobile/features/account/account_controller.dart';
 import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
 import 'package:shikkhaai_mobile/features/ai_tutor/data/remote_tutor.dart';
+import 'package:shikkhaai_mobile/features/ai_tools/remote_ai_tools.dart';
 import 'package:shikkhaai_mobile/features/archives/archive_data.dart';
 import 'package:shikkhaai_mobile/features/archives/remote_archive.dart';
 import 'package:shikkhaai_mobile/features/auth/data/auth_repository.dart';
@@ -285,4 +286,16 @@ void main() {
     expect(prefs.examDate.year, greaterThan(2025));
     expect(prefs.dailyMinutes, doc['dailyMinutes']);
   }, skip: !live);
+
+  test('AI tools: typed solve, voice reply, English feedback and speech through education-ai', () async {
+    final api = client(await student());
+    final tools = RemoteAiTools(api, 'u-student-1');
+    expect(await tools.solve('A car starts from rest with a = 2 m/s². Find v after 5 s.'), contains('10'));
+    final reply = await tools.voiceReply(text: 'ত্বরণ কী একটু সহজ করে বলো', oralExam: false, language: 'bn');
+    expect(reply.text, isNotEmpty);
+    final f = await tools.writing('I goes to school every day.', kind: 'sentence');
+    expect(f['issues'], isNotEmpty);
+    final speech = (await api.post('/speech', body: {'text': 'আসসালামু আলাইকুম', 'language': 'bn'}, parse: (d) => (d! as Map).cast<String, dynamic>())).data;
+    expect(speech['mediaType'], 'audio/wav');
+  }, skip: !live, timeout: const Timeout(Duration(minutes: 3)));
 }

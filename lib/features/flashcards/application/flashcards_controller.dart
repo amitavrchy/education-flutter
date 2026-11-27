@@ -16,6 +16,7 @@ import '../../question_bank/domain/question.dart';
 import '../domain/flashcard.dart';
 import '../../../core/network/network_providers.dart';
 import '../../../core/network/owner_sync.dart';
+import '../../ai_tools/remote_ai_tools.dart';
 import '../../progress/data/remote_progress.dart';
 import '../data/remote_flashcards.dart';
 
@@ -233,7 +234,9 @@ class FlashcardsController extends Notifier<FlashcardState> {
 
   Future<Deck?> generateFromChapter(String chapterId, AppLanguage lang) async {
     final ch = ref.read(curriculumRepositoryProvider).findChapter(chapterId);
-    final cards = cardsForChapter(chapterId, lang);
+    // API mode: the AI service writes the cards from the chapter's textbook passages.
+    final remote = ref.read(remoteAiToolsProvider);
+    final cards = remote != null ? [for (final c in await remote.flashcards(chapterId)) (c.front, c.back)] : cardsForChapter(chapterId, lang);
     if (ch == null || cards.isEmpty) return null;
     return createDeck(ch.chapter.title.of(lang), source: DeckSource.chapter, subjectId: ch.subject.id, chapterId: chapterId, cards: cards, ai: true);
   }
