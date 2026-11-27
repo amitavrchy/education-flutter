@@ -125,6 +125,7 @@ class _AvatarClassroomScreenState extends ConsumerState<AvatarClassroomScreen> {
     });
     _startMouth();
     final a = _avatar;
+    if (_voice case final ServerSpeechAvatarVoice server) server.gender = a.appearance.gender.name;
     final spoke = !_muted && await _voice.speak(text, lang: a.voice.language, rate: _rate, pitch: a.voice.pitch, onWord: () => _boost = 0.35);
     if (!spoke && id == _speechId) {
       if (!_muted && mounted) setState(() => _noVoice = true);

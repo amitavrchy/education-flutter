@@ -1,12 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
-/// Voice I/O for the avatar teacher: device text-to-speech for answers and speech-to-text for
-/// questions. The API only exchanges text, so a server TTS/STT can replace this later.
+import '../../../core/config/env.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/network_providers.dart';
+
+/// Voice I/O for the avatar teacher (also the voice tutor, audio lessons and English coach):
+/// text-to-speech for answers and device speech-to-text for questions. In API mode Bangla speech
+/// comes from the server (see [ServerSpeechAvatarVoice]).
 abstract class AvatarVoice {
   /// Speaks [text]; completes when speech ends. [onWord] fires on word boundaries (lip-sync).
   /// Returns false when the device cannot speak this language (the avatar then lip-syncs
@@ -155,7 +162,79 @@ class SilentAvatarVoice extends AvatarVoice {
 }
 
 final avatarVoiceProvider = Provider<AvatarVoice>((ref) {
-  final voice = DeviceAvatarVoice();
+  final voice = Env.useMockApi ? DeviceAvatarVoice() : ServerSpeechAvatarVoice(ref.watch(apiClientProvider));
   ref.onDispose(voice.dispose);
   return voice;
 });
+
+/// API mode: Bangla (and any language the phone has no voice for) is spoken with server-made
+/// speech (`POST /speech`, education-ai Gemini TTS); everything else uses the device voice.
+/// Lip-sync gets a steady word rhythm while the audio plays.
+class ServerSpeechAvatarVoice extends DeviceAvatarVoice {
+  ServerSpeechAvatarVoice(this._api, {AudioPlayer? player}) : _player = player ?? AudioPlayer();
+
+  final ApiClient _api;
+  final AudioPlayer _player;
+  final Map<String, Uint8List> _cache = {};
+  int _turn = 0;
+  Timer? _rhythm;
+
+  /// Female or male teacher voice for the next utterances (the avatar's look decides).
+  String gender = 'female';
+
+  Future<Uint8List> _audio(String text, String lang) async {
+    final key = '$gender|$lang|$text';
+    final hit = _cache[key];
+    if (hit != null) return hit;
+    final res = await _api.post('/speech', body: {'text': text.length > 2500 ? text.substring(0, 2500) : text, 'language': lang, 'voice': gender}, parse: (d) => (d! as Map).cast<String, dynamic>());
+    final bytes = base64Decode(res.data['data'] as String);
+    if (_cache.length >= 30) _cache.remove(_cache.keys.first);
+    return _cache[key] = bytes;
+  }
+
+  @override
+  Future<bool> speak(String text, {required String lang, double rate = 1, double pitch = 1, VoidCallback? onWord}) async {
+    final short = lang == 'en' ? 'en' : 'bn';
+    if (short == 'en' && await super.speak(text, lang: lang, rate: rate, pitch: pitch, onWord: onWord)) return true;
+    await stopSpeaking();
+    final turn = ++_turn;
+    try {
+      final bytes = await _audio(text, short);
+      if (turn != _turn) return true;
+      final done = Completer<void>();
+      final sub = _player.onPlayerComplete.listen((_) => done.isCompleted ? null : done.complete());
+      _rhythm = Timer.periodic(const Duration(milliseconds: 320), (_) => onWord?.call());
+      await _player.setPlaybackRate(rate.clamp(0.5, 2.0));
+      await _player.play(kIsWeb ? UrlSource('data:audio/wav;base64,${base64Encode(bytes)}') : BytesSource(bytes, mimeType: 'audio/wav'));
+      await done.future;
+      await sub.cancel();
+      return true;
+    } on Object {
+      return false;
+    } finally {
+      if (turn == _turn) {
+        _rhythm?.cancel();
+        _rhythm = null;
+      }
+    }
+  }
+
+  @override
+  Future<void> stopSpeaking() async {
+    _turn++;
+    _rhythm?.cancel();
+    _rhythm = null;
+    try {
+      await _player.stop();
+    } on Object {
+      // Nothing playing.
+    }
+    await super.stopSpeaking();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    unawaited(_player.dispose());
+  }
+}
