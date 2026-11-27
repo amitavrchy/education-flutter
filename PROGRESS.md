@@ -138,9 +138,14 @@ running in demo mode.
 - Teacher portal: classes from class groups and institution members, assignments and grading,
   answer-script review, shared resources, student feedback; content review queue and rubrics.
 
-Stays on the device by design: offline downloads, audio lessons (generated on the phone; the web
-has a different lesson catalogue), board/institution paper archive (demo papers), AI tool history,
-the book avatar, friend challenges (the server's model differs) and app preferences.
+Since then (2026-11-27): book avatar, paper archive, practice sets and planner settings sync; the
+AI tools use the backend (education-ai, Gemini): photo solver, answer-script transcription and
+marking, voice tutor / oral exam, AI notes and chapter flashcards, English writing feedback, and
+audio lessons from the server catalogue. Bangla speech comes from `POST /speech` (Gemini TTS)
+because many phones have no Bangla voice. Checkout is the manual bKash/Nagad/Rocket/Upay flow.
+
+Still on the device by design: offline downloads, friend challenges, pronunciation scoring (word
+match on the device's speech recognition) and app preferences.
 231 tests; live suite 16/16 (`LIVE_API=1 flutter test test/live`, backend in demo mode).
 
 ## Continue on another PC
