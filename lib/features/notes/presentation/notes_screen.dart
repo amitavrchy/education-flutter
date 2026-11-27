@@ -174,7 +174,7 @@ class _NoteCard extends ConsumerWidget {
                   Pill(context.tr(n.type.label)),
                   if (n.folder != null) Pill(n.folder!, icon: Icons.folder_outlined),
                   for (final t in n.tags) Pill('#$t', tone: Tone.info),
-                  if (n.aiGenerated) const DemoBadge(label: NotesStrings.aiLabel),
+                  if (n.aiGenerated) DemoBadge(label: NotesStrings.aiLabel),
                   Pill(context.tr(NotesStrings.updated.fill({'t': relativeTime(n.updatedAt, context.lang)}))),
                 ],
               ),

@@ -1,3 +1,4 @@
+import '../../core/config/env.dart';
 import '../../core/l10n/tr.dart';
 
 abstract final class FcStrings {
@@ -48,7 +49,7 @@ abstract final class FcStrings {
     'সরলীকৃত স্পেসড রিপিটিশন: “আবার” দিলে ১০ মিনিট পরে, “ভালো” দিলে ১ → ৩ → ক্রমশ বেশি দিন পরে আবার আসবে।',
     'Simplified spaced repetition: “Again” brings a card back in 10 minutes; “Good” spaces it 1 → 3 → more days.',
   );
-  static const aiDeck = Tr('AI-তৈরি (সিমুলেটেড)', 'AI-generated (simulated)');
+  static Tr get aiDeck => Env.useMockApi ? const Tr('AI-তৈরি (সিমুলেটেড)', 'AI-generated (simulated)') : const Tr('AI-তৈরি', 'AI-generated');
   static const days = Tr('{n} দিন', '{n} days');
   static const minutes10 = Tr('১০ মিনিট', '10 min');
 }

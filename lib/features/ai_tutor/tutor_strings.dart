@@ -1,3 +1,4 @@
+import '../../core/config/env.dart';
 import '../../core/l10n/tr.dart';
 
 abstract final class TutorStrings {
@@ -20,10 +21,15 @@ abstract final class TutorStrings {
   static const emptyTitle = Tr('এখনো কোনো কথোপকথন নেই', 'No conversations yet');
   static const emptyHint = Tr('যেকোনো বিষয়ে প্রশ্ন করে শুরু করো।', 'Start by asking about any subject.');
   static const bookmarkedAnswers = Tr('সংরক্ষিত উত্তর', 'Saved answers');
-  static const transparency = Tr(
-    'সিমুলেটেড AI: উত্তরগুলো ডেমো জ্ঞানভাণ্ডার ও নমুনা পাঠ্যবই থেকে তৈরি। গুরুত্বপূর্ণ তথ্য বই ও শিক্ষকের সাথে মিলিয়ে নাও।',
-    'Simulated AI: answers come from a demo knowledge base and sample textbooks. Check important facts with your book and teacher.',
-  );
+  static Tr get transparency => Env.useMockApi
+      ? const Tr(
+          'সিমুলেটেড AI: উত্তরগুলো ডেমো জ্ঞানভাণ্ডার ও নমুনা পাঠ্যবই থেকে তৈরি। গুরুত্বপূর্ণ তথ্য বই ও শিক্ষকের সাথে মিলিয়ে নাও।',
+          'Simulated AI: answers come from a demo knowledge base and sample textbooks. Check important facts with your book and teacher.',
+        )
+      : const Tr(
+          'AI উত্তর পাঠ্যবইয়ের অংশ থেকে লেখা হয়, তবু ভুল হতে পারে। গুরুত্বপূর্ণ তথ্য বই ও শিক্ষকের সাথে মিলিয়ে নাও।',
+          'AI answers are written from textbook passages but can still be wrong. Check important facts with your book and teacher.',
+        );
   static const askHint = Tr('প্রশ্ন লেখো…', 'Ask a question…');
   static const send = Tr('পাঠাও', 'Send');
   static const stop = Tr('থামাও', 'Stop');

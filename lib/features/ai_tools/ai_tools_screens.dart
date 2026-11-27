@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/router/app_routes.dart';
+import '../../core/config/env.dart';
 import '../../core/l10n/tr.dart';
 import '../../core/mock/mock_simulator.dart';
 import '../../core/network/api_exception.dart';
@@ -63,7 +64,7 @@ abstract final class AiToolStrings {
   static const camera = Tr('ক্যামেরা', 'Camera');
   static const gallery = Tr('গ্যালারি', 'Gallery');
   static const demoImage = Tr('নমুনা ছবি (ডেমো)', 'Sample image (demo)');
-  static const reading = Tr('লেখা পড়ছি (সিমুলেটেড OCR)…', 'Reading text (simulated OCR)…');
+  static Tr get reading => Env.useMockApi ? const Tr('লেখা পড়ছি (সিমুলেটেড OCR)…', 'Reading text (simulated OCR)…') : const Tr('AI লেখা পড়ছে…', 'AI is reading the text…');
   static const extracted = Tr('পড়া লেখা — দরকার হলে ঠিক করো', 'Extracted text — correct it if needed');
   static const detected = Tr('শনাক্ত বিষয়: {s}', 'Detected subject: {s}');
   static const solve = Tr('সমাধান দাও', 'Solve');

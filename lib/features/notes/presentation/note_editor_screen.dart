@@ -146,7 +146,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           Pill(context.tr(note.source.label)),
                           if (note.folder != null) Pill(note.folder!, icon: Icons.folder_outlined),
                           for (final t in note.tags) Pill('#$t', tone: Tone.info),
-                          if (note.aiGenerated) const DemoBadge(label: NotesStrings.aiLabel),
+                          if (note.aiGenerated) DemoBadge(label: NotesStrings.aiLabel),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),

@@ -1,3 +1,4 @@
+import '../../core/config/env.dart';
 import '../../core/l10n/tr.dart';
 
 abstract final class NotesStrings {
@@ -32,7 +33,7 @@ abstract final class NotesStrings {
     'Print-ready layout. The demo does not create a real PDF file — use your device’s print or screenshot.',
   );
   static const deleteConfirm = Tr('নোট মুছবে?', 'Delete note?');
-  static const aiLabel = Tr('AI-তৈরি (সিমুলেটেড)', 'AI-generated (simulated)');
+  static Tr get aiLabel => Env.useMockApi ? const Tr('AI-তৈরি (সিমুলেটেড)', 'AI-generated (simulated)') : const Tr('AI-তৈরি', 'AI-generated');
   static const generateTitle = Tr('AI নোট তৈরি', 'Generate notes');
   static const from = Tr('উৎস', 'Source');
   static const fromChapter = Tr('অধ্যায়', 'Chapter');

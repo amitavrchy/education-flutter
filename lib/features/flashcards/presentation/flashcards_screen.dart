@@ -250,7 +250,7 @@ class _DeckScreenState extends ConsumerState<DeckScreen> {
           ),
           if (deck.source == DeckSource.chapter || deck.source == DeckSource.conversation) ...[
             const SizedBox(height: AppSpacing.sm),
-            const Align(alignment: AlignmentDirectional.centerStart, child: DemoBadge(label: FcStrings.aiDeck)),
+            Align(alignment: AlignmentDirectional.centerStart, child: DemoBadge(label: FcStrings.aiDeck)),
           ],
           const SizedBox(height: AppSpacing.md),
           DebouncedSearchField(hint: context.tr(FcStrings.searchCards), onChanged: (q) => setState(() => _query = q)),
