@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shikkhaai_mobile/core/l10n/tr.dart';
 import 'package:shikkhaai_mobile/core/network/api_client.dart';
+import 'package:shikkhaai_mobile/core/network/api_exception.dart';
 import 'package:shikkhaai_mobile/core/network/owner_sync.dart';
 import 'package:shikkhaai_mobile/features/account/account_controller.dart';
 import 'package:shikkhaai_mobile/features/account/remote_billing.dart';
@@ -73,11 +74,15 @@ void main() {
     expect(items.every((n) => RemoteNotifications.isServerId(n.id)), isTrue);
   }, skip: !live);
 
-  test('billing: /billing/me parses and the declining test card fails', () async {
+  test('billing: /billing/me parses; manual payments need a valid transaction id', () async {
     final billing = RemoteBilling(client(await student()));
     final state = RemoteBilling.apply(const AccountState(), await billing.me());
     expect(state.invoices, isNotEmpty);
-    expect(await billing.checkout(plan: PlanCode.pro, yearly: false, method: 'Card', account: '4000000000000002'), 'failed');
+    await billing.walletNumbers(); // reachable (empty until an admin sets the numbers)
+    await expectLater(
+      billing.submitManual(plan: PlanCode.pro, yearly: false, method: 'bkash', sender: '01811111111', transactionId: 'x'),
+      throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 422)),
+    );
   }, skip: !live);
 
   test('full catalog sync: every server question points at a mapped chapter and topic', () async {

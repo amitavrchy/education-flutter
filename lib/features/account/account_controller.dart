@@ -216,6 +216,13 @@ class AccountController extends Notifier<AccountState> {
     return state.invoices.firstOrNull ?? Invoice('pending', plan, yearly, 0, method, DateTime.now());
   }
 
+  /// API mode: submits a manual wallet payment for an admin to verify; the plan changes after that.
+  Future<Map<String, dynamic>> submitManualPayment({required PlanCode plan, required bool yearly, required String method, required String sender, required String transactionId, Coupon? coupon}) async {
+    final payment = await _billing!.submitManual(plan: plan, yearly: yearly, method: method, sender: sender, transactionId: transactionId, coupon: coupon?.code);
+    ref.invalidate(awaitingPaymentProvider);
+    return payment;
+  }
+
   Future<Invoice> _mockCheckout({required PlanCode plan, required bool yearly, required String method, required String account, Coupon? coupon}) => _sim.run(() async {
     if (account.replaceAll(' ', '') == '4000000000000002') {
       throw const ApiException(statusCode: 402, code: 'PAYMENT_DECLINED', message: 'পেমেন্ট প্রত্যাখ্যাত হয়েছে (টেস্ট কার্ড)।');
@@ -276,5 +283,14 @@ class AccountController extends Notifier<AccountState> {
 
 /// Server billing in API mode; null with the mock.
 final remoteBillingProvider = Provider<RemoteBilling?>((ref) => Env.useMockApi ? null : RemoteBilling(ref.watch(apiClientProvider)));
+
+/// API mode: wallet numbers for manual payments (empty with the mock).
+final walletNumbersProvider = FutureProvider<List<WalletNumber>>((ref) async => await ref.watch(remoteBillingProvider)?.walletNumbers() ?? const []);
+
+/// API mode: the payment waiting for admin verification, if any.
+final awaitingPaymentProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  final billing = ref.watch(remoteBillingProvider);
+  return billing == null ? null : RemoteBilling.awaitingVerification(await billing.me());
+});
 
 final accountProvider = NotifierProvider<AccountController, AccountState>(AccountController.new);

@@ -63,8 +63,6 @@ class ApiAuthRepository implements AuthRepository {
         'identifier': identifier,
         'channel': identifier.contains('@') ? 'email' : 'phone',
         'role': role.pathSegment,
-        // Any age signs up alone; the API still records the flag.
-        'under18': false,
         if (password.isNotEmpty) 'password': password,
       },
       parse: _map,

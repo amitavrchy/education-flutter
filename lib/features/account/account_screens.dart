@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -17,6 +18,7 @@ import '../parent/remote_guardian.dart' show studentLinkCodeProvider;
 import '../profile/application/student_profile_controller.dart';
 import '../settings/learning_prefs.dart' show ProfileAvatar;
 import 'account_controller.dart';
+import 'remote_billing.dart';
 
 abstract final class AccStrings {
   static const profile = Tr('প্রোফাইল', 'Profile');
@@ -212,8 +214,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   bool _yearly = false;
 
   Future<void> _checkout(Plan plan) async {
-    final ok = await showModalBottomSheet<bool>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => _CheckoutSheet(plan: plan, yearly: _yearly));
-    if (ok == true && mounted) context.showSnack(AccStrings.paid);
+    final manual = ref.read(remoteBillingProvider) != null;
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => manual ? _ManualCheckoutSheet(plan: plan, yearly: _yearly) : _CheckoutSheet(plan: plan, yearly: _yearly),
+    );
+    if (ok == true && mounted) context.showSnack(manual ? _ManualStrings.submitted : AccStrings.paid);
   }
 
   @override
@@ -222,11 +230,21 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final ctrl = ref.read(accountProvider.notifier);
     final text = Theme.of(context).textTheme;
     final current = planOf(acc.plan);
+    final awaiting = ref.watch(awaitingPaymentProvider).value;
     return AppPageScaffold(
       title: context.tr(AccStrings.subscription),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (awaiting != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: InfoBanner(
+                key: const Key('subscription.awaiting'),
+                icon: Icons.hourglass_top,
+                message: context.tr(_ManualStrings.awaiting.fill({'trx': '${awaiting['transactionId'] ?? ''}', 'inv': '${awaiting['invoiceNo'] ?? ''}'})),
+              ),
+            ),
           Card(
             margin: EdgeInsets.zero,
             child: ListTile(
@@ -288,6 +306,173 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           const SizedBox(height: AppSpacing.sm),
           InfoBanner(message: context.tr(AccStrings.demoPay)),
         ],
+      ),
+    );
+  }
+}
+
+abstract final class _ManualStrings {
+  static const submitted = Tr('যাচাইয়ের জন্য জমা হয়েছে — অ্যাডমিন যাচাই করলে প্ল্যান চালু হবে', 'Submitted — your plan activates once an admin verifies it');
+  static const awaiting = Tr('পেমেন্ট {inv} (TrxID {trx}) যাচাইয়ের অপেক্ষায়। অ্যাডমিন যাচাই করলেই প্ল্যান চালু হবে।', 'Payment {inv} (TrxID {trx}) is awaiting verification. Your plan activates once an admin verifies it.');
+  static const intro = Tr('বিকাশ, নগদ, রকেট বা উপায়ে টাকা পাঠিয়ে ট্রানজেকশন আইডি দাও।', 'Send the amount by bKash, Nagad, Rocket or Upay and enter the transaction ID.');
+  static const sendTo = Tr('{method} থেকে ৳{n} পাঠাও এই নম্বরে:', 'Send ৳{n} with {method} to:');
+  static const sender = Tr('যে নম্বর থেকে টাকা পাঠিয়েছ', 'Number you sent from');
+  static const trx = Tr('ট্রানজেকশন আইডি (TrxID)', 'Transaction ID (TrxID)');
+  static const submit = Tr('যাচাইয়ের জন্য জমা দাও', 'Submit for verification');
+  static const notSetUp = Tr('পেমেন্ট গ্রহণ এখনো চালু হয়নি। পরে আবার চেষ্টা করো।', "Payments aren't set up yet. Please try again later.");
+  static const badSender = Tr('সঠিক ১১ সংখ্যার মোবাইল নম্বর দাও', 'Enter a valid 11-digit mobile number');
+  static const badTrx = Tr('ট্রানজেকশন আইডি ৬–২০ অক্ষর/সংখ্যা', 'The transaction ID is 6–20 letters/digits');
+  static const copied = Tr('নম্বর কপি হয়েছে', 'Number copied');
+  static const accountType = {
+    'personal': Tr('পার্সোনাল — সেন্ড মানি', 'Personal — Send Money'),
+    'agent': Tr('এজেন্ট — ক্যাশ ইন', 'Agent — Cash In'),
+    'merchant': Tr('মার্চেন্ট — পেমেন্ট', 'Merchant — Payment'),
+  };
+}
+
+/// Manual wallet payment (API mode): send money to the shown number, then submit the payer's
+/// number and the transaction id; an admin verifies it before the plan changes.
+class _ManualCheckoutSheet extends ConsumerStatefulWidget {
+  const _ManualCheckoutSheet({required this.plan, required this.yearly});
+
+  final Plan plan;
+  final bool yearly;
+
+  @override
+  ConsumerState<_ManualCheckoutSheet> createState() => _ManualCheckoutSheetState();
+}
+
+class _ManualCheckoutSheetState extends ConsumerState<_ManualCheckoutSheet> {
+  String? _method;
+  final _sender = TextEditingController();
+  final _trx = TextEditingController();
+  final _coupon = TextEditingController();
+  Coupon? _applied;
+  String? _error;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _sender.dispose();
+    _trx.dispose();
+    _coupon.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final price = widget.yearly ? widget.plan.yearly : widget.plan.monthly;
+    final (total, discount) = priceWithCoupon(price, _applied);
+    final ctrl = ref.read(accountProvider.notifier);
+    final numbers = ref.watch(walletNumbersProvider);
+    final list = numbers.value ?? const <WalletNumber>[];
+    final active = list.where((w) => w.method == _method).firstOrNull ?? list.firstOrNull;
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('${context.tr(AccStrings.checkout)} — ${context.tr(widget.plan.name)}', style: text.titleMedium),
+            const SizedBox(height: AppSpacing.xs),
+            Text(context.tr(_ManualStrings.intro), style: text.bodySmall),
+            const SizedBox(height: AppSpacing.md),
+            if (numbers.isLoading) const LinearProgressIndicator(),
+            if (numbers.hasValue && list.isEmpty) InfoBanner(message: context.tr(_ManualStrings.notSetUp), icon: Icons.info_outline),
+            if (active != null) ...[
+              Wrap(
+                spacing: AppSpacing.xs,
+                children: [
+                  for (final w in list)
+                    ChoiceChip(key: Key('manual.method.${w.method}'), label: Text(RemoteBilling.methodLabel(w.method)), selected: active.method == w.method, onSelected: (_) => setState(() => _method = w.method)),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(context.tr(_ManualStrings.sendTo.fill({'method': RemoteBilling.methodLabel(active.method), 'n': total}))),
+                      Row(
+                        children: [
+                          Expanded(child: SelectableText(active.number, key: const Key('manual.number'), style: text.titleLarge)),
+                          IconButton(
+                            icon: const Icon(Icons.copy),
+                            onPressed: () async {
+                              await Clipboard.setData(ClipboardData(text: active.number));
+                              if (context.mounted) context.showSnack(_ManualStrings.copied);
+                            },
+                          ),
+                        ],
+                      ),
+                      Text(
+                        [context.tr(_ManualStrings.accountType[active.accountType] ?? _ManualStrings.accountType['personal']!), if (active.instructions.isNotEmpty) active.instructions].join(' · '),
+                        style: text.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(key: const Key('manual.sender'), controller: _sender, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: context.tr(_ManualStrings.sender), hintText: '01XXXXXXXXX')),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(key: const Key('manual.trx'), controller: _trx, textCapitalization: TextCapitalization.characters, decoration: InputDecoration(labelText: context.tr(_ManualStrings.trx))),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: _coupon, decoration: InputDecoration(labelText: context.tr(AccStrings.coupon)))),
+                  TextButton(
+                    onPressed: () {
+                      try {
+                        setState(() {
+                          _applied = ctrl.validateCoupon(_coupon.text, widget.plan.code);
+                          _error = null;
+                        });
+                      } on ApiException catch (e) {
+                        setState(() {
+                          _applied = null;
+                          _error = e.message;
+                        });
+                      }
+                    },
+                    child: Text(context.tr(AccStrings.apply)),
+                  ),
+                ],
+              ),
+            ],
+            if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            const SizedBox(height: AppSpacing.sm),
+            if (discount > 0) Text(context.tr(AccStrings.discount.fill({'n': discount}))),
+            Text(context.tr(AccStrings.total.fill({'n': total})), style: text.titleLarge),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton(
+              key: const Key('manual.submit'),
+              onPressed: _busy || active == null
+                  ? null
+                  : () async {
+                      final sender = _sender.text.replaceAll(RegExp(r'[\s-]'), '');
+                      final trx = _trx.text.trim().toUpperCase();
+                      if (!RegExp(r'^(\+?88)?01[3-9]\d{8}$').hasMatch(sender)) return setState(() => _error = context.tr(_ManualStrings.badSender));
+                      if (!RegExp(r'^[A-Z0-9]{6,20}$').hasMatch(trx)) return setState(() => _error = context.tr(_ManualStrings.badTrx));
+                      setState(() => _busy = true);
+                      try {
+                        await ctrl.submitManualPayment(plan: widget.plan.code, yearly: widget.yearly, method: active.method, sender: sender, transactionId: trx, coupon: _applied);
+                        if (context.mounted) Navigator.pop(context, true);
+                      } on ApiException catch (e) {
+                        setState(() => _error = e.message);
+                      } finally {
+                        if (mounted) setState(() => _busy = false);
+                      }
+                    },
+              child: _busy ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.tr(_ManualStrings.submit)),
+            ),
+          ],
+        ),
       ),
     );
   }
